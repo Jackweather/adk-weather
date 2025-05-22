@@ -1,0 +1,108 @@
+import os
+import requests
+from datetime import datetime, timedelta
+import xarray as xr
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+import cartopy.crs as ccrs
+import cartopy.feature as cfeature
+from matplotlib.colors import Normalize
+import numpy as np
+
+# --- Clean up old files in grib_files and pngs directories ---
+for folder in [
+    os.path.join("Hrrr", "static", "lighting", "grib_files"),
+    os.path.join("Hrrr", "static", "lighting")
+]:
+    if os.path.exists(folder):
+        for f in os.listdir(folder):
+            file_path = os.path.join(folder, f)
+            if os.path.isfile(file_path):
+                os.remove(file_path)
+
+# Directories
+output_dir = os.path.join("Hrrr", "static", "lighting")
+grib_dir = os.path.join(output_dir, "grib_files")
+os.makedirs(grib_dir, exist_ok=True)
+os.makedirs(output_dir, exist_ok=True)
+
+base_url = "https://nomads.ncep.noaa.gov/cgi-bin/filter_hrrr_2d.pl"
+
+# Get the current UTC date and time and subtract 6 hours
+current_utc_time = datetime.utcnow() - timedelta(hours=6)
+date_str = current_utc_time.strftime("%Y%m%d")
+hour_str = str(current_utc_time.hour // 6 * 6).zfill(2)  # Adjust to nearest 6-hour slot
+
+# Lightning variable
+variable_ltng = "LTNG"
+
+# Function to download GRIB files
+def download_file(hour_str, step):
+    file_name = f"hrrr.t{hour_str}z.wrfsfcf{step:02d}.grib2"
+    file_path = os.path.join(grib_dir, file_name)
+    url_ltng = (f"{base_url}?dir=%2Fhrrr.{date_str}%2Fconus&file={file_name}"
+                f"&var_{variable_ltng}=on&lev_entire_atmosphere=on")
+    response = requests.get(url_ltng, stream=True)
+    if response.status_code == 200:
+        with open(file_path, 'wb') as f:
+            for chunk in response.iter_content(chunk_size=1024):
+                if chunk:
+                    f.write(chunk)
+        return file_path
+    else:
+        print(f"Failed to download {file_name} (Status Code: {response.status_code})")
+        return None
+
+# Function to generate a PNG from GRIB file using xarray
+def generate_lightning_png(file_path, step):
+    try:
+        ds = xr.open_dataset(file_path, engine="cfgrib")
+        # Try to find the lightning variable (name may vary: 'ltng', 'LTNG', or similar)
+        for var in ds.data_vars:
+            if var.lower().startswith("ltng") or "lightning" in var.lower():
+                lightning_var = var
+                break
+        else:
+            raise ValueError("Lightning variable not found in GRIB file.")
+
+        data = ds[lightning_var].squeeze().values * 100  # Convert to percentage
+        lats = ds['latitude'].values
+        lons = ds['longitude'].values
+
+        plt.figure(figsize=(14, 12), dpi=200)
+        ax = plt.axes(projection=ccrs.Mercator())
+        ax.set_title("Enhanced Lightning Activity (%)", fontsize=20, pad=20)
+        ax.coastlines(resolution='110m', linewidth=1.2)
+        ax.add_feature(cfeature.BORDERS, linestyle='-', linewidth=0.8)
+        ax.add_feature(cfeature.STATES, linestyle=':', linewidth=0.8)
+
+        lightning_contour = plt.contourf(
+            lons, lats, data,
+            levels=np.linspace(0, 50, 31),
+            cmap="plasma",
+            norm=Normalize(vmin=0, vmax=50),
+            transform=ccrs.PlateCarree()
+        )
+
+        cbar = plt.colorbar(lightning_contour, orientation="horizontal", pad=0.05, aspect=50, shrink=0.9)
+        cbar.set_label("Lightning Activity (%)", fontsize=16)
+
+        plt.axis('off')
+        plt.tight_layout()
+        png_path = os.path.join(output_dir, f"LIGHTNING_{step:02d}.png")
+        plt.savefig(png_path, bbox_inches='tight', pad_inches=0, transparent=True)
+        plt.close()
+        print(f"Generated lightning PNG: {png_path}")
+        return png_path
+    except Exception as e:
+        print(f"Error processing {file_path}: {e}")
+        return None
+
+# Main process: Download and plot
+for step in range(0, 49):  # Loop through forecast steps (00 to 48 hours)
+    grib_file = download_file(hour_str, step)
+    if grib_file:
+        generate_lightning_png(grib_file, step)
+
+print("All lightning GRIB file download and PNG creation tasks complete!")

@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>USA Reflectivity Overlay</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <style>
+    #map { height: 90vh; width: 100vw; background: #fff; }
+    #slider-container {
+      position: absolute;
+      left: 50%;
+      bottom: 30px;
+      transform: translateX(-50%);
+      background: rgba(255,255,255,0.8);
+      padding: 10px 20px;
+      border-radius: 8px;
+      z-index: 1000;
+      text-align: center;
+    }
+    #hour-label {
+      font-family: monospace;
+      font-size: 1.2em;
+      margin-left: 10px;
+    }
+  </style>
+</head>
+<body>
+<div id="map" style="height: 600px;"></div>
+
+<!-- Colorbars for each overlay, hidden by default -->
+<div id="colorbars-container" style="text-align:center; margin-top:10px;">
+    <div id="colorbar-refc" style="display:none;">
+        <img src="/colorbar/REFC_colorbar.png" alt="REFC Color Bar" style="max-width: 800px; width: 100%; height: auto;">
+    </div>
+    <div id="colorbar-temp" style="display:none;">
+        <img src="/colorbar/TEMP_colorbar.png" alt="TEMP Color Bar" style="max-width: 800px; width: 100%; height: auto;">
+    </div>
+    <div id="colorbar-lightning" style="display:none;">
+        <img src="/colorbar/LIGHTNING_colorbar.png" alt="LIGHTNING Color Bar" style="max-width: 800px; width: 100%; height: auto;">
+    </div>
+</div>
+
+<div id="slider-container" style="display:none;">
+  <input type="range" id="hour-slider" min="0" max="0" value="0" step="1">
+  <span id="hour-label"></span>
+</div>
+<div id="toggle-menu" style="position:absolute;top:10px;left:10px;z-index:1100;background:rgba(255,255,255,0.9);padding:8px 16px;border-radius:8px;">
+  <label><input type="checkbox" id="toggle-refc" checked> Show REFC</label>
+  <label style="margin-left:12px;"><input type="checkbox" id="toggle-mslp" checked> Show MSLP</label>
+  <label style="margin-left:12px;"><input type="checkbox" id="toggle-temp2m" checked> Show 2m Temp</label>
+  <label style="margin-left:12px;"><input type="checkbox" id="toggle-lightning" checked> Show Lightning</label>
+</div>
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script>
+  var map = L.map('map').setView([37.8, -96], 4);
+
+  // Define the bounds for all overlays (must match Cartopy PNG and weather PNGs)
+  var imageBounds = [[24, -126], [50, -69]];
+
+  // Add Cartopy PNG as a base overlay (static map with coastlines, borders, etc.)
+  var cartopyBase = L.imageOverlay('/cartopy_base.png', imageBounds, {opacity: 1, interactive: false});
+  cartopyBase.addTo(map);
+
+  var overlayRefc = null;
+  var overlayMslp = null;
+  var overlayTemp2m = null;
+  var overlayLightning = null;
+  var pngList = [];
+
+  var showRefc = true;
+  var showMslp = true;
+  var showTemp2m = true;
+  var showLightning = true;
+
+  // Prevent Leaflet from handling arrow keys (disable keyboard pan)
+  map.keyboard.disable();
+
+  document.getElementById('toggle-refc').addEventListener('change', function() {
+    showRefc = this.checked;
+    updateOverlay(parseInt(document.getElementById('hour-slider').value));
+    updateColorbars(getVisibleLayers());
+  });
+  document.getElementById('toggle-mslp').addEventListener('change', function() {
+    showMslp = this.checked;
+    updateOverlay(parseInt(document.getElementById('hour-slider').value));
+    updateColorbars(getVisibleLayers());
+  });
+  document.getElementById('toggle-temp2m').addEventListener('change', function() {
+    showTemp2m = this.checked;
+    updateOverlay(parseInt(document.getElementById('hour-slider').value));
+    updateColorbars(getVisibleLayers());
+  });
+  document.getElementById('toggle-lightning').addEventListener('change', function() {
+    showLightning = this.checked;
+    updateOverlay(parseInt(document.getElementById('hour-slider').value));
+    updateColorbars(getVisibleLayers());
+  });
+
+  // Load the PNG list from Flask endpoint
+  fetch('/reflectivity_images')
+    .then(response => response.json())
+    .then(function(images) {
+      pngList = images;
+      if (pngList.length === 0) return;
+      var slider = document.getElementById('hour-slider');
+      var label = document.getElementById('hour-label');
+      slider.max = pngList.length - 1;
+      slider.value = 0;
+      document.getElementById('slider-container').style.display = 'block';
+
+      window.updateOverlay = function(idx) {
+        if (overlayRefc) map.removeLayer(overlayRefc);
+        if (overlayMslp) map.removeLayer(overlayMslp);
+        if (overlayTemp2m) map.removeLayer(overlayTemp2m);
+        if (overlayLightning) map.removeLayer(overlayLightning);
+        if (showRefc) {
+          overlayRefc = L.imageOverlay(pngList[idx].refc, imageBounds, {opacity: 0.7});
+          overlayRefc.addTo(map);
+        } else {
+          overlayRefc = null;
+        }
+        if (showMslp) {
+          overlayMslp = L.imageOverlay(pngList[idx].mslp, imageBounds, {opacity: 0.7});
+          overlayMslp.addTo(map);
+        } else {
+          overlayMslp = null;
+        }
+        if (showTemp2m) {
+          overlayTemp2m = L.imageOverlay(pngList[idx].temp2m, imageBounds, {opacity: 0.7});
+          overlayTemp2m.addTo(map);
+        } else {
+          overlayTemp2m = null;
+        }
+        if (showLightning && pngList[idx].lightning) {
+          overlayLightning = L.imageOverlay(pngList[idx].lightning, imageBounds, {opacity: 0.7});
+          overlayLightning.addTo(map);
+        } else {
+          overlayLightning = null;
+        }
+        label.textContent = `Hour: ${pngList[idx].hour}`;
+        updateColorbars(getVisibleLayers());
+      };
+
+      slider.oninput = function() {
+        updateOverlay(parseInt(slider.value));
+      };
+
+      // Add arrow key support
+      document.addEventListener('keydown', function(e) {
+        if (['ArrowRight', 'ArrowLeft'].includes(e.key) && !e.target.matches('input, textarea')) {
+          e.preventDefault();
+          var idx = parseInt(slider.value);
+          if (e.key === 'ArrowRight' && idx < pngList.length - 1) {
+            slider.value = idx + 1;
+            slider.dispatchEvent(new Event('input'));
+          } else if (e.key === 'ArrowLeft' && idx > 0) {
+            slider.value = idx - 1;
+            slider.dispatchEvent(new Event('input'));
+          }
+        }
+      });
+
+      // Show first image
+      updateOverlay(0);
+    });
+
+  function updateColorbars(visibleLayers) {
+    document.getElementById("colorbar-refc").style.display = visibleLayers.includes("REFC") ? "block" : "none";
+    document.getElementById("colorbar-temp").style.display = visibleLayers.includes("TEMP") ? "block" : "none";
+    document.getElementById("colorbar-lightning").style.display = visibleLayers.includes("LIGHTNING") ? "block" : "none";
+  }
+
+  function getVisibleLayers() {
+    const visibleLayers = [];
+    if (showRefc) visibleLayers.push("REFC");
+    if (showTemp2m) visibleLayers.push("TEMP");
+    if (showLightning) visibleLayers.push("LIGHTNING");
+    return visibleLayers;
+  }
+</script>
+</body>
+</html>
