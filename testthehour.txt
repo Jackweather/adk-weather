@@ -1,0 +1,4 @@
+# Current UTC time minus 6 hours (nearest available HRRR cycle)
+current_utc_time = datetime.utcnow() - timedelta(hours=6)
+date_str = current_utc_time.strftime("%Y%m%d")
+hour_str = str(current_utc_time.hour // 6 * 6).zfill(2)  # nearest 6-hour slot

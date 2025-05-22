@@ -7,26 +7,126 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
   <style>
     #map { height: 90vh; width: 100vw; background: #fff; }
+    /* Layout for right panel and hour slider */
+    #right-panel-container {
+      position: fixed;
+      left: 24px;
+      bottom: 24px;
+      top: auto;
+      right: auto;
+      display: flex;
+      flex-direction: column;
+      z-index: 1100;
+      align-items: flex-start;
+      pointer-events: none; /* Prevent panel from blocking map drag */
+    }
     #slider-container {
-      position: absolute;
-      left: 50%;
-      bottom: 30px;
-      transform: translateX(-50%);
+      position: fixed;
+      right: 24px;
+      bottom: 24px;
+      margin: 0;
       background: rgba(255,255,255,0.8);
-      padding: 10px 20px;
+      padding: 18px 18px 18px 18px;
       border-radius: 8px;
-      z-index: 1000;
       text-align: center;
+      min-width: 180px;
+      box-shadow: -2px 2px 10px rgba(0,0,0,0.08);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      height: fit-content;
+      z-index: 1200;
+      pointer-events: auto;
+    }
+    #hour-slider {
+      width: 120px;
+      margin-bottom: 8px;
     }
     #hour-label {
       font-family: monospace;
+      font-size: 1.1em;
+      color: #333;
+    }
+    .collapsible-panel {
+      width: 220px;
+      background: rgba(255,255,255,0.95);
+      border-radius: 10px 0 0 10px;
+      box-shadow: -2px 2px 10px rgba(0,0,0,0.08);
+      font-family: 'Segoe UI', Arial, sans-serif;
+      margin-bottom: 14px;
+      overflow: hidden;
+      transition: box-shadow 0.2s;
+      cursor: pointer;
+    }
+    .collapsible-header {
+      padding: 18px 18px 18px 24px;
       font-size: 1.2em;
-      margin-left: 10px;
+      font-weight: bold;
+      letter-spacing: 1px;
+      user-select: none;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .collapsible-header.surface {
+      color: #1a237e;
+    }
+    .collapsible-header.severe {
+      color: #b71c1c;
+      font-size: 1.1em;
+    }
+    .collapsible-content {
+      padding: 0 18px 18px 24px;
+      display: none;
+      animation: fadeIn 0.2s;
+    }
+    .collapsible-panel.open .collapsible-content {
+      display: block;
+    }
+    .collapsible-arrow {
+      font-size: 1.1em;
+      margin-left: 8px;
+      transition: transform 0.2s;
+    }
+    .collapsible-panel.open .collapsible-arrow {
+      transform: rotate(90deg);
+    }
+    /* Remove Leaflet attribution */
+    .leaflet-control-attribution {
+      display: none !important;
+    }
+    /* Ensure right panel is always above PNG overlays */
+    #right-panel-container {
+      pointer-events: none;
+    }
+    #right-panel-container > *,
+    #right-panel-container * {
+      pointer-events: auto;
+    }
+    #current-time-box {
+      position: fixed;
+      top: 24px;
+      right: 24px;
+      background: rgba(255,255,255,0.95);
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+      padding: 12px 20px;
+      font-family: monospace;
+      font-size: 1.08em;
+      color: #222;
+      z-index: 1300;
+      min-width: 220px;
+      text-align: center;
+      pointer-events: none;
+      user-select: none;
     }
   </style>
 </head>
 <body>
 <div id="map" style="height: 600px;"></div>
+
+<!-- Current UTC time and HRRR run info -->
+<div id="current-time-box"></div>
 
 <!-- Colorbars for each overlay, hidden by default -->
 <div id="colorbars-container" style="text-align:center; margin-top:10px;">
@@ -39,21 +139,46 @@
     <div id="colorbar-lightning" style="display:none;">
         <img src="/colorbar/LIGHTNING_colorbar.png" alt="LIGHTNING Color Bar" style="max-width: 800px; width: 100%; height: auto;">
     </div>
+    <div id="colorbar-mslp" style="display:none;">
+        <img src="/colorbar/mslp_colorbar.png" alt="MSLP Color Bar" style="max-width: 800px; width: 100%; height: auto;">
+    </div>
 </div>
 
+<!-- Hour slider moved outside right panel for bottom right positioning -->
 <div id="slider-container" style="display:none;">
   <input type="range" id="hour-slider" min="0" max="0" value="0" step="1">
   <span id="hour-label"></span>
 </div>
-<div id="toggle-menu" style="position:absolute;top:10px;left:10px;z-index:1100;background:rgba(255,255,255,0.9);padding:8px 16px;border-radius:8px;">
-  <label><input type="checkbox" id="toggle-refc" checked> Show REFC</label>
-  <label style="margin-left:12px;"><input type="checkbox" id="toggle-mslp" checked> Show MSLP</label>
-  <label style="margin-left:12px;"><input type="checkbox" id="toggle-temp2m" checked> Show 2m Temp</label>
-  <label style="margin-left:12px;"><input type="checkbox" id="toggle-lightning" checked> Show Lightning</label>
+
+<!-- New right panel: hour slider left of surface data, severe weather below -->
+<div id="right-panel-container">
+  <div>
+    <div id="surface-data-panel" class="collapsible-panel open">
+      <div class="collapsible-header surface">
+        Surface DATA
+        <span class="collapsible-arrow">&#9654;</span>
+      </div>
+      <div class="collapsible-content">
+        <label><input type="checkbox" id="toggle-refc"> Show REFC</label>
+        <label><input type="checkbox" id="toggle-mslp"> Show MSLP</label>
+        <label><input type="checkbox" id="toggle-temp2m"> Show 2m Temp</label>
+      </div>
+    </div>
+    <div id="severe-weather-panel" class="collapsible-panel open">
+      <div class="collapsible-header severe">
+        Severe Weather
+        <span class="collapsible-arrow">&#9654;</span>
+      </div>
+      <div class="collapsible-content">
+        <label><input type="checkbox" id="toggle-lightning"> Show Lightning</label>
+      </div>
+    </div>
+  </div>
 </div>
+
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 <script>
-  var map = L.map('map').setView([37.8, -96], 4);
+  var map = L.map('map', { attributionControl: false }).setView([37.8, -96], 4);
 
   // Define the bounds for all overlays (must match Cartopy PNG and weather PNGs)
   var imageBounds = [[24, -126], [50, -69]];
@@ -68,10 +193,10 @@
   var overlayLightning = null;
   var pngList = [];
 
-  var showRefc = true;
-  var showMslp = true;
-  var showTemp2m = true;
-  var showLightning = true;
+  var showRefc = false;
+  var showMslp = false;
+  var showTemp2m = false;
+  var showLightning = false;
 
   // Prevent Leaflet from handling arrow keys (disable keyboard pan)
   map.keyboard.disable();
@@ -97,6 +222,12 @@
     updateColorbars(getVisibleLayers());
   });
 
+  // Set all checkboxes to unchecked and variables to false on load
+  document.getElementById('toggle-refc').checked = false;
+  document.getElementById('toggle-mslp').checked = false;
+  document.getElementById('toggle-temp2m').checked = false;
+  document.getElementById('toggle-lightning').checked = false;
+
   // Load the PNG list from Flask endpoint
   fetch('/reflectivity_images')
     .then(response => response.json())
@@ -107,38 +238,39 @@
       var label = document.getElementById('hour-label');
       slider.max = pngList.length - 1;
       slider.value = 0;
-      document.getElementById('slider-container').style.display = 'block';
+      document.getElementById('slider-container').style.display = 'flex';
 
       window.updateOverlay = function(idx) {
         if (overlayRefc) map.removeLayer(overlayRefc);
         if (overlayMslp) map.removeLayer(overlayMslp);
         if (overlayTemp2m) map.removeLayer(overlayTemp2m);
         if (overlayLightning) map.removeLayer(overlayLightning);
-        if (showRefc) {
-          overlayRefc = L.imageOverlay(pngList[idx].refc, imageBounds, {opacity: 0.7});
+        var entry = pngList[idx];
+        if (showRefc && entry.refc) {
+          overlayRefc = L.imageOverlay(entry.refc, imageBounds, {opacity: 0.7});
           overlayRefc.addTo(map);
         } else {
           overlayRefc = null;
         }
-        if (showMslp) {
-          overlayMslp = L.imageOverlay(pngList[idx].mslp, imageBounds, {opacity: 0.7});
+        if (showMslp && entry.mslp) {
+          overlayMslp = L.imageOverlay(entry.mslp, imageBounds, {opacity: 0.7});
           overlayMslp.addTo(map);
         } else {
           overlayMslp = null;
         }
-        if (showTemp2m) {
-          overlayTemp2m = L.imageOverlay(pngList[idx].temp2m, imageBounds, {opacity: 0.7});
+        if (showTemp2m && entry.temp2m) {
+          overlayTemp2m = L.imageOverlay(entry.temp2m, imageBounds, {opacity: 0.7});
           overlayTemp2m.addTo(map);
         } else {
           overlayTemp2m = null;
         }
-        if (showLightning && pngList[idx].lightning) {
-          overlayLightning = L.imageOverlay(pngList[idx].lightning, imageBounds, {opacity: 0.7});
+        if (showLightning && entry.lightning) {
+          overlayLightning = L.imageOverlay(entry.lightning, imageBounds, {opacity: 0.7});
           overlayLightning.addTo(map);
         } else {
           overlayLightning = null;
         }
-        label.textContent = `Hour: ${pngList[idx].hour}`;
+        label.textContent = `Hour: ${entry.hour}`;
         updateColorbars(getVisibleLayers());
       };
 
@@ -169,6 +301,7 @@
     document.getElementById("colorbar-refc").style.display = visibleLayers.includes("REFC") ? "block" : "none";
     document.getElementById("colorbar-temp").style.display = visibleLayers.includes("TEMP") ? "block" : "none";
     document.getElementById("colorbar-lightning").style.display = visibleLayers.includes("LIGHTNING") ? "block" : "none";
+    document.getElementById("colorbar-mslp").style.display = visibleLayers.includes("MSLP") ? "block" : "none";
   }
 
   function getVisibleLayers() {
@@ -176,8 +309,51 @@
     if (showRefc) visibleLayers.push("REFC");
     if (showTemp2m) visibleLayers.push("TEMP");
     if (showLightning) visibleLayers.push("LIGHTNING");
+    if (showMslp) visibleLayers.push("MSLP");
     return visibleLayers;
   }
+
+  // Collapsible panels logic
+  document.querySelectorAll('.collapsible-panel').forEach(function(panel) {
+    var header = panel.querySelector('.collapsible-header');
+    header.addEventListener('click', function(e) {
+      // Only toggle if clicking header, not checkbox
+      if (e.target.tagName === 'INPUT') return;
+      panel.classList.toggle('open');
+    });
+  });
+
+  // --- Current UTC time and HRRR run display ---
+  function updateCurrentTimeBox() {
+    const box = document.getElementById('current-time-box');
+    const now = new Date();
+    // UTC time
+    const utcYear = now.getUTCFullYear();
+    const utcMonth = String(now.getUTCMonth() + 1).padStart(2, '0');
+    const utcDay = String(now.getUTCDate()).padStart(2, '0');
+    const utcHour = now.getUTCHours();
+    const utcMin = String(now.getUTCMinutes()).padStart(2, '0');
+    const utcSec = String(now.getUTCSeconds()).padStart(2, '0');
+    // HRRR run logic
+    let runHour = Math.floor(utcHour / 6) * 6;
+    if (runHour === 24) runHour = 18;
+    let dateForRun = new Date(Date.UTC(utcYear, now.getUTCMonth(), utcDay, utcHour));
+    if (utcHour < runHour) {
+      dateForRun.setUTCHours(dateForRun.getUTCHours() - 6);
+      runHour = Math.floor(dateForRun.getUTCHours() / 6) * 6;
+    }
+    const dateStr = dateForRun.getUTCFullYear().toString() +
+      String(dateForRun.getUTCMonth() + 1).padStart(2, '0') +
+      String(dateForRun.getUTCDate()).padStart(2, '0');
+    const hourStr = String(runHour).padStart(2, '0');
+    // Display
+    box.innerHTML =
+      `<b>Current UTC:</b> ${utcYear}-${utcMonth}-${utcDay} ${String(utcHour).padStart(2, '0')}:${utcMin}:${utcSec}<br>` +
+      `<b>Most Recent HRRR Run:</b> ${dateStr} ${hourStr}z`;
+  }
+  updateCurrentTimeBox();
+  setInterval(updateCurrentTimeBox, 10000);
 </script>
 </body>
 </html>
+``` 

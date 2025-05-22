@@ -26,24 +26,35 @@ def get_pngs():
     mslp_files = [f for f in os.listdir(PNG_DIR_MSLP) if re.match(r"MSLP_(\d+)\.png$", f)]
     temp2m_files = [f for f in os.listdir(PNG_DIR_TEMP2M) if re.match(r"2mtemp_(\d+)\.png$", f)]
     lightning_files = [f for f in os.listdir(PNG_DIR_LIGHTNING) if re.match(r"lght_(\d+)\.png$", f)]
-    # Sort by hour
-    refc_files.sort(key=lambda x: int(re.search(r"(\d+)", x).group()))
-    mslp_files.sort(key=lambda x: int(re.search(r"(\d+)", x).group()))
-    temp2m_files.sort(key=lambda x: int(re.search(r"(\d+)", x).group()))
-    lightning_files.sort(key=lambda x: int(re.search(r"(\d+)", x).group()))
-    # Pair by hour (assume same number and order for first three, lightning may be missing)
+
+    # Use regex to extract hour from each filename (more robust)
+    def extract_hour(pattern, filename):
+        m = re.match(pattern, filename)
+        return int(m.group(1)) if m else None
+
+    refc_dict = {extract_hour(r"REFC_(\d+)\.png$", f): f for f in refc_files}
+    mslp_dict = {extract_hour(r"MSLP_(\d+)\.png$", f): f for f in mslp_files}
+    temp2m_dict = {extract_hour(r"2mtemp_(\d+)\.png$", f): f for f in temp2m_files}
+    lightning_dict = {extract_hour(r"lght_(\d+)\.png$", f): f for f in lightning_files}
+
+    # Remove None keys if any file didn't match pattern
+    refc_dict = {k: v for k, v in refc_dict.items() if k is not None}
+    mslp_dict = {k: v for k, v in mslp_dict.items() if k is not None}
+    temp2m_dict = {k: v for k, v in temp2m_dict.items() if k is not None}
+    lightning_dict = {k: v for k, v in lightning_dict.items() if k is not None}
+
+    # Union of all available hours from all overlays
+    all_hours = set(refc_dict) | set(mslp_dict) | set(temp2m_dict) | set(lightning_dict)
+    all_hours = sorted(all_hours)
+
     result = []
-    for i, (refc, mslp, temp2m) in enumerate(zip(refc_files, mslp_files, temp2m_files)):
-        hour = int(re.search(r"(\d+)", refc).group())
-        lightning = None
-        if i < len(lightning_files):
-            lightning = f"/lightning_pngs/{lightning_files[i]}"
+    for hour in all_hours:
         result.append({
             "hour": hour,
-            "refc": f"/refc_pngs/{refc}",
-            "mslp": f"/mslp_pngs/{mslp}",
-            "temp2m": f"/temp2m_pngs/{temp2m}",
-            "lightning": lightning
+            "refc": f"/refc_pngs/{refc_dict[hour]}" if hour in refc_dict else None,
+            "mslp": f"/mslp_pngs/{mslp_dict[hour]}" if hour in mslp_dict else None,
+            "temp2m": f"/temp2m_pngs/{temp2m_dict[hour]}" if hour in temp2m_dict else None,
+            "lightning": f"/lightning_pngs/{lightning_dict[hour]}" if hour in lightning_dict else None
         })
     return jsonify(result)
 
@@ -75,7 +86,7 @@ def serve_cartopy_base():
 def run_test_script():
     def run_test():
         try:
-            subprocess.run(["python", "test.py"], check=True)
+            subprocess.run(["python", "REFC.py"], check=True)
             print("test.py ran successfully!")
         except subprocess.CalledProcessError as e:
             error_trace = traceback.format_exc()
@@ -89,9 +100,27 @@ def run_test_script():
             error_trace = traceback.format_exc()
             print(f"Error running mslp_script.py asynchronously:\n{error_trace}")
 
+    def run_temp2m():
+        try:
+            subprocess.run(["python", "temp2m_script.py"], check=True)
+            print("temp2m_script.py ran successfully!")
+        except subprocess.CalledProcessError as e:
+            error_trace = traceback.format_exc()
+            print(f"Error running temp2m_script.py asynchronously:\n{error_trace}")
+
+    def run_lightning():
+        try:
+            subprocess.run(["python", "lightning_script.py"], check=True)
+            print("lightning_script.py ran successfully!")
+        except subprocess.CalledProcessError as e:
+            error_trace = traceback.format_exc()
+            print(f"Error running lightning_script.py asynchronously:\n{error_trace}")
+
     threading.Thread(target=run_test).start()
     threading.Thread(target=run_mslp).start()
-    return "test.py and mslp_script.py started in background!", 200
+    threading.Thread(target=run_temp2m).start()
+    threading.Thread(target=run_lightning).start()
+    return "test.py, mslp_script.py, temp2m_script.py, and lightning_script.py started in background!", 200
 
 @app.route("/run-mslp")
 def run_mslp_script():
