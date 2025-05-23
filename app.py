@@ -83,44 +83,38 @@ def serve_cartopy_base():
     return send_from_directory(BASE_DIR, "cartopy_base.png")
 
 @app.route("/run-task")
-def run_test_script():
-    def run_test():
+def run_task():
+    def run_all_scripts():
         try:
-            subprocess.run(["python", "REFC.py"], check=True)
-            print("test.py ran successfully!")
-        except subprocess.CalledProcessError as e:
+            subprocess.run(["python", os.path.join(BASE_DIR, "REFC.py")], check=True)
+            print("REFC.py ran successfully!")
+        except subprocess.CalledProcessError:
             error_trace = traceback.format_exc()
-            print(f"Error running test.py asynchronously:\n{error_trace}")
+            print(f"Error running REFC.py:\n{error_trace}")
 
-    def run_mslp():
         try:
-            subprocess.run(["python", "mslp_script.py"], check=True)
+            subprocess.run(["python", os.path.join(BASE_DIR, "mslp_script.py")], check=True)
             print("mslp_script.py ran successfully!")
-        except subprocess.CalledProcessError as e:
+        except subprocess.CalledProcessError:
             error_trace = traceback.format_exc()
-            print(f"Error running mslp_script.py asynchronously:\n{error_trace}")
+            print(f"Error running mslp_script.py:\n{error_trace}")
 
-    def run_temp2m():
         try:
-            subprocess.run(["python", "temp2m_script.py"], check=True)
-            print("temp2m_script.py ran successfully!")
-        except subprocess.CalledProcessError as e:
+            subprocess.run(["python", os.path.join(BASE_DIR, "temp2m.py")], check=True)
+            print("temp2m.py ran successfully!")
+        except subprocess.CalledProcessError:
             error_trace = traceback.format_exc()
-            print(f"Error running temp2m_script.py asynchronously:\n{error_trace}")
+            print(f"Error running temp2m.py:\n{error_trace}")
 
-    def run_lightning():
         try:
-            subprocess.run(["python", "lightning_script.py"], check=True)
-            print("lightning_script.py ran successfully!")
-        except subprocess.CalledProcessError as e:
+            subprocess.run(["python", os.path.join(BASE_DIR, "LIGHTNING.py")], check=True)
+            print("LIGHTNING.py ran successfully!")
+        except subprocess.CalledProcessError:
             error_trace = traceback.format_exc()
-            print(f"Error running lightning_script.py asynchronously:\n{error_trace}")
+            print(f"Error running LIGHTNING.py:\n{error_trace}")
 
-    threading.Thread(target=run_test).start()
-    threading.Thread(target=run_mslp).start()
-    threading.Thread(target=run_temp2m).start()
-    threading.Thread(target=run_lightning).start()
-    return "test.py, mslp_script.py, temp2m_script.py, and lightning_script.py started in background!", 200
+    threading.Thread(target=run_all_scripts).start()
+    return "All scripts started sequentially in background!", 200
 
 @app.route("/run-mslp")
 def run_mslp_script():

@@ -1,0 +1,14 @@
+https://weathermodelwebpagefinal.onrender.com/run-task
+https://weathermodelwebpagefinal.onrender.com/run-mslp
+https://adk-weather.onrender.com/run-temp2m
+
+
+http://localhost:5000/run-refc → Runs REFC.py
+
+http://localhost:5000/run-mslp → Runs mslp_script.py
+
+http://localhost:5000/run-temp2m → Runs temp2m_script.py
+
+http://localhost:5000/run-lightning → Runs lightning_script.py
+
+http://localhost:5000/run-all → Runs all four in parallel

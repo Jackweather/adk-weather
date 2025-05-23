@@ -148,6 +148,7 @@
 <div id="slider-container" style="display:none;">
   <input type="range" id="hour-slider" min="0" max="0" value="0" step="1">
   <span id="hour-label"></span>
+  <div id="forecast-time-est" style="margin-top:6px; font-family:monospace; color:#444; font-size:1em;"></div>
 </div>
 
 <!-- New right panel: hour slider left of surface data, severe weather below -->
@@ -236,9 +237,66 @@
       if (pngList.length === 0) return;
       var slider = document.getElementById('hour-slider');
       var label = document.getElementById('hour-label');
+      var forecastTimeBox = document.getElementById('forecast-time-est');
       slider.max = pngList.length - 1;
       slider.value = 0;
       document.getElementById('slider-container').style.display = 'flex';
+
+      function getForecastTimeEST(hourOffset) {
+        // Get current UTC time
+        const now = new Date();
+        const utcYear = now.getUTCFullYear();
+        const utcMonth = now.getUTCMonth();
+        const utcDay = now.getUTCDate();
+        const utcHour = now.getUTCHours();
+
+        // Find most recent HRRR run hour (00, 06, 12, 18) <= current UTC hour
+        let runHour = Math.floor(utcHour / 6) * 6;
+        if (runHour === 24) runHour = 18;
+        let runDate = new Date(Date.UTC(utcYear, utcMonth, utcDay, runHour));
+        if (utcHour < runHour) {
+          runDate.setUTCHours(runDate.getUTCHours() - 6);
+          runHour = Math.floor(runDate.getUTCHours() / 6) * 6;
+        }
+
+        // Map runHour to EST start hour
+        // 00z = 8pm prev day, 06z = 2am, 12z = 8am, 18z = 2pm (all EST)
+        let estStartHour;
+        if (runHour === 0) estStartHour = 20;      // 8pm previous day
+        else if (runHour === 6) estStartHour = 2;  // 2am
+        else if (runHour === 12) estStartHour = 8; // 8am
+        else if (runHour === 18) estStartHour = 14;// 2pm
+
+        // For 00z, move to previous day for EST start
+        let estRunDate = new Date(runDate.getTime());
+        if (runHour === 0) {
+          estRunDate.setUTCDate(estRunDate.getUTCDate() - 1);
+        }
+        // Set EST run start hour
+        estRunDate.setUTCHours(estStartHour + 5, 0, 0, 0); // EST to UTC (+5)
+
+        // Forecast valid time = estRunDate + hourOffset (in hours)
+        let validDate = new Date(estRunDate.getTime() + hourOffset * 3600 * 1000);
+
+        // Format yymmdd and hour in 12-hour format with AM/PM
+        let yy = String(validDate.getFullYear()).slice(2);
+        let mm = String(validDate.getMonth() + 1).padStart(2, '0');
+        let dd = String(validDate.getDate()).padStart(2, '0');
+        let hour24 = validDate.getUTCHours() - 5;
+        if (hour24 < 0) {
+          hour24 += 24;
+          // If hour24 < 0, subtract a day
+          let prev = new Date(validDate.getTime() - 24 * 3600 * 1000);
+          yy = String(prev.getFullYear()).slice(2);
+          mm = String(prev.getMonth() + 1).padStart(2, '0');
+          dd = String(prev.getDate()).padStart(2, '0');
+        }
+        let ampm = hour24 >= 12 ? 'PM' : 'AM';
+        let hour12 = hour24 % 12;
+        if (hour12 === 0) hour12 = 12;
+        let hh = String(hour12).padStart(2, '0');
+        return `Forecast valid (EST): ${yy}${mm}${dd} ${hh}:00 ${ampm}`;
+      }
 
       window.updateOverlay = function(idx) {
         if (overlayRefc) map.removeLayer(overlayRefc);
@@ -271,6 +329,7 @@
           overlayLightning = null;
         }
         label.textContent = `Hour: ${entry.hour}`;
+        forecastTimeBox.textContent = getForecastTimeEST(entry.hour);
         updateColorbars(getVisibleLayers());
       };
 
@@ -356,4 +415,3 @@
 </script>
 </body>
 </html>
-``` 
