@@ -1,6 +1,6 @@
 https://weathermodelwebpagefinal.onrender.com/run-task
 https://weathermodelwebpagefinal.onrender.com/run-mslp
-https://adk-weather.onrender.com/run-temp2m
+https://adk-weather.onrender.com/run-task
 
 
 http://localhost:5000/run-refc → Runs REFC.py
