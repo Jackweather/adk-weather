@@ -92,29 +92,8 @@ def run_task():
             error_trace = traceback.format_exc()
             print(f"Error running REFC.py:\n{error_trace}")
 
-        try:
-            subprocess.run(["python", os.path.join(BASE_DIR, "mslp_script.py")], check=True)
-            print("mslp_script.py ran successfully!")
-        except subprocess.CalledProcessError:
-            error_trace = traceback.format_exc()
-            print(f"Error running mslp_script.py:\n{error_trace}")
-
-        try:
-            subprocess.run(["python", os.path.join(BASE_DIR, "temp2m.py")], check=True)
-            print("temp2m.py ran successfully!")
-        except subprocess.CalledProcessError:
-            error_trace = traceback.format_exc()
-            print(f"Error running temp2m.py:\n{error_trace}")
-
-        try:
-            subprocess.run(["python", os.path.join(BASE_DIR, "LIGHTNING.py")], check=True)
-            print("LIGHTNING.py ran successfully!")
-        except subprocess.CalledProcessError:
-            error_trace = traceback.format_exc()
-            print(f"Error running LIGHTNING.py:\n{error_trace}")
-
     threading.Thread(target=run_all_scripts).start()
-    return "All scripts started sequentially in background!", 200
+    return "REFC.py started in background!", 200
 
 @app.route("/run-mslp")
 def run_mslp_script():
