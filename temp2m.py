@@ -211,12 +211,12 @@ def generate_clean_png(file_path, step):
             # Plot the temperature value as white text with black outline
             txt = ax.text(
                 stn_lon, stn_lat, f"{temp_f:.1f}",
-                color='white', fontsize=2, fontweight='bold', fontname='DejaVu Sans',
+                color='white', fontsize=1, fontweight='bold', fontname='DejaVu Sans',
                 ha='center', va='center', transform=ccrs.PlateCarree(),
-                zorder=10
+                zorder=2
             )
             txt.set_path_effects([
-                path_effects.Stroke(linewidth=2, foreground='black'),
+                path_effects.Stroke(linewidth=0.5, foreground='black'),
                 path_effects.Normal()
             ])
     else:
