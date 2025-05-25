@@ -27,18 +27,11 @@ grib_dir = os.path.join(refc_dir, "grib_files")  # Now inside REFC
 os.makedirs(grib_dir, exist_ok=True)
 os.makedirs(refc_dir, exist_ok=True)
 
-# Get the current UTC date and time and select the most recent HRRR run (0z, 6z, 12z, 18z)
-current_utc_time = datetime.utcnow()
-run_hour = (current_utc_time.hour // 6) * 6
-if run_hour == 24:
-    run_hour = 18
-date_for_run = current_utc_time
-if current_utc_time.hour < run_hour:
-    # If current hour is less than run_hour (shouldn't happen with integer division, but safe)
-    date_for_run = current_utc_time - timedelta(hours=6)
-    run_hour = (date_for_run.hour // 6) * 6
-date_str = date_for_run.strftime("%Y%m%d")
-hour_str = str(run_hour).zfill(2)  # 00, 06, 12, 18
+# Current UTC time minus 6 hours (nearest available HRRR cycle)
+current_utc_time = datetime.utcnow() - timedelta(hours=6)
+date_str = current_utc_time.strftime("%Y%m%d")
+hour_str = str(current_utc_time.hour // 6 * 6).zfill(2)  # nearest 6-hour slot
+
 
 # Reflectivity variable and colormap
 variable_refc = "REFC"
