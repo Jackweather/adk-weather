@@ -43,7 +43,8 @@ def download_file(hour_str, step):
             for chunk in response.iter_content(chunk_size=1024):
                 if chunk:
                     f.write(chunk)
-        print(f"Downloaded {file_name}")
+        file_size = os.path.getsize(file_path)
+        print(f"Downloaded {file_name} ({file_size} bytes)")
         return file_path
     else:
         print(f"Failed to download {file_name} (Status Code: {response.status_code})")
@@ -51,37 +52,55 @@ def download_file(hour_str, step):
 
 def generate_png(file_path, step):
     ds = xr.open_dataset(file_path, engine="cfgrib")
+    # Check if required variables exist
+    required_vars = ['mslma', 'latitude', 'longitude']
+    for var in required_vars:
+        if var not in ds.variables:
+            print(f"Variable '{var}' not found in {file_path}, skipping PNG generation.")
+            print(f"Available variables: {list(ds.variables.keys())}")
+            return None
+
     data = ds['mslma'].values / 100  # Convert pressure to hPa
     lats = ds['latitude'].values
     lons = ds['longitude'].values
 
-    fig = plt.figure(figsize=(10, 7), dpi=850)
-    ax = plt.axes(projection=ccrs.PlateCarree())  # Use PlateCarree projection
-    ax.set_extent([-126, -69, 24, 50], crs=ccrs.PlateCarree())  # Set requested extent
+    # Check for empty arrays
+    if data.size == 0 or lats.size == 0 or lons.size == 0:
+        print(f"Empty data in {file_path}, skipping PNG generation.")
+        print(f"Shapes - data: {data.shape}, lats: {lats.shape}, lons: {lons.shape}")
+        return None
 
-    # Use coolwarm colormap for contour lines
-    levels = np.arange(np.floor(data.min()), np.ceil(data.max()) + 1, 2)
-    cs = ax.contour(
-        lons, lats, data.squeeze(),
-        levels=levels,
-        cmap="coolwarm",
-        linewidths=1 # Increased thickness from 1 to 2
-    )
-    ax.clabel(cs, inline=True, fontsize=8, fmt='%1.0f')
+    try:
+        fig = plt.figure(figsize=(10, 7), dpi=850)
+        ax = plt.axes(projection=ccrs.PlateCarree())  # Use PlateCarree projection
+        ax.set_extent([-126, -69, 24, 50], crs=ccrs.PlateCarree())  # Set requested extent
 
-    # Add H and L symbols for highs and lows
-    min_idx = np.unravel_index(np.argmin(data), data.shape)
-    max_idx = np.unravel_index(np.argmax(data), data.shape)
-    ax.text(lons[min_idx], lats[min_idx], 'L', color='blue', fontsize=24, fontweight='bold', ha='center', va='center', transform=ccrs.PlateCarree())
-    ax.text(lons[max_idx], lats[max_idx], 'H', color='red', fontsize=24, fontweight='bold', ha='center', va='center', transform=ccrs.PlateCarree())
+        # Use coolwarm colormap for contour lines
+        levels = np.arange(np.floor(data.min()), np.ceil(data.max()) + 1, 2)
+        cs = ax.contour(
+            lons, lats, data.squeeze(),
+            levels=levels,
+            cmap="coolwarm",
+            linewidths=1 # Increased thickness from 1 to 2
+        )
+        ax.clabel(cs, inline=True, fontsize=8, fmt='%1.0f')
 
-    ax.set_axis_off()
-    plt.subplots_adjust(left=0, right=1, top=1, bottom=0)
-    png_path = os.path.join(mslp_dir, f"MSLP_{step:02d}.png")
-    plt.savefig(png_path, bbox_inches='tight', pad_inches=0, transparent=True)
-    plt.close(fig)
-    print(f"Generated PNG: {png_path}")
-    return png_path
+        # Add H and L symbols for highs and lows
+        min_idx = np.unravel_index(np.argmin(data), data.shape)
+        max_idx = np.unravel_index(np.argmax(data), data.shape)
+        ax.text(lons[min_idx], lats[min_idx], 'L', color='blue', fontsize=24, fontweight='bold', ha='center', va='center', transform=ccrs.PlateCarree())
+        ax.text(lons[max_idx], lats[max_idx], 'H', color='red', fontsize=24, fontweight='bold', ha='center', va='center', transform=ccrs.PlateCarree())
+
+        ax.set_axis_off()
+        plt.subplots_adjust(left=0, right=1, top=1, bottom=0)
+        png_path = os.path.join(mslp_dir, f"MSLP_{step:02d}.png")
+        plt.savefig(png_path, bbox_inches='tight', pad_inches=0, transparent=True)
+        plt.close(fig)
+        print(f"Generated PNG: {png_path}")
+        return png_path
+    except Exception as e:
+        print(f"Error generating PNG for {file_path}: {e}")
+        return None
 
 # Main process: Download and plot
 grib_files = []
@@ -91,6 +110,7 @@ for step in range(0, 49):
     if grib_file:
         grib_files.append(grib_file)
         png_file = generate_png(grib_file, step)
-        png_files.append(png_file)
+        if png_file:  # Only append if PNG was generated
+            png_files.append(png_file)
 
 print("All download and PNG creation tasks complete!")
