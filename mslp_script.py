@@ -64,10 +64,15 @@ def generate_png(file_path, step):
     lats = ds['latitude'].values
     lons = ds['longitude'].values
 
-    # Check for empty arrays
-    if data.size == 0 or lats.size == 0 or lons.size == 0:
-        print(f"Empty data in {file_path}, skipping PNG generation.")
+    # Check for empty arrays or all-NaN or constant arrays
+    if (
+        data.size == 0 or lats.size == 0 or lons.size == 0 or
+        np.all(np.isnan(data)) or
+        np.nanmin(data) == np.nanmax(data)
+    ):
+        print(f"Invalid or empty data in {file_path}, skipping PNG generation.")
         print(f"Shapes - data: {data.shape}, lats: {lats.shape}, lons: {lons.shape}")
+        print(f"data min: {np.nanmin(data) if data.size else 'n/a'}, max: {np.nanmax(data) if data.size else 'n/a'}")
         return None
 
     try:
@@ -76,7 +81,7 @@ def generate_png(file_path, step):
         ax.set_extent([-126, -69, 24, 50], crs=ccrs.PlateCarree())  # Set requested extent
 
         # Use coolwarm colormap for contour lines
-        levels = np.arange(np.floor(data.min()), np.ceil(data.max()) + 1, 2)
+        levels = np.arange(np.floor(np.nanmin(data)), np.ceil(np.nanmax(data)) + 1, 2)
         cs = ax.contour(
             lons, lats, data.squeeze(),
             levels=levels,
@@ -86,8 +91,8 @@ def generate_png(file_path, step):
         ax.clabel(cs, inline=True, fontsize=8, fmt='%1.0f')
 
         # Add H and L symbols for highs and lows
-        min_idx = np.unravel_index(np.argmin(data), data.shape)
-        max_idx = np.unravel_index(np.argmax(data), data.shape)
+        min_idx = np.unravel_index(np.nanargmin(data), data.shape)
+        max_idx = np.unravel_index(np.nanargmax(data), data.shape)
         ax.text(lons[min_idx], lats[min_idx], 'L', color='blue', fontsize=24, fontweight='bold', ha='center', va='center', transform=ccrs.PlateCarree())
         ax.text(lons[max_idx], lats[max_idx], 'H', color='red', fontsize=24, fontweight='bold', ha='center', va='center', transform=ccrs.PlateCarree())
 
