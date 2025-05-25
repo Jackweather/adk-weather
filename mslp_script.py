@@ -66,6 +66,14 @@ def generate_png(file_path, step):
         lats = ds['latitude'].values
         lons = ds['longitude'].values
 
+        # Additional checks for empty or mismatched lat/lon arrays
+        if lats.size == 0 or lons.size == 0:
+            print(f"[step {step}] Skipping: latitude or longitude array is empty.")
+            return None
+        if data.shape != lats.shape or data.shape != lons.shape:
+            print(f"[step {step}] Skipping: shape mismatch (data: {data.shape}, lats: {lats.shape}, lons: {lons.shape})")
+            return None
+
         fig = plt.figure(figsize=(10, 7), dpi=850)
         ax = plt.axes(projection=ccrs.PlateCarree())
         ax.set_extent([-126, -69, 24, 50], crs=ccrs.PlateCarree())
