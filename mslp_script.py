@@ -56,57 +56,75 @@ def generate_png(file_path, step):
 
         # Check for the variable presence (some datasets may not have MSLMA)
         if variable_mslma.lower() not in ds.variables:
-            print(f"[step {step}] Skipping: '{variable_mslma.lower()}' variable not found.")
-            return None
-
-        data = ds[variable_mslma.lower()].values / 100  # Convert Pa to hPa
-
-        # Skip empty or all NaN arrays
-        if data.size == 0 or np.isnan(data).all():
-            print(f"[step {step}] Skipping: data empty or all NaN.")
-            return None
-
-        # Extract lat/lon coordinates robustly
-        try:
-            if 'latitude' in ds.coords and 'longitude' in ds.coords:
-                lats = ds.coords['latitude'].values
-                lons = ds.coords['longitude'].values
-            else:
-                lats = ds['latitude'].values
-                lons = ds['longitude'].values
-        except Exception as e:
-            print(f"[step {step}] Skipping: failed to extract lat/lon ({e})")
-            return None
-
-        if lats.size == 0 or lons.size == 0:
-            print(f"[step {step}] Skipping: latitude or longitude array empty.")
-            return None
-
-        # Meshgrid if lats/lons are 1D
-        if lats.ndim == 1 and lons.ndim == 1:
+            print(f"[step {step}] '{variable_mslma.lower()}' variable not found. Filling with default.")
+            # Fallback: create dummy data
+            lats = np.linspace(24, 50, 100)
+            lons = np.linspace(-126, -69, 100)
             lons, lats = np.meshgrid(lons, lats)
+            data = np.full(lats.shape, 1013.0)
+        else:
+            data = ds[variable_mslma.lower()].values / 100  # Convert Pa to hPa
 
-        # Attempt to fix shape mismatches
-        if data.shape != lats.shape or data.shape != lons.shape:
-            # Transpose if needed
-            if lats.T.shape == data.shape and lons.T.shape == data.shape:
-                lats = lats.T
-                lons = lons.T
-            # Squeeze dims if needed
-            elif np.squeeze(lats).shape == data.shape and np.squeeze(lons).shape == data.shape:
-                lats = np.squeeze(lats)
-                lons = np.squeeze(lons)
-            elif lats.shape == np.squeeze(data).shape and lons.shape == np.squeeze(data).shape:
-                data = np.squeeze(data)
-            else:
-                print(f"[step {step}] Skipping: shape mismatch after attempts (data: {data.shape}, lats: {lats.shape}, lons: {lons.shape})")
-                return None
+            # Extract lat/lon coordinates robustly
+            try:
+                if 'latitude' in ds.coords and 'longitude' in ds.coords:
+                    lats = ds.coords['latitude'].values
+                    lons = ds.coords['longitude'].values
+                else:
+                    lats = ds['latitude'].values
+                    lons = ds['longitude'].values
+            except Exception as e:
+                print(f"[step {step}] Failed to extract lat/lon ({e}), using default grid.")
+                lats = np.linspace(24, 50, 100)
+                lons = np.linspace(-126, -69, 100)
+                lons, lats = np.meshgrid(lons, lats)
+                data = np.full(lats.shape, 1013.0)
+
+            # Meshgrid if lats/lons are 1D
+            if lats.ndim == 1 and lons.ndim == 1:
+                lons, lats = np.meshgrid(lons, lats)
+
+            # Attempt to fix shape mismatches
+            if data.shape != lats.shape or data.shape != lons.shape:
+                # Transpose if needed
+                if lats.T.shape == data.shape and lons.T.shape == data.shape:
+                    lats = lats.T
+                    lons = lons.T
+                # Squeeze dims if needed
+                elif np.squeeze(lats).shape == data.shape and np.squeeze(lons).shape == data.shape:
+                    lats = np.squeeze(lats)
+                    lons = np.squeeze(lons)
+                elif lats.shape == np.squeeze(data).shape and lons.shape == np.squeeze(data).shape:
+                    data = np.squeeze(data)
+                else:
+                    print(f"[step {step}] Shape mismatch after attempts, using default grid.")
+                    lats = np.linspace(24, 50, 100)
+                    lons = np.linspace(-126, -69, 100)
+                    lons, lats = np.meshgrid(lons, lats)
+                    data = np.full(lats.shape, 1013.0)
+
+            # If data is empty or all-NaN, fill with default
+            if data.size == 0 or np.isnan(data).all():
+                print(f"[step {step}] Data empty or all NaN, filling with default.")
+                data = np.full(lats.shape, 1013.0)
 
         fig = plt.figure(figsize=(10, 7), dpi=850)
         ax = plt.axes(projection=ccrs.PlateCarree())
         ax.set_extent([-126, -69, 24, 50], crs=ccrs.PlateCarree())
 
-        levels = np.arange(np.floor(np.nanmin(data)), np.ceil(np.nanmax(data)) + 1, 2)
+        # Hard check: skip if min/max cannot be computed
+        try:
+            data_min = np.nanmin(data)
+            data_max = np.nanmax(data)
+        except ValueError:
+            print(f"[step {step}] Hard skip: cannot compute min/max (should not happen now).")
+            data_min = 1013.0
+            data_max = 1013.0
+
+        levels = np.arange(np.floor(data_min), np.ceil(data_max) + 1, 2)
+        if levels.size < 2:
+            levels = np.array([data_min, data_min + 2])
+
         cs = ax.contour(
             lons, lats, data,
             levels=levels,
