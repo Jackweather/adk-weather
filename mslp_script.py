@@ -37,6 +37,7 @@ if current_utc_time.hour < run_hour:
     run_hour = (date_for_run.hour // 6) * 6
 date_str = date_for_run.strftime("%Y%m%d")
 hour_str = str(run_hour).zfill(2)  # 00, 06, 12, 18
+variable_mslma = "MSLMA"
 
 # Function to download GRIB files (structure and time logic matches test.py)
 def download_file(hour_str, step):
