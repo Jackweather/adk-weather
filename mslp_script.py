@@ -29,7 +29,6 @@ os.makedirs(mslp_dir, exist_ok=True)
 current_utc_time = datetime.utcnow() - timedelta(hours=6)
 date_str = current_utc_time.strftime("%Y%m%d")
 hour_str = str(current_utc_time.hour // 6 * 6).zfill(2)  # nearest 6-hour slot
-
 variable_mslma = "MSLMA"
 
 # Function to download GRIB files (structure and time logic matches test.py)
@@ -51,38 +50,54 @@ def download_file(hour_str, step):
         return None
 
 def generate_png(file_path, step):
-    ds = xr.open_dataset(file_path, engine="cfgrib")
-    data = ds['mslma'].values / 100  # Convert pressure to hPa
-    lats = ds['latitude'].values
-    lons = ds['longitude'].values
+    try:
+        ds = xr.open_dataset(file_path, engine="cfgrib")
+        if 'mslma' not in ds:
+            print(f"[step {step}] Skipping: 'mslma' variable not found.")
+            return None
 
-    fig = plt.figure(figsize=(10, 7), dpi=850)
-    ax = plt.axes(projection=ccrs.PlateCarree())  # Use PlateCarree projection
-    ax.set_extent([-126, -69, 24, 50], crs=ccrs.PlateCarree())  # Set requested extent
+        data = ds['mslma'].values / 100  # Convert pressure to hPa
 
-    # Use coolwarm colormap for contour lines
-    levels = np.arange(np.floor(data.min()), np.ceil(data.max()) + 1, 2)
-    cs = ax.contour(
-        lons, lats, data.squeeze(),
-        levels=levels,
-        cmap="coolwarm",
-        linewidths=1 # Increased thickness from 1 to 2
-    )
-    ax.clabel(cs, inline=True, fontsize=8, fmt='%1.0f')
+        # Skip if array is empty or full of NaNs
+        if data.size == 0 or np.isnan(data).all():
+            print(f"[step {step}] Skipping: MSLP data empty or all NaN.")
+            return None
 
-    # Add H and L symbols for highs and lows
-    min_idx = np.unravel_index(np.argmin(data), data.shape)
-    max_idx = np.unravel_index(np.argmax(data), data.shape)
-    ax.text(lons[min_idx], lats[min_idx], 'L', color='blue', fontsize=24, fontweight='bold', ha='center', va='center', transform=ccrs.PlateCarree())
-    ax.text(lons[max_idx], lats[max_idx], 'H', color='red', fontsize=24, fontweight='bold', ha='center', va='center', transform=ccrs.PlateCarree())
+        lats = ds['latitude'].values
+        lons = ds['longitude'].values
 
-    ax.set_axis_off()
-    plt.subplots_adjust(left=0, right=1, top=1, bottom=0)
-    png_path = os.path.join(mslp_dir, f"MSLP_{step:02d}.png")
-    plt.savefig(png_path, bbox_inches='tight', pad_inches=0, transparent=True)
-    plt.close(fig)
-    print(f"Generated PNG: {png_path}")
-    return png_path
+        fig = plt.figure(figsize=(10, 7), dpi=850)
+        ax = plt.axes(projection=ccrs.PlateCarree())
+        ax.set_extent([-126, -69, 24, 50], crs=ccrs.PlateCarree())
+
+        levels = np.arange(np.floor(np.nanmin(data)), np.ceil(np.nanmax(data)) + 1, 2)
+        cs = ax.contour(
+            lons, lats, data.squeeze(),
+            levels=levels,
+            cmap="coolwarm",
+            linewidths=1
+        )
+        ax.clabel(cs, inline=True, fontsize=8, fmt='%1.0f')
+
+        # Add highs and lows only if valid
+        min_idx = np.unravel_index(np.nanargmin(data), data.shape)
+        max_idx = np.unravel_index(np.nanargmax(data), data.shape)
+        ax.text(lons[min_idx], lats[min_idx], 'L', color='blue', fontsize=24, fontweight='bold',
+                ha='center', va='center', transform=ccrs.PlateCarree())
+        ax.text(lons[max_idx], lats[max_idx], 'H', color='red', fontsize=24, fontweight='bold',
+                ha='center', va='center', transform=ccrs.PlateCarree())
+
+        ax.set_axis_off()
+        plt.subplots_adjust(left=0, right=1, top=1, bottom=0)
+        png_path = os.path.join(mslp_dir, f"MSLP_{step:02d}.png")
+        plt.savefig(png_path, bbox_inches='tight', pad_inches=0, transparent=True)
+        plt.close(fig)
+        print(f"[step {step}] PNG created: {png_path}")
+        return png_path
+
+    except Exception as e:
+        print(f"[step {step}] Skipping due to error: {e}")
+        return None
 
 # Main process: Download and plot
 grib_files = []
