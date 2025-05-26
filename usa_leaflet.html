@@ -6,412 +6,686 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
   <style>
-    #map { height: 90vh; width: 100vw; background: #fff; }
-    /* Layout for right panel and hour slider */
-    #right-panel-container {
+    body {
+      margin: 0;
+      padding: 0;
+      background: #f7f7f7;
+      font-family: 'Segoe UI', Arial, sans-serif;
+    }
+    /* Top navigation bar */
+    #top-navbar {
+      width: 100vw;
+      background: #263159;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      padding: 0 32px;
+      height: 54px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
       position: fixed;
-      left: 24px;
-      bottom: 24px;
-      top: auto;
-      right: auto;
+      top: 0;
+      left: 0;
+      z-index: 2000;
+    }
+    #top-navbar .nav-item {
+      margin-right: 32px;
+      font-size: 1.1em;
+      font-weight: 500;
+      cursor: pointer;
+      user-select: none;
+      transition: color 0.15s;
+    }
+    #top-navbar .nav-item:hover {
+      color: #ffb400;
+    }
+    /* Center map and right panel */
+    #main-content {
+      display: flex;
+      flex-direction: row;
+      justify-content: center;
+      align-items: flex-start;
+      width: 100vw;
+      height: 100vh;
+      margin-top: 54px; /* height of navbar */
+      box-sizing: border-box;
+    }
+    /* Left panel for UTC/time and slider - cleaner look */
+    #left-panel {
+      width: 200px;
+      min-width: 120px;
+      background: #fff;
+      border-radius: 14px;
+      box-shadow: 0 2px 12px rgba(60,72,88,0.07);
+      margin-right: 28px;
+      margin-top: 32px;
+      padding: 22px 0 22px 0;
       display: flex;
       flex-direction: column;
-      z-index: 1100;
-      align-items: flex-start;
-      pointer-events: none; /* Prevent panel from blocking map drag */
+      align-items: stretch;
+      z-index: 1200;
+      height: fit-content;
+      border: 1px solid #e6e8ef;
+      transition: box-shadow 0.2s;
     }
-    #slider-container {
-      position: fixed;
-      right: 24px;
-      bottom: 24px;
-      margin: 0;
-      background: rgba(255,255,255,0.8);
-      padding: 18px 18px 18px 18px;
-      border-radius: 8px;
+    #left-panel .utc-box {
+      background: #fff;
+      border-radius: 10px;
+      box-shadow: none;
+      border: none;
+      padding: 14px 14px 10px 14px;
+      font-family: monospace;
+      font-size: 1.04em;
+      color: #263159;
+      min-width: 120px;
       text-align: center;
-      min-width: 180px;
-      box-shadow: -2px 2px 10px rgba(0,0,0,0.08);
+      margin-bottom: 18px;
+      pointer-events: none;
+      user-select: none;
+      letter-spacing: 0.01em;
+      transition: border 0.2s;
+    }
+    #left-panel .slider-box {
+      background: #f8fafc;
+      border-radius: 10px;
+      box-shadow: none;
+      border: none;
+      padding: 14px 10px 10px 10px;
+      text-align: center;
+      min-width: 120px;
       display: flex;
       flex-direction: column;
       align-items: center;
-      height: fit-content;
-      z-index: 1200;
-      pointer-events: auto;
+      margin-bottom: 0;
+      transition: border 0.2s;
     }
-    #hour-slider {
-      width: 120px;
+    #left-panel #hour-slider {
+      width: 110px;
       margin-bottom: 8px;
+      accent-color: #263159;
+      height: 2px;
+      border-radius: 2px;
+      background: #e0e3ef;
+      outline: none;
     }
-    #hour-label {
+    #left-panel #hour-label {
       font-family: monospace;
-      font-size: 1.1em;
-      color: #333;
+      font-size: 1.08em;
+      color: #263159;
+      margin-bottom: 2px;
+      letter-spacing: 0.01em;
     }
-    .collapsible-panel {
-      width: 220px;
-      background: rgba(255,255,255,0.95);
-      border-radius: 10px 0 0 10px;
-      box-shadow: -2px 2px 10px rgba(0,0,0,0.08);
-      font-family: 'Segoe UI', Arial, sans-serif;
-      margin-bottom: 14px;
+    #left-panel #forecast-time-est {
+      margin-top: 4px;
+      font-family: monospace;
+      color: #444;
+      font-size: 0.98em;
+      background: none;
+      border: none;
+      padding: 0;
+    }
+    /* Center map and right panel */
+    #map-container {
+      flex: 1 1 auto;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-width: 0;
+      min-height: 0;
+      height: calc(100vh - 54px);
+    }
+    #map {
+      height: 80vh;
+      width: 70vw;
+      min-width: 400px;
+      min-height: 400px;
+      max-width: 1200px;
+      max-height: 900px;
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+      margin: 0 auto;
+    }
+    /* Right panel */
+    #right-panel {
+      width: 270px;
+      background: rgba(255,255,255,0.98);
+      border-radius: 12px 0 0 12px;
+      box-shadow: -2px 2px 16px rgba(0,0,0,0.08);
+      margin-left: 24px;
+      margin-top: 24px;
+      padding: 18px 0 18px 0;
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      min-height: 320px;
+      z-index: 1200;
+    }
+    /* Dropdown style */
+    .dropdown {
+      margin: 0 18px 18px 18px;
+      border-radius: 8px;
+      background: #f5f7fa;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.04);
       overflow: hidden;
-      transition: box-shadow 0.2s;
-      cursor: pointer;
+      border: 1px solid #e0e0e0;
     }
-    .collapsible-header {
-      padding: 18px 18px 18px 24px;
-      font-size: 1.2em;
+    .dropdown-header {
+      padding: 16px 18px;
+      font-size: 1.13em;
       font-weight: bold;
-      letter-spacing: 1px;
-      user-select: none;
+      color: #263159;
+      background: #e8eaf6;
+      cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: space-between;
+      user-select: none;
     }
-    .collapsible-header.surface {
-      color: #1a237e;
-    }
-    .collapsible-header.severe {
+    .dropdown-header.severe {
       color: #b71c1c;
-      font-size: 1.1em;
+      background: #ffebee;
     }
-    .collapsible-content {
-      padding: 0 18px 18px 24px;
-      display: none;
-      animation: fadeIn 0.2s;
-    }
-    .collapsible-panel.open .collapsible-content {
-      display: block;
-    }
-    .collapsible-arrow {
-      font-size: 1.1em;
+    .dropdown-arrow {
+      font-size: 1.2em;
       margin-left: 8px;
       transition: transform 0.2s;
     }
-    .collapsible-panel.open .collapsible-arrow {
+    .dropdown.open .dropdown-arrow {
       transform: rotate(90deg);
+    }
+    .dropdown-content {
+      display: none;
+      padding: 0 18px 14px 18px;
+      animation: fadeIn 0.2s;
+    }
+    .dropdown.open .dropdown-content {
+      display: block;
+    }
+    .dropdown-content label {
+      display: block;
+      margin: 10px 0 0 0;
+      font-size: 1em;
+      color: #333;
+      cursor: pointer;
+    }
+    /* Hide old fixed UTC/time and slider containers */
+    #current-time-box, #custom-slider-container, #slider-container {
+      display: none !important;
+    }
+    /* Bottom colorbar sidebar */
+    #bottom-colorbar-bar {
+      position: fixed;
+      left: 0;
+      bottom: 0;
+      width: 100vw;
+      background: rgba(255,255,255,0.98);
+      box-shadow: 0 -2px 16px rgba(0,0,0,0.08);
+      border-top: 1px solid #e6e8ef;
+      z-index: 3000;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      align-items: center;
+      padding: 0;
+      min-height: 60px;
+      height: 80px; /* Default height, can be changed by user */
+      transition: height 0.15s;
+      box-sizing: border-box;
+    }
+    #colorbar-resize-handle {
+      width: 100px;
+      height: 8px;
+      cursor: ns-resize;
+      background: #e0e3ef;
+      border-radius: 4px;
+      margin: 6px auto 0 auto;
+      position: relative;
+      top: 4px;
+      transition: background 0.2s;
+      z-index: 1;
+    }
+    #colorbar-resize-handle:hover {
+      background: #bfc6e0;
+    }
+    #colorbar-size-slider-container {
+      width: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin: 0 0 2px 0;
+      padding: 0;
+      font-size: 0.98em;
+      color: #444;
+      user-select: none;
+      gap: 10px;
+    }
+    #colorbar-size-slider {
+      width: 180px;
+      accent-color: #263159;
+      margin: 0 8px;
+    }
+    #colorbars-container {
+      display: flex;
+      flex-direction: row;
+      gap: 32px;
+      align-items: flex-end;
+      justify-content: center;
+      width: 100%;
+      margin: 0;
+      padding: 0;
+      background: none;
+      box-shadow: none;
+      padding-bottom: 8px;
+    }
+    #colorbars-container > div {
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      background: none;
+      box-shadow: none;
+      margin: 0;
+      padding: 0;
+    }
+    #colorbars-container img {
+      max-width: 260px;
+      width: 100%;
+      height: auto;
+      background: none;
+      border-radius: 6px;
+      box-shadow: 0 1px 8px rgba(0,0,0,0.04);
+      transition: max-width 0.15s;
     }
     /* Remove Leaflet attribution */
     .leaflet-control-attribution {
       display: none !important;
     }
-    /* Ensure right panel is always above PNG overlays */
-    #right-panel-container {
-      pointer-events: none;
-    }
-    #right-panel-container > *,
-    #right-panel-container * {
-      pointer-events: auto;
-    }
-    #current-time-box {
-      position: fixed;
-      top: 24px;
-      right: 24px;
-      background: rgba(255,255,255,0.95);
-      border-radius: 8px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.08);
-      padding: 12px 20px;
-      font-family: monospace;
-      font-size: 1.08em;
-      color: #222;
-      z-index: 1300;
-      min-width: 220px;
-      text-align: center;
-      pointer-events: none;
-      user-select: none;
-    }
   </style>
 </head>
 <body>
-<div id="map" style="height: 600px;"></div>
-
-<!-- Current UTC time and HRRR run info -->
-<div id="current-time-box"></div>
-
-<!-- Colorbars for each overlay, hidden by default -->
-<div id="colorbars-container" style="text-align:center; margin-top:10px;">
-    <div id="colorbar-refc" style="display:none;">
-        <img src="/colorbar/REFC_colorbar.png" alt="REFC Color Bar" style="max-width: 800px; width: 100%; height: auto;">
-    </div>
-    <div id="colorbar-temp" style="display:none;">
-        <img src="/colorbar/TEMP_colorbar.png" alt="TEMP Color Bar" style="max-width: 800px; width: 100%; height: auto;">
-    </div>
-    <div id="colorbar-lightning" style="display:none;">
-        <img src="/colorbar/LIGHTNING_colorbar.png" alt="LIGHTNING Color Bar" style="max-width: 800px; width: 100%; height: auto;">
-    </div>
-    <div id="colorbar-mslp" style="display:none;">
-        <img src="/colorbar/mslp_colorbar.png" alt="MSLP Color Bar" style="max-width: 800px; width: 100%; height: auto;">
-    </div>
-</div>
-
-<!-- Hour slider moved outside right panel for bottom right positioning -->
-<div id="slider-container" style="display:none;">
-  <input type="range" id="hour-slider" min="0" max="0" value="0" step="1">
-  <span id="hour-label"></span>
-  <div id="forecast-time-est" style="margin-top:6px; font-family:monospace; color:#444; font-size:1em;"></div>
-</div>
-
-<!-- New right panel: hour slider left of surface data, severe weather below -->
-<div id="right-panel-container">
-  <div>
-    <div id="surface-data-panel" class="collapsible-panel open">
-      <div class="collapsible-header surface">
-        Surface DATA
-        <span class="collapsible-arrow">&#9654;</span>
-      </div>
-      <div class="collapsible-content">
-        <label><input type="checkbox" id="toggle-refc"> Show REFC</label>
-        <label><input type="checkbox" id="toggle-mslp"> Show MSLP</label>
-        <label><input type="checkbox" id="toggle-temp2m"> Show 2m Temp</label>
+  <!-- Top navigation bar -->
+  <div id="top-navbar">
+    <div class="nav-item">Home</div>
+    <div class="nav-item">More</div>
+    <div class="nav-item">Settings</div>
+  </div>
+  <div id="main-content">
+    <!-- Left panel with UTC/time and slider -->
+    <div id="left-panel">
+      <div class="utc-box" id="left-current-time-box"></div>
+      <div class="slider-box" id="left-slider-box" style="display:none;">
+        <input type="range" id="hour-slider" min="0" max="0" value="0" step="1">
+        <span id="hour-label"></span>
+        <div id="forecast-time-est"></div>
+        <div style="font-size:0.97em;color:#888;margin-top:10px;">
+          New runs happen an hour and 45 minutes after the new run is available
+        </div>
       </div>
     </div>
-    <div id="severe-weather-panel" class="collapsible-panel open">
-      <div class="collapsible-header severe">
-        Severe Weather
-        <span class="collapsible-arrow">&#9654;</span>
+    <div id="map-container">
+      <div id="map"></div>
+    </div>
+    <!-- Right panel with dropdowns -->
+    <div id="right-panel">
+      <div class="dropdown" id="dropdown-surface">
+        <div class="dropdown-header">
+          Surface DATA
+          <span class="dropdown-arrow">&#9654;</span>
+        </div>
+        <div class="dropdown-content">
+          <label><input type="checkbox" id="toggle-refc"> Show REFC</label>
+          <label><input type="checkbox" id="toggle-mslp"> Show MSLP</label>
+          <label><input type="checkbox" id="toggle-temp2m"> Show 2m Temp</label>
+          <label><input type="checkbox" id="toggle-rh"> Show RH</label> <!-- Added RH -->
+        </div>
       </div>
-      <div class="collapsible-content">
-        <label><input type="checkbox" id="toggle-lightning"> Show Lightning</label>
+      <div class="dropdown" id="dropdown-severe">
+        <div class="dropdown-header severe">
+          Severe Weather
+          <span class="dropdown-arrow">&#9654;</span>
+        </div>
+        <div class="dropdown-content">
+          <label><input type="checkbox" id="toggle-lightning"> Show Lightning</label>
+        </div>
       </div>
     </div>
   </div>
-</div>
+  <!-- Bottom colorbar sidebar -->
+  <div id="bottom-colorbar-bar">
+    <div id="colorbar-resize-handle" title="Drag to resize"></div>
+    <div id="colorbar-size-slider-container">
+      <span style="margin-right:4px;">Colorbar size</span>
+      <input type="range" id="colorbar-size-slider" min="120" max="600" value="260">
+      <span id="colorbar-size-value">260</span>px
+    </div>
+    <div id="colorbars-container">
+      <div id="colorbar-refc" style="display:none;">
+        <img src="/colorbar/REFC_colorbar.png" alt="REFC Color Bar">
+      </div>
+      <div id="colorbar-temp" style="display:none;">
+        <img src="/colorbar/TEMP_colorbar.png" alt="TEMP Color Bar">
+      </div>
+      <div id="colorbar-lightning" style="display:none;">
+        <img src="/colorbar/LIGHTNING_colorbar.png" alt="LIGHTNING Color Bar">
+      </div>
+      <div id="colorbar-mslp" style="display:none;">
+        <img src="/colorbar/mslp_colorbar.png" alt="MSLP Color Bar">
+      </div>
+      <div id="colorbar-rh" style="display:none;">
+        <img src="/colorbar/RH_colorbar.png" alt="RH Color Bar">
+      </div>
+    </div>
+  </div>
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script>
+    var map = L.map('map', { attributionControl: false }).setView([37.8, -96], 4);
+    var imageBounds = [[24, -126], [50, -69]];
+    var cartopyBase = L.imageOverlay('/cartopy_base.png', imageBounds, {opacity: 1, interactive: false});
+    cartopyBase.addTo(map);
+    var overlayRefc = null;
+    var overlayMslp = null;
+    var overlayTemp2m = null;
+    var overlayLightning = null;
+    var overlayRH = null; // Added for RH
+    var pngList = [];
+    var showRefc = false;
+    var showMslp = false;
+    var showTemp2m = false;
+    var showLightning = false;
+    var showRH = false; // Added for RH
+    map.keyboard.disable();
 
-<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-<script>
-  var map = L.map('map', { attributionControl: false }).setView([37.8, -96], 4);
+    // Checkbox event listeners
+    document.getElementById('toggle-refc').addEventListener('change', function() {
+      showRefc = this.checked;
+      updateOverlay(parseInt(document.getElementById('hour-slider').value));
+      updateColorbars(getVisibleLayers());
+    });
+    document.getElementById('toggle-mslp').addEventListener('change', function() {
+      showMslp = this.checked;
+      updateOverlay(parseInt(document.getElementById('hour-slider').value));
+      updateColorbars(getVisibleLayers());
+    });
+    document.getElementById('toggle-temp2m').addEventListener('change', function() {
+      showTemp2m = this.checked;
+      updateOverlay(parseInt(document.getElementById('hour-slider').value));
+      updateColorbars(getVisibleLayers());
+    });
+    document.getElementById('toggle-lightning').addEventListener('change', function() {
+      showLightning = this.checked;
+      updateOverlay(parseInt(document.getElementById('hour-slider').value));
+      updateColorbars(getVisibleLayers());
+    });
+    document.getElementById('toggle-rh').addEventListener('change', function() { // RH event
+      showRH = this.checked;
+      updateOverlay(parseInt(document.getElementById('hour-slider').value));
+      updateColorbars(getVisibleLayers());
+    });
+    // Set all checkboxes to unchecked and variables to false on load
+    document.getElementById('toggle-refc').checked = false;
+    document.getElementById('toggle-mslp').checked = false;
+    document.getElementById('toggle-temp2m').checked = false;
+    document.getElementById('toggle-lightning').checked = false;
+    document.getElementById('toggle-rh').checked = false; // RH
 
-  // Define the bounds for all overlays (must match Cartopy PNG and weather PNGs)
-  var imageBounds = [[24, -126], [50, -69]];
-
-  // Add Cartopy PNG as a base overlay (static map with coastlines, borders, etc.)
-  var cartopyBase = L.imageOverlay('/cartopy_base.png', imageBounds, {opacity: 1, interactive: false});
-  cartopyBase.addTo(map);
-
-  var overlayRefc = null;
-  var overlayMslp = null;
-  var overlayTemp2m = null;
-  var overlayLightning = null;
-  var pngList = [];
-
-  var showRefc = false;
-  var showMslp = false;
-  var showTemp2m = false;
-  var showLightning = false;
-
-  // Prevent Leaflet from handling arrow keys (disable keyboard pan)
-  map.keyboard.disable();
-
-  document.getElementById('toggle-refc').addEventListener('change', function() {
-    showRefc = this.checked;
-    updateOverlay(parseInt(document.getElementById('hour-slider').value));
-    updateColorbars(getVisibleLayers());
-  });
-  document.getElementById('toggle-mslp').addEventListener('change', function() {
-    showMslp = this.checked;
-    updateOverlay(parseInt(document.getElementById('hour-slider').value));
-    updateColorbars(getVisibleLayers());
-  });
-  document.getElementById('toggle-temp2m').addEventListener('change', function() {
-    showTemp2m = this.checked;
-    updateOverlay(parseInt(document.getElementById('hour-slider').value));
-    updateColorbars(getVisibleLayers());
-  });
-  document.getElementById('toggle-lightning').addEventListener('change', function() {
-    showLightning = this.checked;
-    updateOverlay(parseInt(document.getElementById('hour-slider').value));
-    updateColorbars(getVisibleLayers());
-  });
-
-  // Set all checkboxes to unchecked and variables to false on load
-  document.getElementById('toggle-refc').checked = false;
-  document.getElementById('toggle-mslp').checked = false;
-  document.getElementById('toggle-temp2m').checked = false;
-  document.getElementById('toggle-lightning').checked = false;
-
-  // Load the PNG list from Flask endpoint
-  fetch('/reflectivity_images')
-    .then(response => response.json())
-    .then(function(images) {
-      pngList = images;
-      if (pngList.length === 0) return;
-      var slider = document.getElementById('hour-slider');
-      var label = document.getElementById('hour-label');
-      var forecastTimeBox = document.getElementById('forecast-time-est');
-      slider.max = pngList.length - 1;
-      slider.value = 0;
-      document.getElementById('slider-container').style.display = 'flex';
-
-      function getForecastTimeEST(hourOffset) {
-        // Get current UTC time
-        const now = new Date();
-        const utcYear = now.getUTCFullYear();
-        const utcMonth = now.getUTCMonth();
-        const utcDay = now.getUTCDate();
-        const utcHour = now.getUTCHours();
-
-        // Find most recent HRRR run hour (00, 06, 12, 18) <= current UTC hour
-        let runHour = Math.floor(utcHour / 6) * 6;
-        if (runHour === 24) runHour = 18;
-        let runDate = new Date(Date.UTC(utcYear, utcMonth, utcDay, runHour));
-        if (utcHour < runHour) {
-          runDate.setUTCHours(runDate.getUTCHours() - 6);
-          runHour = Math.floor(runDate.getUTCHours() / 6) * 6;
-        }
-
-        // Map runHour to EST start hour
-        // 00z = 8pm prev day, 06z = 2am, 12z = 8am, 18z = 2pm (all EST)
-        let estStartHour;
-        if (runHour === 0) estStartHour = 20;      // 8pm previous day
-        else if (runHour === 6) estStartHour = 2;  // 2am
-        else if (runHour === 12) estStartHour = 8; // 8am
-        else if (runHour === 18) estStartHour = 14;// 2pm
-
-        // For 00z, move to previous day for EST start
-        let estRunDate = new Date(runDate.getTime());
-        if (runHour === 0) {
-          estRunDate.setUTCDate(estRunDate.getUTCDate() - 1);
-        }
-        // Set EST run start hour
-        estRunDate.setUTCHours(estStartHour + 5, 0, 0, 0); // EST to UTC (+5)
-
-        // Forecast valid time = estRunDate + hourOffset (in hours)
-        let validDate = new Date(estRunDate.getTime() + hourOffset * 3600 * 1000);
-
-        // Format yymmdd and hour in 12-hour format with AM/PM
-        let yy = String(validDate.getFullYear()).slice(2);
-        let mm = String(validDate.getMonth() + 1).padStart(2, '0');
-        let dd = String(validDate.getDate()).padStart(2, '0');
-        let hour24 = validDate.getUTCHours() - 5;
-        if (hour24 < 0) {
-          hour24 += 24;
-          // If hour24 < 0, subtract a day
-          let prev = new Date(validDate.getTime() - 24 * 3600 * 1000);
-          yy = String(prev.getFullYear()).slice(2);
-          mm = String(prev.getMonth() + 1).padStart(2, '0');
-          dd = String(prev.getDate()).padStart(2, '0');
-        }
-        let ampm = hour24 >= 12 ? 'PM' : 'AM';
-        let hour12 = hour24 % 12;
-        if (hour12 === 0) hour12 = 12;
-        let hh = String(hour12).padStart(2, '0');
-        return `Forecast valid (EST): ${yy}${mm}${dd} ${hh}:00 ${ampm}`;
+    // --- Dropdown logic for right panel ---
+    function closeAllDropdowns() {
+      document.querySelectorAll('.dropdown').forEach(function(drop) {
+        drop.classList.remove('open');
+      });
+    }
+    // Close all dropdowns on load
+    closeAllDropdowns();
+    // Toggle dropdown open/close on header click
+    document.querySelectorAll('.dropdown').forEach(function(drop) {
+      var header = drop.querySelector('.dropdown-header');
+      header.addEventListener('click', function(e) {
+        // Only toggle if not clicking a checkbox
+        if (e.target.tagName === 'INPUT') return;
+        var isOpen = drop.classList.contains('open');
+        closeAllDropdowns();
+        if (!isOpen) drop.classList.add('open');
+      });
+    });
+    // Optional: close dropdowns if clicking outside
+    document.addEventListener('click', function(e) {
+      if (!e.target.closest('.dropdown')) {
+        closeAllDropdowns();
       }
+    });
+
+    // --- Slider logic (now in left panel) ---
+    fetch('/reflectivity_images')
+      .then(response => response.json())
+      .then(function(images) {
+        pngList = images;
+        if (pngList.length === 0) return;
+        var slider = document.getElementById('hour-slider');
+        var label = document.getElementById('hour-label');
+        var forecastTimeBox = document.getElementById('forecast-time-est');
+        document.getElementById('left-slider-box').style.display = 'flex';
+        slider.max = pngList.length - 1;
+        slider.value = 0;
+
+        function getForecastTimeEST(hourOffset) {
+          // Get current UTC time
+          const now = new Date();
+          const utcYear = now.getUTCFullYear();
+          const utcMonth = now.getUTCMonth();
+          const utcDay = now.getUTCDate();
+          const utcHour = now.getUTCHours();
+
+          // Find most recent HRRR run hour (00, 06, 12, 18) <= current UTC hour
+          let runHour = Math.floor(utcHour / 6) * 6;
+          if (runHour === 24) runHour = 18;
+          let runDate = new Date(Date.UTC(utcYear, utcMonth, utcDay, runHour));
+          if (utcHour < runHour) {
+            runDate.setUTCHours(runDate.getUTCHours() - 6);
+            runHour = Math.floor(runDate.getUTCHours() / 6) * 6;
+          }
+
+          // Map runHour to EST start hour
+          // 00z = 8pm prev day, 06z = 2am, 12z = 8am, 18z = 2pm (all EST)
+          let estStartHour;
+          if (runHour === 0) estStartHour = 20;      // 8pm previous day
+          else if (runHour === 6) estStartHour = 2;  // 2am
+          else if (runHour === 12) estStartHour = 8; // 8am
+          else if (runHour === 18) estStartHour = 14;// 2pm
+
+          // For 00z, move to previous day for EST start
+          let estRunDate = new Date(runDate.getTime());
+          if (runHour === 0) {
+            estRunDate.setUTCDate(estRunDate.getUTCDate() - 1);
+          }
+          // Set EST run start hour
+          estRunDate.setUTCHours(estStartHour + 5, 0, 0, 0); // EST to UTC (+5)
+
+          // Forecast valid time = estRunDate + hourOffset (in hours)
+          let validDate = new Date(estRunDate.getTime() + hourOffset * 3600 * 1000);
+
+          // Format yymmdd and hour in 12-hour format with AM/PM
+          let yy = String(validDate.getFullYear()).slice(2);
+          let mm = String(validDate.getMonth() + 1).padStart(2, '0');
+          let dd = String(validDate.getDate()).padStart(2, '0');
+          let hour24 = validDate.getUTCHours() - 5;
+          if (hour24 < 0) {
+            hour24 += 24;
+            // If hour24 < 0, subtract a day
+            let prev = new Date(validDate.getTime() - 24 * 3600 * 1000);
+            yy = String(prev.getFullYear()).slice(2);
+            mm = String(prev.getMonth() + 1).padStart(2, '0');
+            dd = String(prev.getDate()).padStart(2, '0');
+          }
+          let ampm = hour24 >= 12 ? 'PM' : 'AM';
+          let hour12 = hour24 % 12;
+          if (hour12 === 0) hour12 = 12;
+          let hh = String(hour12).padStart(2, '0');
+          return `Forecast valid (EST): ${yy}${mm}${dd} ${hh}:00 ${ampm}`;
+        }
 
       window.updateOverlay = function(idx) {
-        if (overlayRefc) map.removeLayer(overlayRefc);
-        if (overlayMslp) map.removeLayer(overlayMslp);
-        if (overlayTemp2m) map.removeLayer(overlayTemp2m);
-        if (overlayLightning) map.removeLayer(overlayLightning);
-        var entry = pngList[idx];
-        if (showRefc && entry.refc) {
-          overlayRefc = L.imageOverlay(entry.refc, imageBounds, {opacity: 0.7});
-          overlayRefc.addTo(map);
-        } else {
-          overlayRefc = null;
-        }
-        if (showMslp && entry.mslp) {
-          overlayMslp = L.imageOverlay(entry.mslp, imageBounds, {opacity: 0.7});
-          overlayMslp.addTo(map);
-        } else {
-          overlayMslp = null;
-        }
-        if (showTemp2m && entry.temp2m) {
-          overlayTemp2m = L.imageOverlay(entry.temp2m, imageBounds, {opacity: 0.7});
-          overlayTemp2m.addTo(map);
-        } else {
-          overlayTemp2m = null;
-        }
-        if (showLightning && entry.lightning) {
-          overlayLightning = L.imageOverlay(entry.lightning, imageBounds, {opacity: 0.7});
-          overlayLightning.addTo(map);
-        } else {
-          overlayLightning = null;
-        }
-        label.textContent = `Hour: ${entry.hour}`;
-        forecastTimeBox.textContent = getForecastTimeEST(entry.hour);
-        updateColorbars(getVisibleLayers());
-      };
-
-      slider.oninput = function() {
-        updateOverlay(parseInt(slider.value));
-      };
-
-      // Add arrow key support
-      document.addEventListener('keydown', function(e) {
-        if (['ArrowRight', 'ArrowLeft'].includes(e.key) && !e.target.matches('input, textarea')) {
-          e.preventDefault();
-          var idx = parseInt(slider.value);
-          if (e.key === 'ArrowRight' && idx < pngList.length - 1) {
-            slider.value = idx + 1;
-            slider.dispatchEvent(new Event('input'));
-          } else if (e.key === 'ArrowLeft' && idx > 0) {
-            slider.value = idx - 1;
-            slider.dispatchEvent(new Event('input'));
+          if (overlayRefc) map.removeLayer(overlayRefc);
+          if (overlayMslp) map.removeLayer(overlayMslp);
+          if (overlayTemp2m) map.removeLayer(overlayTemp2m);
+          if (overlayLightning) map.removeLayer(overlayLightning);
+          if (overlayRH) map.removeLayer(overlayRH); // RH
+          var entry = pngList[idx];
+          if (showRefc && entry.refc) {
+            overlayRefc = L.imageOverlay(entry.refc, imageBounds, {opacity: 0.7});
+            overlayRefc.addTo(map);
+          } else {
+            overlayRefc = null;
           }
-        }
+          if (showMslp && entry.mslp) {
+            overlayMslp = L.imageOverlay(entry.mslp, imageBounds, {opacity: 0.7});
+            overlayMslp.addTo(map);
+          } else {
+            overlayMslp = null;
+          }
+          if (showTemp2m && entry.temp2m) {
+            overlayTemp2m = L.imageOverlay(entry.temp2m, imageBounds, {opacity: 0.7});
+            overlayTemp2m.addTo(map);
+          } else {
+            overlayTemp2m = null;
+          }
+          if (showLightning && entry.lightning) {
+            overlayLightning = L.imageOverlay(entry.lightning, imageBounds, {opacity: 0.7});
+            overlayLightning.addTo(map);
+          } else {
+            overlayLightning = null;
+          }
+          if (showRH && entry.rh) { // RH
+            overlayRH = L.imageOverlay(entry.rh, imageBounds, {opacity: 0.7});
+            overlayRH.addTo(map);
+          } else {
+            overlayRH = null;
+          }
+          label.textContent = `Hour: ${entry.hour}`;
+          forecastTimeBox.textContent = getForecastTimeEST(entry.hour);
+          updateColorbars(getVisibleLayers());
+        };
+
+        slider.oninput = function() {
+          updateOverlay(parseInt(slider.value));
+        };
+
+        // Add arrow key support
+        document.addEventListener('keydown', function(e) {
+          if (['ArrowRight', 'ArrowLeft'].includes(e.key) && !e.target.matches('input, textarea')) {
+            e.preventDefault();
+            var idx = parseInt(slider.value);
+            if (e.key === 'ArrowRight' && idx < pngList.length - 1) {
+              slider.value = idx + 1;
+              slider.dispatchEvent(new Event('input'));
+            } else if (e.key === 'ArrowLeft' && idx > 0) {
+              slider.value = idx - 1;
+              slider.dispatchEvent(new Event('input'));
+            }
+          }
+        });
+
+        // Show first image
+        updateOverlay(0);
       });
 
-      // Show first image
-      updateOverlay(0);
-    });
-
-  function updateColorbars(visibleLayers) {
-    document.getElementById("colorbar-refc").style.display = visibleLayers.includes("REFC") ? "block" : "none";
-    document.getElementById("colorbar-temp").style.display = visibleLayers.includes("TEMP") ? "block" : "none";
-    document.getElementById("colorbar-lightning").style.display = visibleLayers.includes("LIGHTNING") ? "block" : "none";
-    document.getElementById("colorbar-mslp").style.display = visibleLayers.includes("MSLP") ? "block" : "none";
-  }
-
-  function getVisibleLayers() {
-    const visibleLayers = [];
-    if (showRefc) visibleLayers.push("REFC");
-    if (showTemp2m) visibleLayers.push("TEMP");
-    if (showLightning) visibleLayers.push("LIGHTNING");
-    if (showMslp) visibleLayers.push("MSLP");
-    return visibleLayers;
-  }
-
-  // Collapsible panels logic
-  document.querySelectorAll('.collapsible-panel').forEach(function(panel) {
-    var header = panel.querySelector('.collapsible-header');
-    header.addEventListener('click', function(e) {
-      // Only toggle if clicking header, not checkbox
-      if (e.target.tagName === 'INPUT') return;
-      panel.classList.toggle('open');
-    });
-  });
-
-  // --- Current UTC time and HRRR run display ---
-  function updateCurrentTimeBox() {
-    const box = document.getElementById('current-time-box');
-    const now = new Date();
-    // UTC time
-    const utcYear = now.getUTCFullYear();
-    const utcMonth = String(now.getUTCMonth() + 1).padStart(2, '0');
-    const utcDay = String(now.getUTCDate()).padStart(2, '0');
-    const utcHour = now.getUTCHours();
-    const utcMin = String(now.getUTCMinutes()).padStart(2, '0');
-    const utcSec = String(now.getUTCSeconds()).padStart(2, '0');
-    // HRRR run logic
-    let runHour = Math.floor(utcHour / 6) * 6;
-    if (runHour === 24) runHour = 18;
-    let dateForRun = new Date(Date.UTC(utcYear, now.getUTCMonth(), utcDay, utcHour));
-    if (utcHour < runHour) {
-      dateForRun.setUTCHours(dateForRun.getUTCHours() - 6);
-      runHour = Math.floor(dateForRun.getUTCHours() / 6) * 6;
+    function updateColorbars(visibleLayers) {
+      document.getElementById("colorbar-refc").style.display = visibleLayers.includes("REFC") ? "block" : "none";
+      document.getElementById("colorbar-temp").style.display = visibleLayers.includes("TEMP") ? "block" : "none";
+      document.getElementById("colorbar-lightning").style.display = visibleLayers.includes("LIGHTNING") ? "block" : "none";
+      document.getElementById("colorbar-mslp").style.display = visibleLayers.includes("MSLP") ? "block" : "none";
+      document.getElementById("colorbar-rh").style.display = visibleLayers.includes("RH") ? "block" : "none"; // RH
     }
-    const dateStr = dateForRun.getUTCFullYear().toString() +
-      String(dateForRun.getUTCMonth() + 1).padStart(2, '0') +
-      String(dateForRun.getUTCDate()).padStart(2, '0');
-    const hourStr = String(runHour).padStart(2, '0');
-    // Display
-    box.innerHTML =
-      `<b>Current UTC:</b> ${utcYear}-${utcMonth}-${utcDay} ${String(utcHour).padStart(2, '0')}:${utcMin}:${utcSec}<br>` +
-      `<b>Most Recent HRRR Run:</b> ${dateStr} ${hourStr}z`;
-  }
-  updateCurrentTimeBox();
-  setInterval(updateCurrentTimeBox, 10000);
-</script>
+
+    function getVisibleLayers() {
+      const visibleLayers = [];
+      if (showRefc) visibleLayers.push("REFC");
+      if (showTemp2m) visibleLayers.push("TEMP");
+      if (showLightning) visibleLayers.push("LIGHTNING");
+      if (showMslp) visibleLayers.push("MSLP");
+      if (showRH) visibleLayers.push("RH"); // RH
+      return visibleLayers;
+    }
+
+    // --- Current UTC time and HRRR run display (now in left panel) ---
+    function updateCurrentTimeBox() {
+      const box = document.getElementById('left-current-time-box');
+      const now = new Date();
+      // UTC time
+      const utcYear = now.getUTCFullYear();
+      const utcMonth = String(now.getUTCMonth() + 1).padStart(2, '0');
+      const utcDay = String(now.getUTCDate()).padStart(2, '0');
+      const utcHour = now.getUTCHours();
+      const utcMin = String(now.getUTCMinutes()).padStart(2, '0');
+      const utcSec = String(now.getUTCSeconds()).padStart(2, '0');
+      // HRRR run logic
+      let runHour = Math.floor(utcHour / 6) * 6;
+      if (runHour === 24) runHour = 18;
+      let dateForRun = new Date(Date.UTC(utcYear, now.getUTCMonth(), utcDay, utcHour));
+      if (utcHour < runHour) {
+        dateForRun.setUTCHours(dateForRun.getUTCHours() - 6);
+        runHour = Math.floor(dateForRun.getUTCHours() / 6) * 6;
+      }
+      const dateStr = dateForRun.getUTCFullYear().toString() +
+        String(dateForRun.getUTCMonth() + 1).padStart(2, '0') +
+        String(dateForRun.getUTCDate()).padStart(2, '0');
+      const hourStr = String(runHour).padStart(2, '0');
+      // Display
+      box.innerHTML =
+        `<b>Current UTC:</b> ${utcYear}-${utcMonth}-${utcDay} ${String(utcHour).padStart(2, '0')}:${utcMin}:${utcSec}<br>` +
+        `<b>Most Recent HRRR Run:</b> ${dateStr} ${hourStr}z`;
+    }
+    updateCurrentTimeBox();
+    setInterval(updateCurrentTimeBox, 10000);
+
+    // --- Bottom colorbar bar resize logic ---
+    (function() {
+      var bar = document.getElementById('bottom-colorbar-bar');
+      var handle = document.getElementById('colorbar-resize-handle');
+      var minHeight = 60;
+      var maxHeight = 300;
+      var startY = 0;
+      var startHeight = 0;
+      var dragging = false;
+
+      handle.addEventListener('mousedown', function(e) {
+        dragging = true;
+        startY = e.clientY;
+        startHeight = bar.offsetHeight;
+        document.body.style.userSelect = 'none';
+      });
+
+      window.addEventListener('mousemove', function(e) {
+        if (!dragging) return;
+        var dy = startY - e.clientY;
+        var newHeight = Math.min(maxHeight, Math.max(minHeight, startHeight + dy));
+        bar.style.height = newHeight + 'px';
+      });
+
+      window.addEventListener('mouseup', function() {
+        if (dragging) {
+          dragging = false;
+          document.body.style.userSelect = '';
+        }
+      });
+    })();
+
+    // --- Colorbar size slider logic ---
+    (function() {
+      var slider = document.getElementById('colorbar-size-slider');
+      var valueLabel = document.getElementById('colorbar-size-value');
+      var imgs = document.querySelectorAll('#colorbars-container img');
+      function setSize(val) {
+        imgs.forEach(function(img) {
+          img.style.maxWidth = val + 'px';
+        });
+        valueLabel.textContent = val;
+      }
+      slider.addEventListener('input', function() {
+        setSize(this.value);
+      });
+      // Set initial size
+      setSize(slider.value);
+    })();
+  </script>
 </body>
 </html>

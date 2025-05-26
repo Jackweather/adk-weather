@@ -13,6 +13,7 @@ PNG_DIR_REFC = os.path.join("Hrrr", "static", "REFC")
 PNG_DIR_MSLP = os.path.join("Hrrr", "static", "MSLP")
 PNG_DIR_TEMP2M = os.path.join("Hrrr", "static", "2mtemp")
 PNG_DIR_LIGHTNING = os.path.join("Hrrr", "static", "lighting")
+PNG_DIR_RH = os.path.join("Hrrr", "static", "RH")  # Add this line near other PNG_DIR_* definitions
 COLORBAR_DIR = os.path.join(BASE_DIR, "colorbars")  # Serve from project root colorbars folder
 
 @app.route("/")
@@ -21,11 +22,12 @@ def home():
 
 @app.route("/reflectivity_images")
 def get_pngs():
-    # Find all REFC, MSLP, 2mtemp, and Lightning PNGs by hour
+    # Find all REFC, MSLP, 2mtemp, Lightning, and RH PNGs by hour
     refc_files = [f for f in os.listdir(PNG_DIR_REFC) if re.match(r"REFC_(\d+)\.png$", f)]
     mslp_files = [f for f in os.listdir(PNG_DIR_MSLP) if re.match(r"MSLP_(\d+)\.png$", f)]
     temp2m_files = [f for f in os.listdir(PNG_DIR_TEMP2M) if re.match(r"2mtemp_(\d+)\.png$", f)]
     lightning_files = [f for f in os.listdir(PNG_DIR_LIGHTNING) if re.match(r"lght_(\d+)\.png$", f)]
+    rh_files = [f for f in os.listdir(PNG_DIR_RH) if re.match(r"RH_(\d+)\.png$", f)]
 
     # Use regex to extract hour from each filename (more robust)
     def extract_hour(pattern, filename):
@@ -36,15 +38,17 @@ def get_pngs():
     mslp_dict = {extract_hour(r"MSLP_(\d+)\.png$", f): f for f in mslp_files}
     temp2m_dict = {extract_hour(r"2mtemp_(\d+)\.png$", f): f for f in temp2m_files}
     lightning_dict = {extract_hour(r"lght_(\d+)\.png$", f): f for f in lightning_files}
+    rh_dict = {extract_hour(r"RH_(\d+)\.png$", f): f for f in rh_files}
 
     # Remove None keys if any file didn't match pattern
     refc_dict = {k: v for k, v in refc_dict.items() if k is not None}
     mslp_dict = {k: v for k, v in mslp_dict.items() if k is not None}
     temp2m_dict = {k: v for k, v in temp2m_dict.items() if k is not None}
     lightning_dict = {k: v for k, v in lightning_dict.items() if k is not None}
+    rh_dict = {k: v for k, v in rh_dict.items() if k is not None}
 
     # Union of all available hours from all overlays
-    all_hours = set(refc_dict) | set(mslp_dict) | set(temp2m_dict) | set(lightning_dict)
+    all_hours = set(refc_dict) | set(mslp_dict) | set(temp2m_dict) | set(lightning_dict) | set(rh_dict)
     all_hours = sorted(all_hours)
 
     result = []
@@ -54,7 +58,8 @@ def get_pngs():
             "refc": f"/refc_pngs/{refc_dict[hour]}" if hour in refc_dict else None,
             "mslp": f"/mslp_pngs/{mslp_dict[hour]}" if hour in mslp_dict else None,
             "temp2m": f"/temp2m_pngs/{temp2m_dict[hour]}" if hour in temp2m_dict else None,
-            "lightning": f"/lightning_pngs/{lightning_dict[hour]}" if hour in lightning_dict else None
+            "lightning": f"/lightning_pngs/{lightning_dict[hour]}" if hour in lightning_dict else None,
+            "rh": f"/rh_pngs/{rh_dict[hour]}" if hour in rh_dict else None  # Add RH
         })
     return jsonify(result)
 
@@ -73,6 +78,10 @@ def serve_temp2m_png(filename):
 @app.route("/lightning_pngs/<path:filename>")
 def serve_lightning_png(filename):
     return send_from_directory(PNG_DIR_LIGHTNING, filename)
+
+@app.route("/rh_pngs/<path:filename>")
+def serve_rh_png(filename):
+    return send_from_directory(PNG_DIR_RH, filename)
 
 @app.route("/colorbar/<path:filename>")
 def serve_colorbar(filename):

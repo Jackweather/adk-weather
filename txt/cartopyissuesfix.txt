@@ -1,9 +1,4 @@
 pip uninstall cartopy pyproj shapely -y
-
-
 pip install pyproj==3.4.1
-pip install shapely==2.0.1
-pip install cartopy==0.21.1
-
-
-python REFC.py
+pip install shapely==2.1.0
+pip install cartopy==0.24.1

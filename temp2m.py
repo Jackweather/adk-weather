@@ -29,18 +29,11 @@ grib_dir = os.path.join(temp2m_dir, "grib_files")  # Now inside 2mtemp
 os.makedirs(grib_dir, exist_ok=True)
 os.makedirs(temp2m_dir, exist_ok=True)
 
-# Get the current UTC date and time and select the most recent HRRR run (0z, 6z, 12z, 18z)
-current_utc_time = datetime.utcnow()
-run_hour = (current_utc_time.hour // 6) * 6
-if run_hour == 24:
-    run_hour = 18
-date_for_run = current_utc_time
-if current_utc_time.hour < run_hour:
-    # If current hour is less than run_hour (shouldn't happen with integer division, but safe)
-    date_for_run = current_utc_time - timedelta(hours=6)
-    run_hour = (date_for_run.hour // 6) * 6
-date_str = date_for_run.strftime("%Y%m%d")
-hour_str = str(run_hour).zfill(2)  # 00, 06, 12, 18
+# Current UTC time minus 6 hours (nearest available HRRR cycle)
+current_utc_time = datetime.utcnow() - timedelta(hours=6)
+date_str = current_utc_time.strftime("%Y%m%d")
+hour_str = str(current_utc_time.hour // 6 * 6).zfill(2)  # nearest 6-hour slot
+
 
 variable_tmp = "TMP"
 
@@ -211,12 +204,12 @@ def generate_clean_png(file_path, step):
             # Plot the temperature value as white text with black outline
             txt = ax.text(
                 stn_lon, stn_lat, f"{temp_f:.1f}",
-                color='white', fontsize=2, fontweight='bold', fontname='DejaVu Sans',
+                color='white', fontsize=1, fontweight='bold', fontname='DejaVu Sans',
                 ha='center', va='center', transform=ccrs.PlateCarree(),
-                zorder=10
+                zorder=2
             )
             txt.set_path_effects([
-                path_effects.Stroke(linewidth=2, foreground='black'),
+                path_effects.Stroke(linewidth=0.5, foreground='black'),
                 path_effects.Normal()
             ])
     else:
