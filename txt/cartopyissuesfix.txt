@@ -2,3 +2,7 @@ pip uninstall cartopy pyproj shapely -y
 pip install pyproj==3.4.1
 pip install shapely==2.1.0
 pip install cartopy==0.24.1
+
+
+pip uninstall matplotlib
+pip install matplotlib==3.8.4

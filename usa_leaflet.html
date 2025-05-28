@@ -346,6 +346,8 @@
         </div>
         <div class="dropdown-content">
           <label><input type="checkbox" id="toggle-lightning"> Show Lightning</label>
+          <label><input type="checkbox" id="toggle-hail"> Show Hail</label>
+          <label><input type="checkbox" id="toggle-cape"> Show CAPE</label>
         </div>
       </div>
     </div>
@@ -374,6 +376,12 @@
       <div id="colorbar-rh" style="display:none;">
         <img src="/colorbar/RH_colorbar.png" alt="RH Color Bar">
       </div>
+      <div id="colorbar-hail" style="display:none;">
+        <img src="/colorbar/HAIL_colorbar.png" alt="HAIL Color Bar">
+      </div>
+      <div id="colorbar-cape" style="display:none;">
+        <img src="/colorbar/CAPE_colorbar.png" alt="CAPE Color Bar">
+      </div>
     </div>
   </div>
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
@@ -387,12 +395,16 @@
     var overlayTemp2m = null;
     var overlayLightning = null;
     var overlayRH = null; // Added for RH
+    var overlayHail = null;
+    var overlayCAPE = null;
     var pngList = [];
     var showRefc = false;
     var showMslp = false;
     var showTemp2m = false;
     var showLightning = false;
     var showRH = false; // Added for RH
+    var showHail = false;
+    var showCAPE = false;
     map.keyboard.disable();
 
     // Checkbox event listeners
@@ -421,12 +433,24 @@
       updateOverlay(parseInt(document.getElementById('hour-slider').value));
       updateColorbars(getVisibleLayers());
     });
+    document.getElementById('toggle-hail').addEventListener('change', function() {
+      showHail = this.checked;
+      updateOverlay(parseInt(document.getElementById('hour-slider').value));
+      updateColorbars(getVisibleLayers());
+    });
+    document.getElementById('toggle-cape').addEventListener('change', function() {
+      showCAPE = this.checked;
+      updateOverlay(parseInt(document.getElementById('hour-slider').value));
+      updateColorbars(getVisibleLayers());
+    });
     // Set all checkboxes to unchecked and variables to false on load
     document.getElementById('toggle-refc').checked = false;
     document.getElementById('toggle-mslp').checked = false;
     document.getElementById('toggle-temp2m').checked = false;
     document.getElementById('toggle-lightning').checked = false;
     document.getElementById('toggle-rh').checked = false; // RH
+    document.getElementById('toggle-hail').checked = false;
+    document.getElementById('toggle-cape').checked = false;
 
     // --- Dropdown logic for right panel ---
     function closeAllDropdowns() {
@@ -529,6 +553,8 @@
           if (overlayTemp2m) map.removeLayer(overlayTemp2m);
           if (overlayLightning) map.removeLayer(overlayLightning);
           if (overlayRH) map.removeLayer(overlayRH); // RH
+          if (overlayHail) map.removeLayer(overlayHail);
+          if (overlayCAPE) map.removeLayer(overlayCAPE);
           var entry = pngList[idx];
           if (showRefc && entry.refc) {
             overlayRefc = L.imageOverlay(entry.refc, imageBounds, {opacity: 0.7});
@@ -559,6 +585,18 @@
             overlayRH.addTo(map);
           } else {
             overlayRH = null;
+          }
+          if (showHail && entry.hail) {
+            overlayHail = L.imageOverlay(entry.hail, imageBounds, {opacity: 0.7});
+            overlayHail.addTo(map);
+          } else {
+            overlayHail = null;
+          }
+          if (showCAPE && entry.cape) { // CAPE
+            overlayCAPE = L.imageOverlay(entry.cape, imageBounds, {opacity: 0.7});
+            overlayCAPE.addTo(map);
+          } else {
+            overlayCAPE = null;
           }
           label.textContent = `Hour: ${entry.hour}`;
           forecastTimeBox.textContent = getForecastTimeEST(entry.hour);
@@ -593,7 +631,9 @@
       document.getElementById("colorbar-temp").style.display = visibleLayers.includes("TEMP") ? "block" : "none";
       document.getElementById("colorbar-lightning").style.display = visibleLayers.includes("LIGHTNING") ? "block" : "none";
       document.getElementById("colorbar-mslp").style.display = visibleLayers.includes("MSLP") ? "block" : "none";
-      document.getElementById("colorbar-rh").style.display = visibleLayers.includes("RH") ? "block" : "none"; // RH
+      document.getElementById("colorbar-rh").style.display = visibleLayers.includes("RH") ? "block" : "none";
+      document.getElementById("colorbar-hail").style.display = visibleLayers.includes("HAIL") ? "block" : "none";
+      document.getElementById("colorbar-cape").style.display = visibleLayers.includes("CAPE") ? "block" : "none";
     }
 
     function getVisibleLayers() {
@@ -602,7 +642,9 @@
       if (showTemp2m) visibleLayers.push("TEMP");
       if (showLightning) visibleLayers.push("LIGHTNING");
       if (showMslp) visibleLayers.push("MSLP");
-      if (showRH) visibleLayers.push("RH"); // RH
+      if (showRH) visibleLayers.push("RH");
+      if (showHail) visibleLayers.push("HAIL");
+      if (showCAPE) visibleLayers.push("CAPE");
       return visibleLayers;
     }
 

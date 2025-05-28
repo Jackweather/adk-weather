@@ -2,75 +2,13 @@ import os
 import requests
 from datetime import datetime, timedelta
 import xarray as xr
-import matplotlib
-matplotlib.use('Agg')
-import matplotlib.pyplot as plt
-import cartopy.crs as ccrs
 import numpy as np
-from matplotlib.colors import ListedColormap, BoundaryNorm
-
-# --- Clean up old files in grib_files and pngs directories ---
-for folder in [
-    os.path.join("Hrrr", "static", "RH", "grib_files"),
-    os.path.join("Hrrr", "static", "RH")
-]:
-    if os.path.exists(folder):
-        for f in os.listdir(folder):
-            file_path = os.path.join(folder, f)
-            if os.path.isfile(file_path):
-                os.remove(file_path)
-
-# Directories
-output_dir = "Hrrr"
-rh_dir = os.path.join(output_dir, "static", "RH")
-grib_dir = os.path.join(rh_dir, "grib_files")
-os.makedirs(grib_dir, exist_ok=True)
-os.makedirs(rh_dir, exist_ok=True)
-
-# Get the current UTC date and time and select the most recent HRRR run (0z, 6z, 12z, 18z)
-current_utc_time = datetime.utcnow()
-run_hour = (current_utc_time.hour // 6) * 6
-if run_hour == 24:
-    run_hour = 18
-date_for_run = current_utc_time
-if current_utc_time.hour < run_hour:
-    date_for_run = current_utc_time - timedelta(hours=6)
-    run_hour = (date_for_run.hour // 6) * 6
-date_str = date_for_run.strftime("%Y%m%d")
-hour_str = str(run_hour).zfill(2)  # 00, 06, 12, 18
-
-# RH variable and colormap
-variable_rh = "RH"
-bounds = [0, 20, 40, 60, 80, 90, 100]
-colors = [
-    "#ffffff",  # 0–20: White
-    "#f5deb3",  # 20–40: Light Tan (Wheat)
-    "#b9fbc0",  # 40–60: Light Green
-    "#34c759",  # 60–80: Green
-    "#006400",  # 80–90: Dark Green
-    "#1e90ff"   # 90–100: Blue
-]
-cmap = ListedColormap(colors)
-norm = BoundaryNorm(boundaries=bounds, ncolors=len(colors))
-
-# Function to download GRIB files
-def download_file(hour_str, step):
-    file_name = f"hrrr.t{hour_str}z.wrfsfcf{step:02d}.grib2"
-    file_path = os.path.join(grib_dir, file_name)
-    url_rh = (f"https://nomads.ncep.noaa.gov/cgi-bin/filter_hrrr_2d.pl?"
-              f"dir=%2Fhrrr.{date_str}%2Fconus&file={file_name}"
-              f"&var_{variable_rh}=on&lev_2_m_above_ground=on")
-    response = requests.get(url_rh, stream=True)
-    if response.status_code == 200:
-        with open(file_path, 'wb') as f:
-            for chunk in response.iter_content(chunk_size=1024):
-                if chunk:
-                    f.write(chunk)
-        print(f"Downloaded {file_name}")
-        return file_path
-    else:
-        print(f"Failed to download {file_name} (Status Code: {response.status_code})")
-        return None
+from scipy.ndimage import gaussian_filter
+import matplotlib.pyplot as plt
+from matplotlib.colors import LinearSegmentedColormap, Normalize
+import cartopy.crs as ccrs
+import cartopy.feature as cfeature
+import matplotlib.patheffects  # Needed for text outline
 
 # NY_ASOS Network stations: (ID, Name, Latitude, Longitude)
 NY_ASOS_STATIONS = [
@@ -165,16 +103,100 @@ NY_ASOS_STATIONS = [
     ("AND", "Andes", 42.1906, -74.7857),
     ("OLF", "Old Forge", 43.7117, -74.9732),
 ]
+# --- Clean up old files in grib_files and static/cape directories ---
+cape_dir = os.path.join("Hrrr", "static", "cape")
+grib_dir = os.path.join(cape_dir, "grib_files")
+os.makedirs(grib_dir, exist_ok=True)
+os.makedirs(cape_dir, exist_ok=True)
+for folder in [grib_dir, cape_dir]:
+    if os.path.exists(folder):
+        for f in os.listdir(folder):
+            file_path = os.path.join(folder, f)
+            if os.path.isfile(file_path):
+                os.remove(file_path)
 
-# Function to generate a PNG from GRIB file using xarray
-def plot_relative_humidity(filepath, save_path=None):
+# Get the current UTC date and time and select the most recent HRRR run (0z, 6z, 12z, 18z)n
+current_utc_time = datetime.utcnow()
+run_hour = (current_utc_time.hour // 6) * 6
+if run_hour == 24:
+    run_hour = 18
+date_for_run = current_utc_time
+if current_utc_time.hour < run_hour:
+    date_for_run = current_utc_time - timedelta(hours=6)
+    run_hour = (date_for_run.hour // 6) * 6
+date_str = date_for_run.strftime("%Y%m%d")
+hour_str = str(run_hour).zfill(2)  # 00, 06, 12, 18
+
+# CAPE settings
+variable_cape = "CAPE"
+level_surface = "surface"
+
+# CAPE colormap and normalization
+cape_cmap = LinearSegmentedColormap.from_list(
+    "cape_cmap",
+    [
+        (0.0, (1, 1, 1, 0)),  # Transparent for 0 CAPE
+        (0.1, "lightgreen"),
+        (0.2, "lightblue"),
+        (0.4, "cyan"),
+        (0.6, "yellow"),
+        (0.8, "orange"),
+        (1.0, "red"),
+    ],
+    N=256
+)
+cape_norm = Normalize(vmin=0, vmax=5000)  # CAPE typically ranges from 0–5000 J/kg
+
+base_url = "https://nomads.ncep.noaa.gov/cgi-bin/filter_hrrr_2d.pl"
+png_dir = cape_dir
+
+def download_file(hour_str, step):
+    file_name = f"hrrr.t{hour_str}z.wrfsfcf{step:02d}.grib2"
+    file_path = os.path.join(grib_dir, file_name)
+    url_tmp = (f"{base_url}?dir=%2Fhrrr.{date_str}%2Fconus&file={file_name}"
+               f"&var_{variable_cape}=on&lev_{level_surface}=on")
+    response = requests.get(url_tmp, stream=True)
+    if response.status_code == 200:
+        with open(file_path, 'wb') as f:
+            for chunk in response.iter_content(chunk_size=1024):
+                if chunk:
+                    f.write(chunk)
+        print(f"Downloaded {file_name}")
+        return file_path
+    else:
+        print(f"Failed to download {file_name} (Status Code: {response.status_code})")
+        return None
+
+def generate_png_xarray(file_path, step):
     try:
-        ds = xr.open_dataset(filepath, engine="cfgrib")
-        rh_vals = ds['r2'].squeeze()
+        ds = xr.open_dataset(file_path, engine="cfgrib")
+        # Try to find the CAPE variable (name may vary)
+        cape_var = None
+        for var in ds.data_vars:
+            if "cape" in var.lower():
+                cape_var = var
+                break
+        if cape_var is None:
+            print(f"No CAPE variable found in {file_path}. Variables: {list(ds.data_vars)}")
+            ds.close()
+            return None
 
-        fig = plt.figure(figsize=(10, 7), dpi=850)
-        ax = plt.axes(projection=ccrs.PlateCarree())
-        ax.set_extent([-126, -69, 24, 50], crs=ccrs.PlateCarree())
+        data = ds[cape_var].values
+        if np.all(np.isnan(data)):
+            print(f"CAPE data is NaN in {file_path}")
+            ds.close()
+            return None
+
+        data = gaussian_filter(data, sigma=1.5)
+        lats = ds["latitude"].values if "latitude" in ds else ds.lat.values
+        lons = ds["longitude"].values if "longitude" in ds else ds.lon.values
+        ds.close()
+
+        fig = plt.figure(figsize=(16, 12), facecolor='none')
+        ax = plt.axes(projection=ccrs.PlateCarree(), facecolor='none')
+        ax.set_extent([-126, -69, 24, 50], crs=ccrs.PlateCarree())  # <-- updated extent
+        levels = np.linspace(0, 5000, 51)
+        cf = ax.contourf(lons, lats, data, levels=levels, cmap=cape_cmap, norm=cape_norm, transform=ccrs.PlateCarree())
 
         # Get lats/lons from dataset if available, else use imshow as fallback
         if 'latitude' in ds and 'longitude' in ds:
@@ -183,13 +205,13 @@ def plot_relative_humidity(filepath, save_path=None):
             # Convert lons from 0-360 to -180 to 180 for plotting and matching
             lons_plot = np.where(lons > 180, lons - 360, lons)
             mesh = ax.pcolormesh(
-                lons_plot, lats, rh_vals,
-                cmap=cmap,
+                lons_plot, lats, data.squeeze(),
+                cmap=cape_cmap,
                 shading='auto',
-                norm=norm,
+                norm=cape_norm,
                 transform=ccrs.PlateCarree()
             )
-            # Plot RH values at NY_ASOS stations (after mesh, with high zorder)
+            # Plot CAPE values at NY_ASOS stations (after mesh, with high zorder)
             for stn_id, stn_name, stn_lat, stn_lon in NY_ASOS_STATIONS:
                 # Convert station lon to 0-360 for matching grid
                 stn_lon_grid = stn_lon if stn_lon >= 0 else stn_lon + 360
@@ -199,10 +221,11 @@ def plot_relative_humidity(filepath, save_path=None):
                 else:
                     iy = np.abs(lats - stn_lat).argmin()
                     ix = np.abs(lons - stn_lon_grid).argmin()
-                rh_val = rh_vals[iy, ix]
+                cape_val = data.squeeze()[iy, ix]
+                # Plot the CAPE value as white text with black outline
                 txt = ax.text(
-                    stn_lon, stn_lat, f"{rh_val:.0f}",
-                    color='white', fontsize=1, fontweight='bold', fontname='DejaVu Sans',
+                    stn_lon, stn_lat, f"{cape_val:.0f}",
+                    color='white', fontsize=5, fontweight='bold', fontname='DejaVu Sans',
                     ha='center', va='center', transform=ccrs.PlateCarree(),
                     zorder=2
                 )
@@ -212,33 +235,44 @@ def plot_relative_humidity(filepath, save_path=None):
                 ])
         else:
             # fallback to imshow if no lat/lon
-            leaflet_extent = [-125, -66.5, 24.5, 49.5]
+            leaflet_extent = [-126, -69, 24.5, 49.5]  # match extent
             mesh = ax.imshow(
-                rh_vals,
-                cmap=cmap,
+                data.squeeze(),
+                cmap=cape_cmap,
+                norm=cape_norm,
                 extent=leaflet_extent,
                 origin='lower',
                 interpolation='bilinear',
                 aspect='auto',
-                norm=norm,
                 transform=ccrs.PlateCarree()
             )
             # Cannot plot station values without lat/lon grid
 
-        ax.set_axis_off()
+        # Remove axes, ticks, and spines for full transparency
+        ax.axis('off')
+        for spine in ax.spines.values():
+            spine.set_visible(False)
+        # Remove the frame and set transparent background for the figure and axes
+        fig.patch.set_alpha(0.0)
+        ax.patch.set_alpha(0.0)
+
+        png_path = os.path.join(png_dir, f"cape_{step:02d}.png")
         plt.subplots_adjust(left=0, right=1, top=1, bottom=0)
-        if save_path:
-            plt.savefig(save_path, bbox_inches='tight', pad_inches=0, transparent=True)
-            print(f"✅ Plot saved to {save_path}")
-        plt.close(fig)
+        plt.savefig(png_path, dpi=150, bbox_inches='tight', pad_inches=0, transparent=True)
+        plt.close()
+        print(f"Generated PNG: {png_path}")
+        return png_path
+
     except Exception as e:
-        print(f"❌ Error: {e}")
+        print(f"Error generating PNG for step {step}: {e}")
+        return None
 
-# Main process: Download and plot
-for step in range(0, 49):  # Loop through forecast steps (00 to 48 hours)
-    grib_file = download_file(hour_str, step)
+# Main
+grib_files = [download_file(hour_str, step) for step in range(0, 49)]
+grib_files = [f for f in grib_files if f]
+
+for i, grib_file in enumerate(grib_files):
     if grib_file:
-        png_file = os.path.join(rh_dir, f"RH_{step:02d}.png")
-        plot_relative_humidity(grib_file, png_file)
+        generate_png_xarray(grib_file, i)
 
-print("All RH GRIB file download and PNG creation tasks complete!")
+print("CAPE processing complete!")
