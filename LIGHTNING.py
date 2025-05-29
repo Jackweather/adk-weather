@@ -85,7 +85,7 @@ def count_and_plot_flashes(file_path, step):
         lons = ds['longitude'].values
 
         # Plot setup - ONLY plot data, no background, no coastlines, no colorbar
-        plt.figure(figsize=(14, 12), dpi=200)
+        plt.figure(figsize=(14, 12), dpi=150)
         ax = plt.axes(projection=ccrs.Mercator())
         ax.set_extent([-126, -69, 24, 50], crs=ccrs.PlateCarree())
 

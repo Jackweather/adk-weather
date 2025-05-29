@@ -548,82 +548,72 @@
         }
 
       window.updateOverlay = function(idx) {
-          if (overlayRefc) map.removeLayer(overlayRefc);
-          if (overlayMslp) map.removeLayer(overlayMslp);
-          if (overlayTemp2m) map.removeLayer(overlayTemp2m);
-          if (overlayLightning) map.removeLayer(overlayLightning);
-          if (overlayRH) map.removeLayer(overlayRH); // RH
-          if (overlayHail) map.removeLayer(overlayHail);
-          if (overlayCAPE) map.removeLayer(overlayCAPE);
-          var entry = pngList[idx];
-          if (showRefc && entry.refc) {
-            overlayRefc = L.imageOverlay(entry.refc, imageBounds, {opacity: 0.7});
-            overlayRefc.addTo(map);
+          // Remove all overlays first
+          if (overlayRefc) { map.removeLayer(overlayRefc); overlayRefc = null; }
+          if (overlayMslp) { map.removeLayer(overlayMslp); overlayMslp = null; }
+          if (overlayTemp2m) { map.removeLayer(overlayTemp2m); overlayTemp2m = null; }
+          if (overlayLightning) { map.removeLayer(overlayLightning); overlayLightning = null; }
+          if (overlayRH) { map.removeLayer(overlayRH); overlayRH = null; }
+          if (overlayHail) { map.removeLayer(overlayHail); overlayHail = null; }
+          if (overlayCAPE) { map.removeLayer(overlayCAPE); overlayCAPE = null; }
+
+          // Defensive: If idx is out of bounds, do nothing
+          if (!pngList || idx < 0 || idx >= pngList.length) return;
+
+          var entry = pngList[idx] || {};
+          var cacheBuster = "?t=" + Date.now();
+
+          // Each overlay is toggled independently by its checkbox
+          if (showRefc && entry.refc) overlayRefc = L.imageOverlay(entry.refc + cacheBuster, imageBounds, {opacity: 0.7}).addTo(map);
+          if (showMslp && entry.mslp) overlayMslp = L.imageOverlay(entry.mslp + cacheBuster, imageBounds, {opacity: 0.7}).addTo(map);
+          if (showTemp2m && entry.temp2m) overlayTemp2m = L.imageOverlay(entry.temp2m + cacheBuster, imageBounds, {opacity: 0.7}).addTo(map);
+          if (showLightning && entry.lightning) overlayLightning = L.imageOverlay(entry.lightning + cacheBuster, imageBounds, {opacity: 0.7}).addTo(map);
+          if (showRH && entry.rh) overlayRH = L.imageOverlay(entry.rh + cacheBuster, imageBounds, {opacity: 0.7}).addTo(map);
+          if (showHail && entry.hail) overlayHail = L.imageOverlay(entry.hail + cacheBuster, imageBounds, {opacity: 0.7}).addTo(map);
+          if (showCAPE && entry.cape) overlayCAPE = L.imageOverlay(entry.cape + cacheBuster, imageBounds, {opacity: 0.7}).addTo(map);
+
+          // Always show hour label and forecast time if entry exists
+          if (entry && typeof entry.hour !== "undefined") {
+            label.textContent = `Hour: ${entry.hour}`;
+            forecastTimeBox.textContent = getForecastTimeEST(entry.hour);
           } else {
-            overlayRefc = null;
+            label.textContent = "No data";
+            forecastTimeBox.textContent = "";
           }
-          if (showMslp && entry.mslp) {
-            overlayMslp = L.imageOverlay(entry.mslp, imageBounds, {opacity: 0.7});
-            overlayMslp.addTo(map);
-          } else {
-            overlayMslp = null;
-          }
-          if (showTemp2m && entry.temp2m) {
-            overlayTemp2m = L.imageOverlay(entry.temp2m, imageBounds, {opacity: 0.7});
-            overlayTemp2m.addTo(map);
-          } else {
-            overlayTemp2m = null;
-          }
-          if (showLightning && entry.lightning) {
-            overlayLightning = L.imageOverlay(entry.lightning, imageBounds, {opacity: 0.7});
-            overlayLightning.addTo(map);
-          } else {
-            overlayLightning = null;
-          }
-          if (showRH && entry.rh) { // RH
-            overlayRH = L.imageOverlay(entry.rh, imageBounds, {opacity: 0.7});
-            overlayRH.addTo(map);
-          } else {
-            overlayRH = null;
-          }
-          if (showHail && entry.hail) {
-            overlayHail = L.imageOverlay(entry.hail, imageBounds, {opacity: 0.7});
-            overlayHail.addTo(map);
-          } else {
-            overlayHail = null;
-          }
-          if (showCAPE && entry.cape) { // CAPE
-            overlayCAPE = L.imageOverlay(entry.cape, imageBounds, {opacity: 0.7});
-            overlayCAPE.addTo(map);
-          } else {
-            overlayCAPE = null;
-          }
-          label.textContent = `Hour: ${entry.hour}`;
-          forecastTimeBox.textContent = getForecastTimeEST(entry.hour);
           updateColorbars(getVisibleLayers());
-        };
+      };
 
-        slider.oninput = function() {
-          updateOverlay(parseInt(slider.value));
-        };
+      slider.oninput = function() {
+        updateOverlay(parseInt(slider.value));
+      };
 
-        // Add arrow key support
-        document.addEventListener('keydown', function(e) {
-          if (['ArrowRight', 'ArrowLeft'].includes(e.key) && !e.target.matches('input, textarea')) {
-            e.preventDefault();
-            var idx = parseInt(slider.value);
-            if (e.key === 'ArrowRight' && idx < pngList.length - 1) {
-              slider.value = idx + 1;
-              slider.dispatchEvent(new Event('input'));
-            } else if (e.key === 'ArrowLeft' && idx > 0) {
-              slider.value = idx - 1;
-              slider.dispatchEvent(new Event('input'));
-            }
+      // Add arrow key support
+      document.addEventListener('keydown', function(e) {
+        if (['ArrowRight', 'ArrowLeft'].includes(e.key)) {
+          e.preventDefault();
+          var idx = parseInt(slider.value);
+          if (e.key === 'ArrowRight' && idx < pngList.length - 1) {
+            slider.value = idx + 1;
+            slider.dispatchEvent(new Event('input'));
+          } else if (e.key === 'ArrowLeft' && idx > 0) {
+            slider.value = idx - 1;
+            slider.dispatchEvent(new Event('input'));
           }
-        });
+        }
+      });
 
-        // Show first image
+      // Show first image if available, otherwise show empty overlays
+      if (pngList.length > 0) {
         updateOverlay(0);
+      } else {
+        // Show slider anyway, but disable it
+        document.getElementById('left-slider-box').style.display = 'flex';
+        slider.max = 0;
+        slider.value = 0;
+        slider.disabled = true;
+        label.textContent = "No data";
+        forecastTimeBox.textContent = "";
+      }
       });
 
     function updateColorbars(visibleLayers) {

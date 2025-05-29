@@ -1,4 +1,4 @@
-from flask import Flask, send_from_directory, jsonify
+from flask import Flask, send_from_directory, jsonify, make_response
 import os
 import re
 import subprocess
@@ -71,7 +71,11 @@ def get_pngs():
             "hail": f"/hail_pngs/{hail_dict[hour]}" if hour in hail_dict else None,
             "cape": f"/cape_pngs/{cape_dict[hour]}" if hour in cape_dict else None  # CAPE
         })
-    return jsonify(result)
+    response = make_response(jsonify(result))
+    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
+    return response
 
 @app.route("/refc_pngs/<path:filename>")
 def serve_refc_png(filename):
@@ -134,13 +138,6 @@ def run_task():
             print(f"Error running temp2m.py:\n{error_trace}")
 
         try:
-            subprocess.run(["python", os.path.join(BASE_DIR, "LIGHTNING.py")], check=True)
-            print("LIGHTNING.py ran successfully!")
-        except subprocess.CalledProcessError:
-            error_trace = traceback.format_exc()
-            print(f"Error running LIGHTNING.py:\n{error_trace}")
-
-        try:
             subprocess.run(["python", os.path.join(BASE_DIR, "RH.py")], check=True)  # RH
             print("RH.py ran successfully!")
         except subprocess.CalledProcessError:
@@ -160,6 +157,13 @@ def run_task():
         except subprocess.CalledProcessError:
             error_trace = traceback.format_exc()
             print(f"Error running cape.py:\n{error_trace}")
+
+        try:
+            subprocess.run(["python", os.path.join(BASE_DIR, "LIGHTNING.py")], check=True)
+            print("LIGHTNING.py ran successfully!")
+        except subprocess.CalledProcessError:
+            error_trace = traceback.format_exc()
+            print(f"Error running LIGHTNING.py:\n{error_trace}")
 
     threading.Thread(target=run_all_scripts).start()
     return "All scripts started sequentially in background!", 200

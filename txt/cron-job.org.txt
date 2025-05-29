@@ -12,3 +12,8 @@ http://localhost:5000/run-temp2m → Runs temp2m_script.py
 http://localhost:5000/run-lightning → Runs lightning_script.py
 
 http://localhost:5000/run-all → Runs all four in parallel
+
+
+CRON 
+
+40 2,8,14,20 * * *

@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 import cartopy.crs as ccrs
 import numpy as np
 from matplotlib.colors import ListedColormap, BoundaryNorm
+import matplotlib.patheffects as patheffects
 
 # --- Clean up old files in grib_files and pngs directories ---
 for folder in [
@@ -172,7 +173,7 @@ def plot_relative_humidity(filepath, save_path=None):
         ds = xr.open_dataset(filepath, engine="cfgrib")
         rh_vals = ds['r2'].squeeze()
 
-        fig = plt.figure(figsize=(10, 7), dpi=850)
+        fig = plt.figure(figsize=(10, 7), dpi=650)
         ax = plt.axes(projection=ccrs.PlateCarree())
         ax.set_extent([-126, -69, 24, 50], crs=ccrs.PlateCarree())
 

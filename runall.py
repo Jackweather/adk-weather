@@ -18,3 +18,6 @@ if __name__ == "__main__":
     run_script("temp2m.py")
     run_script("LIGHTNING.py")
     run_script("RH.py")
+    run_script("HAIL.py")
+    run_script("cape.py")
+    
