@@ -1,6 +1,6 @@
 https://weathermodelwebpagefinal.onrender.com/run-task
 https://weathermodelwebpagefinal.onrender.com/run-mslp
-https://adk-weather.onrender.com/run-task
+https://adk-weather.onrender.com/run-task1
 
 
 http://localhost:5000/run-refc → Runs REFC.py
@@ -16,4 +16,4 @@ http://localhost:5000/run-all → Runs all four in parallel
 
 CRON 
 
-40 2,8,14,20 * * *
+55 1,7,13,19 * * *

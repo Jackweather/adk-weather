@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Home - Weather App</title>
+  <meta charset="utf-8" />
+  <style>
+    body { font-family: 'Segoe UI', Arial, sans-serif; background: #f7f7f7; margin: 0; }
+    #top-navbar {
+      width: 100vw;
+      background: #263159;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      padding: 0 32px;
+      height: 54px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
+    .nav-item {
+      margin-right: 32px;
+      font-size: 1.1em;
+      font-weight: 500;
+      color: #fff;
+      text-decoration: none;
+      transition: color 0.15s;
+    }
+    .nav-item:hover { color: #ffb400; }
+    .main-content { padding: 40px; }
+  </style>
+</head>
+<body>
+  <div id="top-navbar">
+    <a class="nav-item" href="/home.html">Home</a>
+    <a class="nav-item" href="/more.html">More</a>
+    <a class="nav-item" href="/settings.html">Settings</a>
+    <a class="nav-item" href="/usa_leaflet.html">Weather Model Page</a>
+  </div>
+  <div class="main-content">
+    <h1>Welcome to the Home Page</h1>
+    <p>This is the main landing page for your weather application.</p>
+    <p><a href="/usa_leaflet.html">Go to Weather Model Page</a></p>
+  </div>
+</body>
+</html>

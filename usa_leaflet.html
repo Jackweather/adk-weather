@@ -35,6 +35,8 @@
       cursor: pointer;
       user-select: none;
       transition: color 0.15s;
+      color: #fff; /* Ensure white text for all nav items */
+      text-decoration: none; /* Remove underline for links */
     }
     #top-navbar .nav-item:hover {
       color: #ffb400;
@@ -305,9 +307,10 @@
 <body>
   <!-- Top navigation bar -->
   <div id="top-navbar">
-    <div class="nav-item">Home</div>
-    <div class="nav-item">More</div>
-    <div class="nav-item">Settings</div>
+    <a class="nav-item" href="/home.html">Home</a>
+    <a class="nav-item" href="/more.html">More</a>
+    <a class="nav-item" href="/settings.html">Settings</a>
+    <a class="nav-item" href="/usa_leaflet.html">Weather Model Page</a>
   </div>
   <div id="main-content">
     <!-- Left panel with UTC/time and slider -->
@@ -333,10 +336,10 @@
           <span class="dropdown-arrow">&#9654;</span>
         </div>
         <div class="dropdown-content">
-          <label><input type="checkbox" id="toggle-refc"> Show REFC</label>
-          <label><input type="checkbox" id="toggle-mslp"> Show MSLP</label>
-          <label><input type="checkbox" id="toggle-temp2m"> Show 2m Temp</label>
-          <label><input type="checkbox" id="toggle-rh"> Show RH</label> <!-- Added RH -->
+          <label><input type="checkbox" id="toggle-refc"> Composite Reflectivity</label>
+          <label><input type="checkbox" id="toggle-mslp"> Mean Sea Level Pressure</label>
+          <label><input type="checkbox" id="toggle-temp2m"> 2m Temperature</label>
+          <label><input type="checkbox" id="toggle-rh"> 2m Relative Humidity</label> <!-- Added RH -->
         </div>
       </div>
       <div class="dropdown" id="dropdown-severe">
@@ -345,9 +348,9 @@
           <span class="dropdown-arrow">&#9654;</span>
         </div>
         <div class="dropdown-content">
-          <label><input type="checkbox" id="toggle-lightning"> Show Lightning</label>
-          <label><input type="checkbox" id="toggle-hail"> Show Hail</label>
-          <label><input type="checkbox" id="toggle-cape"> Show CAPE</label>
+          <label><input type="checkbox" id="toggle-lightning"> Lightning</label>
+          <label><input type="checkbox" id="toggle-hail"> Hail Threat Scale</label>
+          <label><input type="checkbox" id="toggle-cape"> CAPE</label>
         </div>
       </div>
     </div>

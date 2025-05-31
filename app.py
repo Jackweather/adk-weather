@@ -168,18 +168,72 @@ def run_task():
     threading.Thread(target=run_all_scripts).start()
     return "All scripts started sequentially in background!", 200
 
-@app.route("/run-mslp")
-def run_mslp_script():
-    def run_mslp():
+@app.route("/run-task1")
+def run_task1():
+    def run_scripts():
         try:
-            subprocess.run(["python", "mslp_script.py"], check=True)
-            print("mslp_script.py ran successfully!")
-        except subprocess.CalledProcessError as e:
+            subprocess.run(["python", os.path.join(BASE_DIR, "REFC.py")], check=True)
+            print("REFC.py ran successfully!")
+        except subprocess.CalledProcessError:
             error_trace = traceback.format_exc()
-            print(f"Error running mslp_script.py asynchronously:\n{error_trace}")
+            print(f"Error running REFC.py:\n{error_trace}")
 
-    threading.Thread(target=run_mslp).start()
-    return "mslp_script.py started in background!", 200
+        try:
+            subprocess.run(["python", os.path.join(BASE_DIR, "mslp_script.py")], check=True)
+            print("mslp_script.py ran successfully!")
+        except subprocess.CalledProcessError:
+            error_trace = traceback.format_exc()
+            print(f"Error running mslp_script.py:\n{error_trace}")
+
+    threading.Thread(target=run_scripts).start()
+    return "REFC.py and mslp_script.py started in background!", 200
+
+@app.route("/run-task2")
+def run_task2():
+    def run_scripts():
+        try:
+            subprocess.run(["python", os.path.join(BASE_DIR, "temp2m.py")], check=True)
+            print("temp2m.py ran successfully!")
+        except subprocess.CalledProcessError:
+            error_trace = traceback.format_exc()
+            print(f"Error running temp2m.py:\n{error_trace}")
+
+        try:
+            subprocess.run(["python", os.path.join(BASE_DIR, "RH.py")], check=True)
+            print("RH.py ran successfully!")
+        except subprocess.CalledProcessError:
+            error_trace = traceback.format_exc()
+            print(f"Error running RH.py:\n{error_trace}")
+
+    threading.Thread(target=run_scripts).start()
+    return "temp2m.py and RH.py started in background!", 200
+
+@app.route("/run-task3")
+def run_task3():
+    def run_scripts():
+        try:
+            subprocess.run(["python", os.path.join(BASE_DIR, "HAIL.py")], check=True)
+            print("HAIL.py ran successfully!")
+        except subprocess.CalledProcessError:
+            error_trace = traceback.format_exc()
+            print(f"Error running HAIL.py:\n{error_trace}")
+
+        try:
+            subprocess.run(["python", os.path.join(BASE_DIR, "cape.py")], check=True)
+            print("cape.py ran successfully!")
+        except subprocess.CalledProcessError:
+            error_trace = traceback.format_exc()
+            print(f"Error running cape.py:\n{error_trace}")
+
+        try:
+            subprocess.run(["python", os.path.join(BASE_DIR, "LIGHTNING.py")], check=True)
+            print("LIGHTNING.py ran successfully!")
+        except subprocess.CalledProcessError:
+            error_trace = traceback.format_exc()
+            print(f"Error running LIGHTNING.py:\n{error_trace}")
+
+    threading.Thread(target=run_scripts).start()
+    return "HAIL.py, cape.py, and LIGHTNING.py started in background!", 200
 
 @app.route("/<path:filename>")
 def serve_static_file(filename):
