@@ -8,6 +8,8 @@ import matplotlib.pyplot as plt
 import cartopy.crs as ccrs
 from matplotlib.colors import Normalize, PowerNorm
 import numpy as np
+import time  # Added for delay
+import gc    # Added for manual garbage collection
 
 # --- Clean old files ---
 for folder in [
@@ -113,6 +115,9 @@ def count_and_plot_flashes(file_path, step):
         png_path = os.path.join(output_dir, f"lght_{step:02d}.png")
         plt.savefig(png_path, bbox_inches='tight', pad_inches=0, transparent=True)
         plt.close()
+        ds.close()
+        del ds, data, masked_data, lats, lons  # Help garbage collection
+        gc.collect()  # Force garbage collection
 
         print(f"Step {step:02d}: Total flashes = {total_flashes:.0f}, saved plot to {png_path}")
         return total_flashes
@@ -127,7 +132,9 @@ total_flashes_all_steps = 0
 for step in range(0, 49):
     grib_file = download_file(hour_str, step)
     if grib_file:
+        time.sleep(5)  # Delay after download
         flashes = count_and_plot_flashes(grib_file, step)
+        time.sleep(5)  # Delay after PNG creation
         if flashes is not None:
             total_flashes_all_steps += flashes
 

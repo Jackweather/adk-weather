@@ -9,6 +9,8 @@ from matplotlib.colors import LinearSegmentedColormap, Normalize
 import cartopy.crs as ccrs
 import cartopy.feature as cfeature
 import matplotlib.patheffects  # Needed for text outline
+import time  # Added for delay
+import gc    # Added for manual garbage collection
 
 # NY_ASOS Network stations: (ID, Name, Latitude, Longitude)
 NY_ASOS_STATIONS = [
@@ -260,19 +262,21 @@ def generate_png_xarray(file_path, step):
         plt.subplots_adjust(left=0, right=1, top=1, bottom=0)
         plt.savefig(png_path, dpi=150, bbox_inches='tight', pad_inches=0, transparent=True)
         plt.close()
+        ds.close()
+        del ds, data, lats, lons, fig, ax, cf  # Help garbage collection
+        gc.collect()  # Force garbage collection
         print(f"Generated PNG: {png_path}")
         return png_path
-
     except Exception as e:
         print(f"Error generating PNG for step {step}: {e}")
         return None
 
 # Main
-grib_files = [download_file(hour_str, step) for step in range(0, 49)]
-grib_files = [f for f in grib_files if f]
-
-for i, grib_file in enumerate(grib_files):
+for step in range(0, 49):
+    grib_file = download_file(hour_str, step)
     if grib_file:
-        generate_png_xarray(grib_file, i)
+        time.sleep(5)  # Delay after download
+        generate_png_xarray(grib_file, step)
+        time.sleep(5)  # Delay after PNG creation
 
 print("CAPE processing complete!")

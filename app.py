@@ -16,6 +16,7 @@ PNG_DIR_LIGHTNING = os.path.join("Hrrr", "static", "lighting")
 PNG_DIR_RH = os.path.join("Hrrr", "static", "RH")  # Added for RH
 PNG_DIR_HAIL = os.path.join("Hrrr", "static", "HAIL")  # Added for HAIL
 PNG_DIR_CAPE = os.path.join("Hrrr", "static", "cape")  # Add this line near other PNG_DIR_*
+PNG_DIR_CIN = os.path.join("Hrrr", "static", "cin")    # Add CIN directory
 COLORBAR_DIR = os.path.join(BASE_DIR, "colorbars")  # Serve from project root colorbars folder
 
 @app.route("/")
@@ -24,7 +25,7 @@ def home():
 
 @app.route("/reflectivity_images")
 def get_pngs():
-    # Find all REFC, MSLP, 2mtemp, Lightning, RH, HAIL, and CAPE PNGs by hour
+    # Find all REFC, MSLP, 2mtemp, Lightning, RH, HAIL, CAPE, and CIN PNGs by hour
     refc_files = [f for f in os.listdir(PNG_DIR_REFC) if re.match(r"REFC_(\d+)\.png$", f)]
     mslp_files = [f for f in os.listdir(PNG_DIR_MSLP) if re.match(r"MSLP_(\d+)\.png$", f)]
     temp2m_files = [f for f in os.listdir(PNG_DIR_TEMP2M) if re.match(r"2mtemp_(\d+)\.png$", f)]
@@ -32,6 +33,7 @@ def get_pngs():
     rh_files = [f for f in os.listdir(PNG_DIR_RH) if re.match(r"RH_(\d+)\.png$", f)]  # RH
     hail_files = [f for f in os.listdir(PNG_DIR_HAIL) if re.match(r"HAIL_(\d+)\.png$", f)]  # HAIL
     cape_files = [f for f in os.listdir(PNG_DIR_CAPE) if re.match(r"cape_(\d+)\.png$", f)]  # CAPE
+    cin_files = [f for f in os.listdir(PNG_DIR_CIN) if re.match(r"cin_(\d+)\.png$", f)]    # CIN
 
     # Use regex to extract hour from each filename (more robust)
     def extract_hour(pattern, filename):
@@ -45,6 +47,7 @@ def get_pngs():
     rh_dict = {extract_hour(r"RH_(\d+)\.png$", f): f for f in rh_files}  # RH
     hail_dict = {extract_hour(r"HAIL_(\d+)\.png$", f): f for f in hail_files}  # HAIL
     cape_dict = {extract_hour(r"cape_(\d+)\.png$", f): f for f in cape_files}  # CAPE
+    cin_dict = {extract_hour(r"cin_(\d+)\.png$", f): f for f in cin_files}    # CIN
 
     # Remove None keys if any file didn't match pattern
     refc_dict = {k: v for k, v in refc_dict.items() if k is not None}
@@ -54,9 +57,10 @@ def get_pngs():
     rh_dict = {k: v for k, v in rh_dict.items() if k is not None}  # RH
     hail_dict = {k: v for k, v in hail_dict.items() if k is not None}  # HAIL
     cape_dict = {k: v for k, v in cape_dict.items() if k is not None}  # CAPE
+    cin_dict = {k: v for k, v in cin_dict.items() if k is not None}    # CIN
 
     # Union of all available hours from all overlays
-    all_hours = set(refc_dict) | set(mslp_dict) | set(temp2m_dict) | set(lightning_dict) | set(rh_dict) | set(hail_dict) | set(cape_dict)  # CAPE
+    all_hours = set(refc_dict) | set(mslp_dict) | set(temp2m_dict) | set(lightning_dict) | set(rh_dict) | set(hail_dict) | set(cape_dict) | set(cin_dict)  # Add CIN
     all_hours = sorted(all_hours)
 
     result = []
@@ -69,7 +73,8 @@ def get_pngs():
             "lightning": f"/lightning_pngs/{lightning_dict[hour]}" if hour in lightning_dict else None,
             "rh": f"/rh_pngs/{rh_dict[hour]}" if hour in rh_dict else None,
             "hail": f"/hail_pngs/{hail_dict[hour]}" if hour in hail_dict else None,
-            "cape": f"/cape_pngs/{cape_dict[hour]}" if hour in cape_dict else None  # CAPE
+            "cape": f"/cape_pngs/{cape_dict[hour]}" if hour in cape_dict else None,  # CAPE
+            "cin": f"/cin_pngs/{cin_dict[hour]}" if hour in cin_dict else None      # CIN
         })
     response = make_response(jsonify(result))
     response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
@@ -104,6 +109,10 @@ def serve_hail_png(filename):
 @app.route("/cape_pngs/<path:filename>")  # CAPE
 def serve_cape_png(filename):
     return send_from_directory(PNG_DIR_CAPE, filename)
+
+@app.route("/cin_pngs/<path:filename>")  # CIN
+def serve_cin_png(filename):
+    return send_from_directory(PNG_DIR_CIN, filename)
 
 @app.route("/colorbar/<path:filename>")
 def serve_colorbar(filename):
@@ -185,8 +194,15 @@ def run_task1():
             error_trace = traceback.format_exc()
             print(f"Error running mslp_script.py:\n{error_trace}")
 
+        try:
+            subprocess.run(["python", os.path.join(BASE_DIR, "cin.py")], check=True)    # CIN moved here
+            print("cin.py ran successfully!")
+        except subprocess.CalledProcessError:
+            error_trace = traceback.format_exc()
+            print(f"Error running cin.py:\n{error_trace}")
+
     threading.Thread(target=run_scripts).start()
-    return "REFC.py and mslp_script.py started in background!", 200
+    return "REFC.py, mslp_script.py, and cin.py started in background!", 200
 
 @app.route("/run-task2")
 def run_task2():

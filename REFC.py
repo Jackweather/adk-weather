@@ -7,6 +7,8 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from matplotlib.colors import ListedColormap, BoundaryNorm
 import cartopy.crs as ccrs  # Added for map projection
+import time  # Added for delay
+import gc    # Added for manual garbage collection
 
 # --- Clean up old files in grib_files and pngs directories ---
 for folder in [
@@ -90,17 +92,18 @@ def generate_clean_png(file_path, step):
     png_path = os.path.join(refc_dir, f"REFC_{step:02d}.png")
     plt.savefig(png_path, bbox_inches='tight', pad_inches=0, transparent=True)
     plt.close(fig)
+    ds.close()  # Explicitly close dataset
+    del ds, refc, lats, lons, fig, ax, contour  # Help garbage collection
+    gc.collect()  # Force garbage collection
     print(f"Generated clean PNG: {png_path}")
     return png_path
 
 # Main process: Download and plot
-grib_files = []
-png_files = []
 for step in range(0, 49):  # Loop through forecast steps (00 to 48 hours)
     grib_file = download_file(hour_str, step)
     if grib_file:
-        grib_files.append(grib_file)
+        time.sleep(5)  # Delay after download
         png_file = generate_clean_png(grib_file, step)
-        png_files.append(png_file)
+        time.sleep(5)  # Delay after PNG creation
 
 print("All GRIB file download and PNG creation tasks complete!")

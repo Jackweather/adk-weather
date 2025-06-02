@@ -9,6 +9,8 @@ import cartopy.crs as ccrs
 import numpy as np
 from matplotlib.colors import ListedColormap, BoundaryNorm
 import matplotlib.patheffects as patheffects
+import time  # Added for delay
+import gc    # Added for manual garbage collection
 
 # --- Clean up old files in grib_files and pngs directories ---
 for folder in [
@@ -232,6 +234,9 @@ def plot_relative_humidity(filepath, save_path=None):
             plt.savefig(save_path, bbox_inches='tight', pad_inches=0, transparent=True)
             print(f"✅ Plot saved to {save_path}")
         plt.close(fig)
+        ds.close()
+        del ds, rh_vals, fig, ax  # Help garbage collection
+        gc.collect()  # Force garbage collection
     except Exception as e:
         print(f"❌ Error: {e}")
 
@@ -239,7 +244,9 @@ def plot_relative_humidity(filepath, save_path=None):
 for step in range(0, 49):  # Loop through forecast steps (00 to 48 hours)
     grib_file = download_file(hour_str, step)
     if grib_file:
+        time.sleep(5)  # Delay after download
         png_file = os.path.join(rh_dir, f"RH_{step:02d}.png")
         plot_relative_humidity(grib_file, png_file)
+        time.sleep(5)  # Delay after PNG creation
 
 print("All RH GRIB file download and PNG creation tasks complete!")

@@ -9,6 +9,8 @@ from matplotlib.colors import LinearSegmentedColormap
 import numpy as np
 import cartopy.crs as ccrs  # Added import
 import matplotlib.patheffects as path_effects
+import time  # Added for delay
+import gc    # Added for manual garbage collection
 
 # --- Clean up old files in grib_files and static/2mtemp directories ---
 for folder in [
@@ -236,6 +238,9 @@ def generate_clean_png(file_path, step):
     png_path = os.path.join(temp2m_dir, f"2mtemp_{step:02d}.png")
     plt.savefig(png_path, bbox_inches='tight', pad_inches=0, transparent=True, dpi=600)
     plt.close(fig)
+    ds.close()
+    del ds, data, fig, ax  # Help garbage collection
+    gc.collect()  # Force garbage collection
     print(f"Generated clean PNG: {png_path}")
     return png_path
 
@@ -248,5 +253,6 @@ for step in range(0, 49):  # Loop through forecast steps (00 to 48 hours)
         grib_files.append(grib_file)
         png_file = generate_clean_png(grib_file, step)
         png_files.append(png_file)
+        time.sleep(5)  # Delay after PNG creation
 
 print("All GRIB file download and PNG creation tasks complete!")

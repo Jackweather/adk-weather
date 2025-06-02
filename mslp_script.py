@@ -11,6 +11,8 @@ import cartopy.crs as ccrs  # Added import
 import cartopy
 import pyproj
 import shapely
+import time  # Added for delay
+import gc    # Added for manual garbage collection
 
 print("Cartopy version:", cartopy.__version__)
 print("PyProj version:", pyproj.__version__)
@@ -115,6 +117,9 @@ def generate_png(file_path, step):
         png_path = os.path.join(mslp_dir, f"MSLP_{step:02d}.png")
         plt.savefig(png_path, bbox_inches='tight', pad_inches=0, transparent=True)
         plt.close(fig)
+        ds.close()
+        del ds, data, lats, lons, fig, ax, cs  # Help garbage collection
+        gc.collect()  # Force garbage collection
         print(f"Generated PNG: {png_path}")
         return png_path
     except Exception as e:
@@ -127,9 +132,8 @@ png_files = []
 for step in range(0, 49):
     grib_file = download_file(hour_str, step)
     if grib_file:
-        grib_files.append(grib_file)
+        time.sleep(5)  # Delay after download
         png_file = generate_png(grib_file, step)
-        if png_file:  # Only append if PNG was generated
-            png_files.append(png_file)
+        time.sleep(5)  # Delay after PNG creation
 
 print("All download and PNG creation tasks complete!")
