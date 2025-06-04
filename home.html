@@ -4,7 +4,12 @@
   <title>Home - Weather App</title>
   <meta charset="utf-8" />
   <style>
-    body { font-family: 'Segoe UI', Arial, sans-serif; background: #f7f7f7; margin: 0; }
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: #f7f7f7;
+      margin: 0;
+      min-height: 100vh;
+    }
     #top-navbar {
       width: 100vw;
       background: #263159;
@@ -24,7 +29,77 @@
       transition: color 0.15s;
     }
     .nav-item:hover { color: #ffb400; }
-    .main-content { padding: 40px; }
+    .main-content {
+      padding: 40px;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      min-height: calc(100vh - 54px);
+    }
+    .content-card {
+      background: #fff;
+      border-radius: 14px;
+      box-shadow: 0 4px 24px rgba(38,49,89,0.08);
+      padding: 40px 32px;
+      max-width: 480px;
+      width: 100%;
+      text-align: center;
+      margin-top: 32px;
+    }
+    .content-card h2 {
+      margin-top: 0;
+      color: #263159;
+      font-size: 2em;
+      font-weight: 700;
+      margin-bottom: 12px;
+      letter-spacing: 1px;
+    }
+    .content-card h1 {
+      color: #263159;
+      font-size: 1.5em;
+      font-weight: 600;
+      margin-bottom: 18px;
+      margin-top: 28px;
+    }
+    .content-card p {
+      color: #444;
+      font-size: 1.1em;
+      margin-bottom: 18px;
+    }
+    .main-link-btn {
+      display: inline-block;
+      background: #263159;
+      color: #fff;
+      padding: 12px 28px;
+      border-radius: 6px;
+      font-size: 1.1em;
+      font-weight: 600;
+      text-decoration: none;
+      box-shadow: 0 2px 8px rgba(38,49,89,0.08);
+      transition: background 0.15s, color 0.15s;
+      margin-top: 10px;
+    }
+    .main-link-btn:hover {
+      background: #ffb400;
+      color: #263159;
+    }
+    @media (max-width: 600px) {
+      #top-navbar {
+        flex-direction: column;
+        height: auto;
+        padding: 12px 8px;
+      }
+      .nav-item {
+        margin: 8px 0;
+        padding: 8px 16px;
+      }
+      .main-content {
+        padding: 16px 4px;
+      }
+      .content-card {
+        padding: 24px 8px;
+      }
+    }
   </style>
 </head>
 <body>
@@ -35,9 +110,17 @@
     <a class="nav-item" href="/usa_leaflet.html">Weather Model Page</a>
   </div>
   <div class="main-content">
-    <h1>Welcome to the Home Page</h1>
-    <p>This is the main landing page for your weather application.</p>
-    <p><a href="/usa_leaflet.html">Go to Weather Model Page</a></p>
+    <div class="content-card">
+      <h2>Welcome!</h2>
+      <p>
+        I'm currently an Atmospheric Science student at the University at Albany in New York.<br>
+        I have a strong passion for the weather and for coding, especially creating weather products.<br>
+        I've built many things, and this webpage will be my biggest creation yet!
+      </p>
+      <h1>Welcome to the Home Page</h1>
+      <p>This is the main landing page for your weather application.</p>
+      <a class="main-link-btn" href="/usa_leaflet.html">Go to Weather Model Page</a>
+    </div>
   </div>
 </body>
 </html>

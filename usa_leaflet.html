@@ -354,6 +354,17 @@
           <label><input type="checkbox" id="toggle-cin"> CIN</label> <!-- Added CIN -->
         </div>
       </div>
+      <div class="dropdown" id="dropdown-diagnostics">
+        <div class="dropdown-header">
+          Diagnostics
+          <span class="dropdown-arrow">&#9654;</span>
+        </div>
+        <div class="dropdown-content">
+          <label><input type="checkbox" id="toggle-lcdc"> Low Cloud Cover</label>
+          <label><input type="checkbox" id="toggle-mcdc"> Medium Cloud Cover</label>
+          <label><input type="checkbox" id="toggle-hcdc"> High Cloud Cover</label>
+        </div>
+      </div>
     </div>
   </div>
   <!-- Bottom colorbar sidebar -->
@@ -389,6 +400,15 @@
       <div id="colorbar-cin" style="display:none;">
         <img src="/colorbar/CIN_colorbar.png" alt="CIN Color Bar">
       </div>
+      <div id="colorbar-lcdc" style="display:none;">
+        <img src="/colorbar/LCDC_colorbar.png" alt="LCDC Color Bar">
+      </div>
+      <div id="colorbar-mcdc" style="display:none;">
+        <img src="/colorbar/MCDC_colorbar.png" alt="MCDC Color Bar">
+      </div>
+      <div id="colorbar-hcdc" style="display:none;">
+        <img src="/colorbar/HCDC_colorbar.png" alt="HCDC Color Bar">
+      </div>
     </div>
   </div>
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
@@ -405,6 +425,9 @@
     var overlayHail = null;
     var overlayCAPE = null;
     var overlayCIN = null; // Added for CIN
+    var overlayLCDC = null;
+    var overlayMCDC = null;
+    var overlayHCDC = null;
     var pngList = [];
     var showRefc = false;
     var showMslp = false;
@@ -414,6 +437,9 @@
     var showHail = false;
     var showCAPE = false;
     var showCIN = false; // Added for CIN
+    var showLCDC = false;
+    var showMCDC = false;
+    var showHCDC = false;
     map.keyboard.disable();
 
     // Checkbox event listeners
@@ -457,6 +483,21 @@
       updateOverlay(parseInt(document.getElementById('hour-slider').value));
       updateColorbars(getVisibleLayers());
     });
+    document.getElementById('toggle-lcdc').addEventListener('change', function() {
+      showLCDC = this.checked;
+      updateOverlay(parseInt(document.getElementById('hour-slider').value));
+      updateColorbars(getVisibleLayers());
+    });
+    document.getElementById('toggle-mcdc').addEventListener('change', function() {
+      showMCDC = this.checked;
+      updateOverlay(parseInt(document.getElementById('hour-slider').value));
+      updateColorbars(getVisibleLayers());
+    });
+    document.getElementById('toggle-hcdc').addEventListener('change', function() {
+      showHCDC = this.checked;
+      updateOverlay(parseInt(document.getElementById('hour-slider').value));
+      updateColorbars(getVisibleLayers());
+    });
     // Set all checkboxes to unchecked and variables to false on load
     document.getElementById('toggle-refc').checked = false;
     document.getElementById('toggle-mslp').checked = false;
@@ -466,6 +507,9 @@
     document.getElementById('toggle-hail').checked = false;
     document.getElementById('toggle-cape').checked = false;
     document.getElementById('toggle-cin').checked = false; // CIN
+    document.getElementById('toggle-lcdc').checked = false;
+    document.getElementById('toggle-mcdc').checked = false;
+    document.getElementById('toggle-hcdc').checked = false;
 
     // --- Dropdown logic for right panel ---
     function closeAllDropdowns() {
@@ -572,6 +616,9 @@
           if (overlayHail) { map.removeLayer(overlayHail); overlayHail = null; }
           if (overlayCAPE) { map.removeLayer(overlayCAPE); overlayCAPE = null; }
           if (overlayCIN) { map.removeLayer(overlayCIN); overlayCIN = null; } // Remove CIN overlay
+          if (overlayLCDC) { map.removeLayer(overlayLCDC); overlayLCDC = null; } // Remove LCDC overlay
+          if (overlayMCDC) { map.removeLayer(overlayMCDC); overlayMCDC = null; } // Remove MCDC overlay
+          if (overlayHCDC) { map.removeLayer(overlayHCDC); overlayHCDC = null; } // Remove HCDC overlay
 
           // Defensive: If idx is out of bounds, do nothing
           if (!pngList || idx < 0 || idx >= pngList.length) return;
@@ -588,6 +635,9 @@
           if (showHail && entry.hail) overlayHail = L.imageOverlay(entry.hail + cacheBuster, imageBounds, {opacity: 0.7}).addTo(map);
           if (showCAPE && entry.cape) overlayCAPE = L.imageOverlay(entry.cape + cacheBuster, imageBounds, {opacity: 0.7}).addTo(map);
           if (showCIN && entry.cin) overlayCIN = L.imageOverlay(entry.cin + cacheBuster, imageBounds, {opacity: 0.7}).addTo(map); // Add CIN overlay
+          if (showLCDC && entry.lcdc) overlayLCDC = L.imageOverlay(entry.lcdc + cacheBuster, imageBounds, {opacity: 0.7}).addTo(map); // Add LCDC overlay
+          if (showMCDC && entry.mcdc) overlayMCDC = L.imageOverlay(entry.mcdc + cacheBuster, imageBounds, {opacity: 0.7}).addTo(map); // Add MCDC overlay
+          if (showHCDC && entry.hcdc) overlayHCDC = L.imageOverlay(entry.hcdc + cacheBuster, imageBounds, {opacity: 0.7}).addTo(map); // Add HCDC overlay
 
           // Always show hour label and forecast time if entry exists
           if (entry && typeof entry.hour !== "undefined") {
@@ -642,6 +692,9 @@
       document.getElementById("colorbar-hail").style.display = visibleLayers.includes("HAIL") ? "block" : "none";
       document.getElementById("colorbar-cape").style.display = visibleLayers.includes("CAPE") ? "block" : "none";
       document.getElementById("colorbar-cin").style.display = visibleLayers.includes("CIN") ? "block" : "none";
+      document.getElementById("colorbar-lcdc").style.display = visibleLayers.includes("LCDC") ? "block" : "none";
+      document.getElementById("colorbar-mcdc").style.display = visibleLayers.includes("MCDC") ? "block" : "none";
+      document.getElementById("colorbar-hcdc").style.display = visibleLayers.includes("HCDC") ? "block" : "none";
     }
 
     function getVisibleLayers() {
@@ -654,6 +707,9 @@
       if (showHail) visibleLayers.push("HAIL");
       if (showCAPE) visibleLayers.push("CAPE");
       if (showCIN) visibleLayers.push("CIN");
+      if (showLCDC) visibleLayers.push("LCDC");
+      if (showMCDC) visibleLayers.push("MCDC");
+      if (showHCDC) visibleLayers.push("HCDC");
       return visibleLayers;
     }
 
