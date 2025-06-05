@@ -7,3 +7,41 @@ git commit -m "Initial commit"
 
 
 git push -u origin main --force
+
+
+
+
+✅ Standard Git Workflow That Only Sends Changes
+Track changes:
+
+bash
+Copy
+Edit
+git status
+Add only the changed files:
+
+bash
+Copy
+Edit
+git add changed_file1.py changed_file2.html
+Or to add everything that was changed (but not untracked files):
+
+bash
+Copy
+Edit
+git add -u
+Commit your changes:
+
+bash
+Copy
+Edit
+git commit -m "Describe the specific change"
+Push only your changes:
+
+bash
+Copy
+Edit
+git push origin main
+(Or replace main with your branch name.)
+
+Git is smart — it only sends the diff, i.e., the changes from your last commit.

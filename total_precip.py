@@ -10,6 +10,7 @@ import cartopy.crs as ccrs
 import time
 import gc
 import numpy as np
+import matplotlib.patheffects  # <-- Add this import
 
 # --- Clean up old files in grib_files and pngs directories ---
 for folder in [

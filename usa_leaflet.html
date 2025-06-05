@@ -336,11 +336,26 @@
           <span class="dropdown-arrow">&#9654;</span>
         </div>
         <div class="dropdown-content">
-          <label><input type="checkbox" id="toggle-refc"> Composite Reflectivity</label>
-          <label><input type="checkbox" id="toggle-mslp"> Mean Sea Level Pressure</label>
-          <label><input type="checkbox" id="toggle-temp2m"> 2m Temperature</label>
-          <label><input type="checkbox" id="toggle-rh"> 2m Relative Humidity</label>
-          <label><input type="checkbox" id="toggle-precip"> Total Precipitation</label> <!-- Added Precip -->
+          <label>
+            <input type="checkbox" id="toggle-refc"> Composite Reflectivity
+            <input type="range" id="opacity-refc" min="0" max="1" step="0.01" value="0.7" style="width:80px;display:none;vertical-align:middle;">
+          </label>
+          <label>
+            <input type="checkbox" id="toggle-mslp"> Mean Sea Level Pressure
+            <input type="range" id="opacity-mslp" min="0" max="1" step="0.01" value="0.7" style="width:80px;display:none;vertical-align:middle;">
+          </label>
+          <label>
+            <input type="checkbox" id="toggle-temp2m"> 2m Temperature
+            <input type="range" id="opacity-temp2m" min="0" max="1" step="0.01" value="0.7" style="width:80px;display:none;vertical-align:middle;">
+          </label>
+          <label>
+            <input type="checkbox" id="toggle-rh"> 2m Relative Humidity
+            <input type="range" id="opacity-rh" min="0" max="1" step="0.01" value="0.7" style="width:80px;display:none;vertical-align:middle;">
+          </label>
+          <label>
+            <input type="checkbox" id="toggle-precip"> Total Precipitation
+            <input type="range" id="opacity-precip" min="0" max="1" step="0.01" value="0.7" style="width:80px;display:none;vertical-align:middle;">
+          </label>
         </div>
       </div>
       <div class="dropdown" id="dropdown-severe">
@@ -349,10 +364,22 @@
           <span class="dropdown-arrow">&#9654;</span>
         </div>
         <div class="dropdown-content">
-          <label><input type="checkbox" id="toggle-lightning"> Lightning</label>
-          <label><input type="checkbox" id="toggle-hail"> Hail Threat Scale</label>
-          <label><input type="checkbox" id="toggle-cape"> CAPE</label>
-          <label><input type="checkbox" id="toggle-cin"> CIN</label> <!-- Added CIN -->
+          <label>
+            <input type="checkbox" id="toggle-lightning"> Lightning
+            <input type="range" id="opacity-lightning" min="0" max="1" step="0.01" value="0.7" style="width:80px;display:none;vertical-align:middle;">
+          </label>
+          <label>
+            <input type="checkbox" id="toggle-hail"> Hail Threat Scale
+            <input type="range" id="opacity-hail" min="0" max="1" step="0.01" value="0.7" style="width:80px;display:none;vertical-align:middle;">
+          </label>
+          <label>
+            <input type="checkbox" id="toggle-cape"> CAPE
+            <input type="range" id="opacity-cape" min="0" max="1" step="0.01" value="0.7" style="width:80px;display:none;vertical-align:middle;">
+          </label>
+          <label>
+            <input type="checkbox" id="toggle-cin"> CIN
+            <input type="range" id="opacity-cin" min="0" max="1" step="0.01" value="0.7" style="width:80px;display:none;vertical-align:middle;">
+          </label>
         </div>
       </div>
       <div class="dropdown" id="dropdown-diagnostics">
@@ -361,9 +388,18 @@
           <span class="dropdown-arrow">&#9654;</span>
         </div>
         <div class="dropdown-content">
-          <label><input type="checkbox" id="toggle-lcdc"> Low Cloud Cover</label>
-          <label><input type="checkbox" id="toggle-mcdc"> Medium Cloud Cover</label>
-          <label><input type="checkbox" id="toggle-hcdc"> High Cloud Cover</label>
+          <label>
+            <input type="checkbox" id="toggle-lcdc"> Low Cloud Cover
+            <input type="range" id="opacity-lcdc" min="0" max="1" step="0.01" value="0.7" style="width:80px;display:none;vertical-align:middle;">
+          </label>
+          <label>
+            <input type="checkbox" id="toggle-mcdc"> Medium Cloud Cover
+            <input type="range" id="opacity-mcdc" min="0" max="1" step="0.01" value="0.7" style="width:80px;display:none;vertical-align:middle;">
+          </label>
+          <label>
+            <input type="checkbox" id="toggle-hcdc"> High Cloud Cover
+            <input type="range" id="opacity-hcdc" min="0" max="1" step="0.01" value="0.7" style="width:80px;display:none;vertical-align:middle;">
+          </label>
         </div>
       </div>
     </div>
@@ -639,19 +675,19 @@
           var entry = pngList[idx] || {};
           var cacheBuster = "?t=" + Date.now();
 
-          // Each overlay is toggled independently by its checkbox
-          if (showRefc && entry.refc) overlayRefc = L.imageOverlay(entry.refc + cacheBuster, imageBounds, {opacity: 0.7}).addTo(map);
-          if (showMslp && entry.mslp) overlayMslp = L.imageOverlay(entry.mslp + cacheBuster, imageBounds, {opacity: 0.7}).addTo(map);
-          if (showTemp2m && entry.temp2m) overlayTemp2m = L.imageOverlay(entry.temp2m + cacheBuster, imageBounds, {opacity: 0.7}).addTo(map);
-          if (showLightning && entry.lightning) overlayLightning = L.imageOverlay(entry.lightning + cacheBuster, imageBounds, {opacity: 0.7}).addTo(map);
-          if (showRH && entry.rh) overlayRH = L.imageOverlay(entry.rh + cacheBuster, imageBounds, {opacity: 0.7}).addTo(map);
-          if (showHail && entry.hail) overlayHail = L.imageOverlay(entry.hail + cacheBuster, imageBounds, {opacity: 0.7}).addTo(map);
-          if (showCAPE && entry.cape) overlayCAPE = L.imageOverlay(entry.cape + cacheBuster, imageBounds, {opacity: 0.7}).addTo(map);
-          if (showCIN && entry.cin) overlayCIN = L.imageOverlay(entry.cin + cacheBuster, imageBounds, {opacity: 0.7}).addTo(map); // Add CIN overlay
-          if (showLCDC && entry.lcdc) overlayLCDC = L.imageOverlay(entry.lcdc + cacheBuster, imageBounds, {opacity: 0.7}).addTo(map); // Add LCDC overlay
-          if (showMCDC && entry.mcdc) overlayMCDC = L.imageOverlay(entry.mcdc + cacheBuster, imageBounds, {opacity: 0.7}).addTo(map); // Add MCDC overlay
-          if (showHCDC && entry.hcdc) overlayHCDC = L.imageOverlay(entry.hcdc + cacheBuster, imageBounds, {opacity: 0.7}).addTo(map); // Add HCDC overlay
-          if (showPrecip && entry.precip) overlayPrecip = L.imageOverlay(entry.precip + cacheBuster, imageBounds, {opacity: 0.7}).addTo(map); // Add Precip overlay
+          // Each overlay is toggled independently by its checkbox, use opacity from overlayOpacity
+          if (showRefc && entry.refc) overlayRefc = L.imageOverlay(entry.refc + cacheBuster, imageBounds, {opacity: overlayOpacity.refc}).addTo(map);
+          if (showMslp && entry.mslp) overlayMslp = L.imageOverlay(entry.mslp + cacheBuster, imageBounds, {opacity: overlayOpacity.mslp}).addTo(map);
+          if (showTemp2m && entry.temp2m) overlayTemp2m = L.imageOverlay(entry.temp2m + cacheBuster, imageBounds, {opacity: overlayOpacity.temp2m}).addTo(map);
+          if (showLightning && entry.lightning) overlayLightning = L.imageOverlay(entry.lightning + cacheBuster, imageBounds, {opacity: overlayOpacity.lightning}).addTo(map);
+          if (showRH && entry.rh) overlayRH = L.imageOverlay(entry.rh + cacheBuster, imageBounds, {opacity: overlayOpacity.rh}).addTo(map);
+          if (showHail && entry.hail) overlayHail = L.imageOverlay(entry.hail + cacheBuster, imageBounds, {opacity: overlayOpacity.hail}).addTo(map);
+          if (showCAPE && entry.cape) overlayCAPE = L.imageOverlay(entry.cape + cacheBuster, imageBounds, {opacity: overlayOpacity.cape}).addTo(map);
+          if (showCIN && entry.cin) overlayCIN = L.imageOverlay(entry.cin + cacheBuster, imageBounds, {opacity: overlayOpacity.cin}).addTo(map); // Add CIN overlay
+          if (showLCDC && entry.lcdc) overlayLCDC = L.imageOverlay(entry.lcdc + cacheBuster, imageBounds, {opacity: overlayOpacity.lcdc}).addTo(map); // Add LCDC overlay
+          if (showMCDC && entry.mcdc) overlayMCDC = L.imageOverlay(entry.mcdc + cacheBuster, imageBounds, {opacity: overlayOpacity.mcdc}).addTo(map); // Add MCDC overlay
+          if (showHCDC && entry.hcdc) overlayHCDC = L.imageOverlay(entry.hcdc + cacheBuster, imageBounds, {opacity: overlayOpacity.hcdc}).addTo(map); // Add HCDC overlay
+          if (showPrecip && entry.precip) overlayPrecip = L.imageOverlay(entry.precip + cacheBuster, imageBounds, {opacity: overlayOpacity.precip}).addTo(map); // Add Precip overlay
 
           // Always show hour label and forecast time if entry exists
           if (entry && typeof entry.hour !== "undefined") {
@@ -809,6 +845,92 @@
       // Set initial size
       setSize(slider.value);
     })();
+
+    // Store opacity for each overlay
+    var overlayOpacity = {
+      refc: 0.7, mslp: 0.7, temp2m: 0.7, rh: 0.7, precip: 0.7,
+      lightning: 0.7, hail: 0.7, cape: 0.7, cin: 0.7,
+      lcdc: 0.7, mcdc: 0.7, hcdc: 0.7
+    };
+
+    // Helper to show/hide opacity sliders
+    function toggleOpacitySlider(layer, show) {
+      var slider = document.getElementById('opacity-' + layer);
+      if (slider) slider.style.display = show ? 'inline-block' : 'none';
+    }
+
+    // Add event listeners for checkboxes to show/hide sliders
+    [
+      'refc','mslp','temp2m','rh','precip',
+      'lightning','hail','cape','cin',
+      'lcdc','mcdc','hcdc'
+    ].forEach(function(layer) {
+      var cb = document.getElementById('toggle-' + layer);
+      var slider = document.getElementById('opacity-' + layer);
+      if (cb && slider) {
+        cb.addEventListener('change', function() {
+          toggleOpacitySlider(layer, cb.checked);
+        });
+        // Show slider if checked on load
+        toggleOpacitySlider(layer, cb.checked);
+        // Update opacity value on slider change
+        slider.addEventListener('input', function() {
+          overlayOpacity[layer] = parseFloat(slider.value);
+          // If overlay is visible, update its opacity live
+          var overlayVar = window['overlay' + layer.charAt(0).toUpperCase() + layer.slice(1)];
+          if (overlayVar && map.hasLayer(overlayVar)) {
+            overlayVar.setOpacity(overlayOpacity[layer]);
+          }
+        });
+      }
+    });
+
+    // --- Existing updateOverlay function ---
+    window.updateOverlay = function(idx) {
+      // Remove all overlays first
+      if (overlayRefc) { map.removeLayer(overlayRefc); overlayRefc = null; }
+      if (overlayMslp) { map.removeLayer(overlayMslp); overlayMslp = null; }
+      if (overlayTemp2m) { map.removeLayer(overlayTemp2m); overlayTemp2m = null; }
+      if (overlayLightning) { map.removeLayer(overlayLightning); overlayLightning = null; }
+      if (overlayRH) { map.removeLayer(overlayRH); overlayRH = null; }
+      if (overlayHail) { map.removeLayer(overlayHail); overlayHail = null; }
+      if (overlayCAPE) { map.removeLayer(overlayCAPE); overlayCAPE = null; }
+      if (overlayCIN) { map.removeLayer(overlayCIN); overlayCIN = null; } // Remove CIN overlay
+      if (overlayLCDC) { map.removeLayer(overlayLCDC); overlayLCDC = null; } // Remove LCDC overlay
+      if (overlayMCDC) { map.removeLayer(overlayMCDC); overlayMCDC = null; } // Remove MCDC overlay
+      if (overlayHCDC) { map.removeLayer(overlayHCDC); overlayHCDC = null; } // Remove HCDC overlay
+      if (overlayPrecip) { map.removeLayer(overlayPrecip); overlayPrecip = null; } // Remove Precip overlay
+
+      // Defensive: If idx is out of bounds, do nothing
+      if (!pngList || idx < 0 || idx >= pngList.length) return;
+
+      var entry = pngList[idx] || {};
+      var cacheBuster = "?t=" + Date.now();
+
+      // Each overlay is toggled independently by its checkbox, use opacity from overlayOpacity
+      if (showRefc && entry.refc) overlayRefc = L.imageOverlay(entry.refc + cacheBuster, imageBounds, {opacity: overlayOpacity.refc}).addTo(map);
+      if (showMslp && entry.mslp) overlayMslp = L.imageOverlay(entry.mslp + cacheBuster, imageBounds, {opacity: overlayOpacity.mslp}).addTo(map);
+      if (showTemp2m && entry.temp2m) overlayTemp2m = L.imageOverlay(entry.temp2m + cacheBuster, imageBounds, {opacity: overlayOpacity.temp2m}).addTo(map);
+      if (showLightning && entry.lightning) overlayLightning = L.imageOverlay(entry.lightning + cacheBuster, imageBounds, {opacity: overlayOpacity.lightning}).addTo(map);
+      if (showRH && entry.rh) overlayRH = L.imageOverlay(entry.rh + cacheBuster, imageBounds, {opacity: overlayOpacity.rh}).addTo(map);
+      if (showHail && entry.hail) overlayHail = L.imageOverlay(entry.hail + cacheBuster, imageBounds, {opacity: overlayOpacity.hail}).addTo(map);
+      if (showCAPE && entry.cape) overlayCAPE = L.imageOverlay(entry.cape + cacheBuster, imageBounds, {opacity: overlayOpacity.cape}).addTo(map);
+      if (showCIN && entry.cin) overlayCIN = L.imageOverlay(entry.cin + cacheBuster, imageBounds, {opacity: overlayOpacity.cin}).addTo(map); // Add CIN overlay
+      if (showLCDC && entry.lcdc) overlayLCDC = L.imageOverlay(entry.lcdc + cacheBuster, imageBounds, {opacity: overlayOpacity.lcdc}).addTo(map); // Add LCDC overlay
+      if (showMCDC && entry.mcdc) overlayMCDC = L.imageOverlay(entry.mcdc + cacheBuster, imageBounds, {opacity: overlayOpacity.mcdc}).addTo(map); // Add MCDC overlay
+      if (showHCDC && entry.hcdc) overlayHCDC = L.imageOverlay(entry.hcdc + cacheBuster, imageBounds, {opacity: overlayOpacity.hcdc}).addTo(map); // Add HCDC overlay
+      if (showPrecip && entry.precip) overlayPrecip = L.imageOverlay(entry.precip + cacheBuster, imageBounds, {opacity: overlayOpacity.precip}).addTo(map); // Add Precip overlay
+
+      // Always show hour label and forecast time if entry exists
+      if (entry && typeof entry.hour !== "undefined") {
+        label.textContent = `Hour: ${entry.hour}`;
+        forecastTimeBox.textContent = getForecastTimeEST(entry.hour);
+      } else {
+        label.textContent = "No data";
+        forecastTimeBox.textContent = "";
+      }
+      updateColorbars(getVisibleLayers());
+  };
   </script>
 </body>
 </html>
