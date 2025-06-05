@@ -160,8 +160,8 @@ def serve_colorbar(filename):
 def serve_cartopy_base():
     return send_from_directory(BASE_DIR, "cartopy_base.png")
 
-@app.route("/run-task")
-def run_task():
+@app.route("/run-task1")
+def run_task1():
     def run_all_scripts():
         try:
             subprocess.run(["python", os.path.join(BASE_DIR, "REFC.py")], check=True)
@@ -178,102 +178,12 @@ def run_task():
             print(f"Error running mslp_script.py:\n{error_trace}")
 
         try:
-            subprocess.run(["python", os.path.join(BASE_DIR, "temp2m.py")], check=True)
-            print("temp2m.py ran successfully!")
-        except subprocess.CalledProcessError:
-            error_trace = traceback.format_exc()
-            print(f"Error running temp2m.py:\n{error_trace}")
-
-        try:
-            subprocess.run(["python", os.path.join(BASE_DIR, "RH.py")], check=True)  # RH
-            print("RH.py ran successfully!")
-        except subprocess.CalledProcessError:
-            error_trace = traceback.format_exc()
-            print(f"Error running RH.py:\n{error_trace}")
-
-        try:
-            subprocess.run(["python", os.path.join(BASE_DIR, "HAIL.py")], check=True)  # HAIL
-            print("HAIL.py ran successfully!")
-        except subprocess.CalledProcessError:
-            error_trace = traceback.format_exc()
-            print(f"Error running HAIL.py:\n{error_trace}")
-
-        try:
-            subprocess.run(["python", os.path.join(BASE_DIR, "cape.py")], check=True)  # CAPE
-            print("cape.py ran successfully!")
-        except subprocess.CalledProcessError:
-            error_trace = traceback.format_exc()
-            print(f"Error running cape.py:\n{error_trace}")
-
-        try:
-            subprocess.run(["python", os.path.join(BASE_DIR, "LIGHTNING.py")], check=True)
-            print("LIGHTNING.py ran successfully!")
-        except subprocess.CalledProcessError:
-            error_trace = traceback.format_exc()
-            print(f"Error running LIGHTNING.py:\n{error_trace}")
-
-        try:
-            subprocess.run(["python", os.path.join(BASE_DIR, "LCDC.py")], check=True)
-            print("LCDC.py ran successfully!")
-        except subprocess.CalledProcessError:
-            error_trace = traceback.format_exc()
-            print(f"Error running LCDC.py:\n{error_trace}")
-
-        try:
-            subprocess.run(["python", os.path.join(BASE_DIR, "MCDC.py")], check=True)
-            print("MCDC.py ran successfully!")
-        except subprocess.CalledProcessError:
-            error_trace = traceback.format_exc()
-            print(f"Error running MCDC.py:\n{error_trace}")
-
-        try:
-            subprocess.run(["python", os.path.join(BASE_DIR, "HCDC.py")], check=True)
-            print("HCDC.py ran successfully!")
-        except subprocess.CalledProcessError:
-            error_trace = traceback.format_exc()
-            print(f"Error running HCDC.py:\n{error_trace}")
-
-        # Add call to total_precip.py
-        try:
-            subprocess.run(["python", os.path.join(BASE_DIR, "total_precip.py")], check=True)
-            print("total_precip.py ran successfully!")
-        except subprocess.CalledProcessError:
-            error_trace = traceback.format_exc()
-            print(f"Error running total_precip.py:\n{error_trace}")
-
-    threading.Thread(target=run_all_scripts).start()
-    return "All scripts started sequentially in background!", 200
-
-@app.route("/run-task1")
-def run_task1():
-    def run_scripts():
-        try:
-            subprocess.run(["python", os.path.join(BASE_DIR, "REFC.py")], check=True)
-            print("REFC.py ran successfully!")
-        except subprocess.CalledProcessError:
-            error_trace = traceback.format_exc()
-            print(f"Error running REFC.py:\n{error_trace}")
-
-        try:
-            subprocess.run(["python", os.path.join(BASE_DIR, "mslp_script.py")], check=True)
-            print("mslp_script.py ran successfully!")
-        except subprocess.CalledProcessError:
-            error_trace = traceback.format_exc()
-            print(f"Error running mslp_script.py:\n{error_trace}")
-
-        try:
-            subprocess.run(["python", os.path.join(BASE_DIR, "cin.py")], check=True)    # CIN moved here
+            subprocess.run(["python", os.path.join(BASE_DIR, "cin.py")], check=True)
             print("cin.py ran successfully!")
         except subprocess.CalledProcessError:
             error_trace = traceback.format_exc()
             print(f"Error running cin.py:\n{error_trace}")
 
-    threading.Thread(target=run_scripts).start()
-    return "REFC.py, mslp_script.py, and cin.py started in background!", 200
-
-@app.route("/run-task2")
-def run_task2():
-    def run_scripts():
         try:
             subprocess.run(["python", os.path.join(BASE_DIR, "temp2m.py")], check=True)
             print("temp2m.py ran successfully!")
@@ -288,12 +198,6 @@ def run_task2():
             error_trace = traceback.format_exc()
             print(f"Error running RH.py:\n{error_trace}")
 
-    threading.Thread(target=run_scripts).start()
-    return "temp2m.py and RH.py started in background!", 200
-
-@app.route("/run-task3")
-def run_task3():
-    def run_scripts():
         try:
             subprocess.run(["python", os.path.join(BASE_DIR, "HAIL.py")], check=True)
             print("HAIL.py ran successfully!")
@@ -336,7 +240,6 @@ def run_task3():
             error_trace = traceback.format_exc()
             print(f"Error running LIGHTNING.py:\n{error_trace}")
 
-        # Add call to total_precip.py
         try:
             subprocess.run(["python", os.path.join(BASE_DIR, "total_precip.py")], check=True)
             print("total_precip.py ran successfully!")
@@ -344,8 +247,8 @@ def run_task3():
             error_trace = traceback.format_exc()
             print(f"Error running total_precip.py:\n{error_trace}")
 
-    threading.Thread(target=run_scripts).start()
-    return "HAIL.py, cape.py, LCDC.py, MCDC.py, HCDC.py, LIGHTNING.py, and total_precip.py started in background!", 200
+    threading.Thread(target=run_all_scripts).start()
+    return "All scripts started sequentially in background!", 200
 
 @app.route("/<path:filename>")
 def serve_static_file(filename):
