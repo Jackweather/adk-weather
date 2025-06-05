@@ -178,11 +178,11 @@ def run_task1():
             print(f"Error running mslp_script.py:\n{error_trace}")
 
         try:
-            subprocess.run(["python", os.path.join(BASE_DIR, "cin.py")], check=True)
-            print("cin.py ran successfully!")
+            subprocess.run(["python", os.path.join(BASE_DIR, "CIN.py")], check=True)
+            print("CIN.py ran successfully!")
         except subprocess.CalledProcessError:
             error_trace = traceback.format_exc()
-            print(f"Error running cin.py:\n{error_trace}")
+            print(f"Error running CIN.py:\n{error_trace}")
 
         try:
             subprocess.run(["python", os.path.join(BASE_DIR, "temp2m.py")], check=True)
