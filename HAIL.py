@@ -9,6 +9,8 @@ import cartopy.crs as ccrs
 import numpy as np
 from matplotlib.colors import ListedColormap, BoundaryNorm
 import matplotlib.patches as mpatches
+import time  # Added
+import gc    # Added
 
 # --- Clean up old files in grib_files and pngs directories ---
 hail_dir = os.path.join("Hrrr", "static", "HAIL")
@@ -128,4 +130,6 @@ if __name__ == "__main__":
         if grib_file:
             png_file = os.path.join(hail_dir, f"HAIL_{step:02d}.png")
             plot_hail_risk(filepath=grib_file, save_path=png_file)
+            gc.collect()         # Collect garbage after each PNG creation
+            time.sleep(3)        # Wait 3 seconds between each step
     print("All HAIL GRIB file download and PNG creation tasks complete!")

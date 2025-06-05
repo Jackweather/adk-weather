@@ -339,7 +339,8 @@
           <label><input type="checkbox" id="toggle-refc"> Composite Reflectivity</label>
           <label><input type="checkbox" id="toggle-mslp"> Mean Sea Level Pressure</label>
           <label><input type="checkbox" id="toggle-temp2m"> 2m Temperature</label>
-          <label><input type="checkbox" id="toggle-rh"> 2m Relative Humidity</label> <!-- Added RH -->
+          <label><input type="checkbox" id="toggle-rh"> 2m Relative Humidity</label>
+          <label><input type="checkbox" id="toggle-precip"> Total Precipitation</label> <!-- Added Precip -->
         </div>
       </div>
       <div class="dropdown" id="dropdown-severe">
@@ -409,6 +410,9 @@
       <div id="colorbar-hcdc" style="display:none;">
         <img src="/colorbar/HCDC_colorbar.png" alt="HCDC Color Bar">
       </div>
+      <div id="colorbar-precip" style="display:none;">
+        <img src="/colorbar/PRECIP_colorbar.png" alt="PRECIP Color Bar">
+      </div>
     </div>
   </div>
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
@@ -428,6 +432,7 @@
     var overlayLCDC = null;
     var overlayMCDC = null;
     var overlayHCDC = null;
+    var overlayPrecip = null;
     var pngList = [];
     var showRefc = false;
     var showMslp = false;
@@ -440,6 +445,7 @@
     var showLCDC = false;
     var showMCDC = false;
     var showHCDC = false;
+    var showPrecip = false;
     map.keyboard.disable();
 
     // Checkbox event listeners
@@ -498,6 +504,11 @@
       updateOverlay(parseInt(document.getElementById('hour-slider').value));
       updateColorbars(getVisibleLayers());
     });
+    document.getElementById('toggle-precip').addEventListener('change', function() {
+      showPrecip = this.checked;
+      updateOverlay(parseInt(document.getElementById('hour-slider').value));
+      updateColorbars(getVisibleLayers());
+    });
     // Set all checkboxes to unchecked and variables to false on load
     document.getElementById('toggle-refc').checked = false;
     document.getElementById('toggle-mslp').checked = false;
@@ -510,6 +521,7 @@
     document.getElementById('toggle-lcdc').checked = false;
     document.getElementById('toggle-mcdc').checked = false;
     document.getElementById('toggle-hcdc').checked = false;
+    document.getElementById('toggle-precip').checked = false;
 
     // --- Dropdown logic for right panel ---
     function closeAllDropdowns() {
@@ -619,6 +631,7 @@
           if (overlayLCDC) { map.removeLayer(overlayLCDC); overlayLCDC = null; } // Remove LCDC overlay
           if (overlayMCDC) { map.removeLayer(overlayMCDC); overlayMCDC = null; } // Remove MCDC overlay
           if (overlayHCDC) { map.removeLayer(overlayHCDC); overlayHCDC = null; } // Remove HCDC overlay
+          if (overlayPrecip) { map.removeLayer(overlayPrecip); overlayPrecip = null; } // Remove Precip overlay
 
           // Defensive: If idx is out of bounds, do nothing
           if (!pngList || idx < 0 || idx >= pngList.length) return;
@@ -638,6 +651,7 @@
           if (showLCDC && entry.lcdc) overlayLCDC = L.imageOverlay(entry.lcdc + cacheBuster, imageBounds, {opacity: 0.7}).addTo(map); // Add LCDC overlay
           if (showMCDC && entry.mcdc) overlayMCDC = L.imageOverlay(entry.mcdc + cacheBuster, imageBounds, {opacity: 0.7}).addTo(map); // Add MCDC overlay
           if (showHCDC && entry.hcdc) overlayHCDC = L.imageOverlay(entry.hcdc + cacheBuster, imageBounds, {opacity: 0.7}).addTo(map); // Add HCDC overlay
+          if (showPrecip && entry.precip) overlayPrecip = L.imageOverlay(entry.precip + cacheBuster, imageBounds, {opacity: 0.7}).addTo(map); // Add Precip overlay
 
           // Always show hour label and forecast time if entry exists
           if (entry && typeof entry.hour !== "undefined") {
@@ -695,6 +709,7 @@
       document.getElementById("colorbar-lcdc").style.display = visibleLayers.includes("LCDC") ? "block" : "none";
       document.getElementById("colorbar-mcdc").style.display = visibleLayers.includes("MCDC") ? "block" : "none";
       document.getElementById("colorbar-hcdc").style.display = visibleLayers.includes("HCDC") ? "block" : "none";
+      document.getElementById("colorbar-precip").style.display = visibleLayers.includes("PRECIP") ? "block" : "none";
     }
 
     function getVisibleLayers() {
@@ -710,6 +725,7 @@
       if (showLCDC) visibleLayers.push("LCDC");
       if (showMCDC) visibleLayers.push("MCDC");
       if (showHCDC) visibleLayers.push("HCDC");
+      if (showPrecip) visibleLayers.push("PRECIP");
       return visibleLayers;
     }
 

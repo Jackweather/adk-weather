@@ -7,6 +7,8 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from matplotlib.colors import ListedColormap, BoundaryNorm
 import cartopy.crs as ccrs  # Added for map projection
+import time  # Added
+import gc    # Added
 
 # --- Clean up old files in grib_files and pngs directories ---
 for folder in [
@@ -102,5 +104,7 @@ for step in range(0, 49):  # Loop through forecast steps (00 to 48 hours)
         grib_files.append(grib_file)
         png_file = generate_clean_png(grib_file, step)
         png_files.append(png_file)
+        gc.collect()         # Collect garbage after each PNG creation
+        time.sleep(3)        # Wait 3 seconds between each step
 
 print("All GRIB file download and PNG creation tasks complete!")

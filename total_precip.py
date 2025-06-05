@@ -2,27 +2,33 @@ import os
 import requests
 from datetime import datetime, timedelta
 import xarray as xr
-import numpy as np
-from scipy.ndimage import gaussian_filter
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-from matplotlib.colors import LinearSegmentedColormap, Normalize
+from matplotlib.colors import ListedColormap, BoundaryNorm
 import cartopy.crs as ccrs
-import cartopy.feature as cfeature
-import matplotlib.patheffects  # Needed for text outline
-import time  # Added
-import gc    # Added
+import time
+import gc
+import numpy as np
 
-# --- Clean up old files in grib_files and static/cin directories ---
-cin_dir = os.path.join("Hrrr", "static", "cin")
-grib_dir = os.path.join(cin_dir, "grib_files")
-os.makedirs(grib_dir, exist_ok=True)
-os.makedirs(cin_dir, exist_ok=True)
-for folder in [grib_dir, cin_dir]:
+# --- Clean up old files in grib_files and pngs directories ---
+for folder in [
+    os.path.join("Hrrr", "static", "PRECIP", "grib_files"),
+    os.path.join("Hrrr", "static", "PRECIP")
+]:
     if os.path.exists(folder):
         for f in os.listdir(folder):
             file_path = os.path.join(folder, f)
             if os.path.isfile(file_path):
                 os.remove(file_path)
+
+# Directories
+base_url = "https://nomads.ncep.noaa.gov/cgi-bin/filter_hrrr_2d.pl"
+output_dir = "Hrrr"
+precip_dir = os.path.join(output_dir, "static", "PRECIP")
+grib_dir = os.path.join(precip_dir, "grib_files")
+os.makedirs(grib_dir, exist_ok=True)
+os.makedirs(precip_dir, exist_ok=True)
 
 # Get the current UTC date and time and select the most recent HRRR run (0z, 6z, 12z, 18z)
 current_utc_time = datetime.utcnow()
@@ -34,27 +40,71 @@ if current_utc_time.hour < run_hour:
     date_for_run = current_utc_time - timedelta(hours=6)
     run_hour = (date_for_run.hour // 6) * 6
 date_str = date_for_run.strftime("%Y%m%d")
-hour_str = str(run_hour).zfill(2)  # 00, 06, 12, 18
+hour_str = str(run_hour).zfill(2)
 
-# CIN settings
-variable_cin = "CIN"
-level_surface = "surface"
+# Precipitation variable and colormap
+variable_precip = "APCP"
+# Use the same breaks and colors as the colorbar
+precip_breaks = [
+    0, 0.01, 0.05, 0.1, 0.15, 0.2, 0.3, 0.4, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2,
+    2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6, 6.6, 7, 8, 9, 10, 12, 14, 16, 20, 24
+]
+precip_colors = [
+    "#ffffff",  # 0
+    "#e0f7fa",  # 0.01
+    "#b2ebf2",  # 0.05
+    "#b2f7e6",  # 0.1
+    "#a7e9af",  # 0.15
+    "#7ed957",  # 0.2
+    "#43a047",  # 0.3
+    "#00bcd4",  # 0.4
+    "#2196f3",  # 0.5
+    "#42a5f5",  # 0.75
+    "#1976d2",  # 1
+    "#64b5f6",  # 1.25
+    "#90caf9",  # 1.5
+    "#b3e5fc",  # 1.75
+    "#fbc02d",  # 2
+    "#f9a825",  # 2.5
+    "#f57c00",  # 3
+    "#ef6c00",  # 3.5
+    "#e65100",  # 4
+    "#e53935",  # 4.5
+    "#b71c1c",  # 5
+    "#c62828",  # 5.5
+    "#ad1457",  # 6
+    "#6a1b9a",  # 6.6
+    "#7b1fa2",  # 7
+    "#8e24aa",  # 8
+    "#9c27b0",  # 9
+    "#6d4c41",  # 10
+    "#795548",  # 12
+    "#a1887f",  # 14
+    "#bcaaa4",  # 16
+    "#212121",  # 20
+    "#fff59d",  # 24
+]
+precip_cmap = ListedColormap(precip_colors)
+precip_norm = BoundaryNorm(precip_breaks, ncolors=len(precip_colors))
+precip_levels = precip_breaks
 
-# CIN colormap and normalization
-cin_cmap = LinearSegmentedColormap.from_list(
-    "cin_cmap",
-    [
-        (0.0, "#4b0082"),
-        (0.5, "#9370DB"),
-        (0.75, "#add8e6"),
-        (1.0, "#ffffff"),
-    ],
-    N=256
-)
-cin_norm = Normalize(vmin=-300, vmax=0)  # CIN typically negative, 0 is no inhibition
-
-base_url = "https://nomads.ncep.noaa.gov/cgi-bin/filter_hrrr_2d.pl"
-png_dir = cin_dir
+# Function to download GRIB files
+def download_file(hour_str, step):
+    file_name = f"hrrr.t{hour_str}z.wrfsfcf{step:02d}.grib2"
+    file_path = os.path.join(grib_dir, file_name)
+    url_precip = (f"{base_url}?dir=%2Fhrrr.{date_str}%2Fconus&file={file_name}"
+                  f"&var_{variable_precip}=on&lev_surface=on")
+    response = requests.get(url_precip, stream=True)
+    if response.status_code == 200:
+        with open(file_path, 'wb') as f:
+            for chunk in response.iter_content(chunk_size=1024):
+                if chunk:
+                    f.write(chunk)
+        print(f"Downloaded {file_name}")
+        return file_path
+    else:
+        print(f"Failed to download {file_name} (Status Code: {response.status_code})")
+        return None
 
 # NY_ASOS Network stations: (ID, Name, Latitude, Longitude)
 NY_ASOS_STATIONS = [
@@ -150,79 +200,49 @@ NY_ASOS_STATIONS = [
     ("OLF", "Old Forge", 43.7117, -74.9732),
 ]
 
-def download_file(hour_str, step):
-    file_name = f"hrrr.t{hour_str}z.wrfsfcf{step:02d}.grib2"
-    file_path = os.path.join(grib_dir, file_name)
-    url_tmp = (f"{base_url}?dir=%2Fhrrr.{date_str}%2Fconus&file={file_name}"
-               f"&var_{variable_cin}=on&lev_{level_surface}=on")
-    response = requests.get(url_tmp, stream=True)
-    if response.status_code == 200:
-        with open(file_path, 'wb') as f:
-            for chunk in response.iter_content(chunk_size=1024):
-                if chunk:
-                    f.write(chunk)
-        print(f"Downloaded {file_name}")
-        return file_path
-    else:
-        print(f"Failed to download {file_name} (Status Code: {response.status_code})")
-        return None
-
-def generate_png_xarray(file_path, step):
+# Function to generate PNG from GRIB file (with Cartopy projection)
+def generate_precip_png(file_path, step):
     try:
         ds = xr.open_dataset(file_path, engine="cfgrib")
-        # Try to find the CIN variable (name may vary)
-        cin_var = None
-        for var in ds.data_vars:
-            if "cin" in var.lower():
-                cin_var = var
-                break
-        if cin_var is None:
-            print(f"No CIN variable found in {file_path}. Variables: {list(ds.data_vars)}")
-            ds.close()
-            return None
-
-        data = ds[cin_var].values
-        if np.all(np.isnan(data)):
-            print(f"CIN data is NaN in {file_path}")
-            ds.close()
-            return None
-
-        data = gaussian_filter(data, sigma=1.5)
-        lats = ds["latitude"].values if "latitude" in ds else ds.lat.values
-        lons = ds["longitude"].values if "longitude" in ds else ds.lon.values
-        ds.close()
-
-        # Print min/max for debugging
-        print(f"Step {step:02d} CIN min: {np.nanmin(data)}, max: {np.nanmax(data)}")
-
-        # Clip data to colorbar range to avoid invisible values
-        data = np.clip(data, -300, 0)
-
-        fig = plt.figure(figsize=(16, 12), facecolor='none')
-        ax = plt.axes(projection=ccrs.PlateCarree(), facecolor='none')
-        ax.set_extent([-126, -69, 24.5, 49.5], crs=ccrs.PlateCarree())
-        levels = np.linspace(-300, 0, 31)
-        cf = ax.contourf(
-            lons, lats, data, levels=levels, cmap=cin_cmap, norm=cin_norm,
-            transform=ccrs.PlateCarree(), extend='both'
+        # Variable name may be 'tp' or 'apcp', check both
+        if 'tp' in ds:
+            precip = ds['tp']
+        elif 'apcp' in ds:
+            precip = ds['apcp']
+        elif 'APCP_surface' in ds:
+            precip = ds['APCP_surface']
+        else:
+            raise Exception("Precipitation variable not found in GRIB file.")
+        # Convert from mm to inches if needed (HRRR APCP is usually in kg/m^2 == mm)
+        precip_in = precip.squeeze() * 0.0393701
+        lats = ds['latitude']
+        lons = ds['longitude']
+        fig = plt.figure(figsize=(10, 7), dpi=850)
+        ax = plt.axes(projection=ccrs.PlateCarree())
+        ax.set_extent([-126, -69, 24, 50], crs=ccrs.PlateCarree())
+        # Use contourf for filled contours, 0 is transparent
+        contour = ax.contourf(
+            lons, lats, precip_in,
+            levels=precip_levels, cmap=precip_cmap, norm=precip_norm, transform=ccrs.PlateCarree(), extend='max'
         )
-
-        # Plot CIN values at NY_ASOS stations
+        # Plot precipitation values at NY_ASOS stations (after mesh, with high zorder)
         for stn_id, stn_name, stn_lat, stn_lon in NY_ASOS_STATIONS:
             # Convert station lon to 0-360 for matching grid if needed
             stn_lon_grid = stn_lon if stn_lon >= 0 else stn_lon + 360
             # Find nearest grid point
             if lats.ndim == 2 and lons.ndim == 2:
                 dist = (lats - stn_lat)**2 + (lons - stn_lon_grid)**2
-                iy, ix = np.unravel_index(np.argmin(dist), dist.shape)
+                iy, ix = np.unravel_index(np.nanargmin(dist), dist.shape)
             else:
                 iy = np.abs(lats - stn_lat).argmin()
                 ix = np.abs(lons - stn_lon_grid).argmin()
-            cin_val = data.squeeze()[iy, ix]
-            # Plot the CIN value as white text with black outline
+            # Make sure indices are within bounds
+            if iy >= precip_in.shape[0]: iy = precip_in.shape[0] - 1
+            if ix >= precip_in.shape[1]: ix = precip_in.shape[1] - 1
+            precip_val = precip_in[iy, ix]
             txt = ax.text(
-                stn_lon, stn_lat, f"{cin_val:.0f}",
-                color='white', fontsize=5, fontweight='bold', fontname='DejaVu Sans',
+                stn_lon, stn_lat, f"{precip_val:.2f}",
+                color='white', fontsize=1, fontweight='bold', fontname='DejaVu Sans',
                 ha='center', va='center', transform=ccrs.PlateCarree(),
                 zorder=2
             )
@@ -230,33 +250,27 @@ def generate_png_xarray(file_path, step):
                 matplotlib.patheffects.Stroke(linewidth=0.5, foreground='black'),
                 matplotlib.patheffects.Normal()
             ])
-
-        # Remove axes, ticks, and spines for full transparency
-        ax.axis('off')
-        for spine in ax.spines.values():
-            spine.set_visible(False)
-        fig.patch.set_alpha(0.0)
-        ax.patch.set_alpha(0.0)
-
-        png_path = os.path.join(png_dir, f"cin_{step:02d}.png")
+        ax.set_axis_off()
         plt.subplots_adjust(left=0, right=1, top=1, bottom=0)
-        plt.savefig(png_path, dpi=150, bbox_inches='tight', pad_inches=0, transparent=True)
-        plt.close()
-        print(f"Generated PNG: {png_path}")
+        png_path = os.path.join(precip_dir, f"PRECIP_{step:02d}.png")
+        plt.savefig(png_path, bbox_inches='tight', pad_inches=0, transparent=True)
+        plt.close(fig)
+        print(f"Generated precipitation PNG: {png_path}")
         return png_path
-
     except Exception as e:
         print(f"Error generating PNG for step {step}: {e}")
         return None
 
-# Main
-grib_files = [download_file(hour_str, step) for step in range(0, 49)]
-grib_files = [f for f in grib_files if f]
-
-for i, grib_file in enumerate(grib_files):
+# Main process: Download and plot
+grib_files = []
+png_files = []
+for step in range(0, 49):  # Loop through forecast steps (00 to 48 hours)
+    grib_file = download_file(hour_str, step)
     if grib_file:
-        generate_png_xarray(grib_file, i)
-        gc.collect()         # Collect garbage after each PNG creation
-        time.sleep(3)        # Wait 3 seconds between each step
+        grib_files.append(grib_file)
+        png_file = generate_precip_png(grib_file, step)
+        png_files.append(png_file)
+        gc.collect()
+        time.sleep(3)
 
-print("CIN processing complete!")
+print("All GRIB file download and precipitation PNG creation tasks complete!")

@@ -9,6 +9,8 @@ import cartopy.crs as ccrs
 import numpy as np
 from matplotlib.colors import ListedColormap, BoundaryNorm
 import matplotlib.patheffects as patheffects
+import time  # Added for sleep
+import gc    # Added for garbage collection
 
 # --- Clean up old files in grib_files and pngs directories ---
 for folder in [
@@ -241,5 +243,7 @@ for step in range(0, 49):  # Loop through forecast steps (00 to 48 hours)
     if grib_file:
         png_file = os.path.join(rh_dir, f"RH_{step:02d}.png")
         plot_relative_humidity(grib_file, png_file)
+        gc.collect()         # Collect garbage after each PNG creation
+        time.sleep(3)        # Wait 3 seconds between each step
 
 print("All RH GRIB file download and PNG creation tasks complete!")

@@ -17,7 +17,13 @@ PNG_DIR_RH = os.path.join("Hrrr", "static", "RH")  # Added for RH
 PNG_DIR_HAIL = os.path.join("Hrrr", "static", "HAIL")  # Added for HAIL
 PNG_DIR_CAPE = os.path.join("Hrrr", "static", "cape")  # Add this line near other PNG_DIR_*
 PNG_DIR_CIN = os.path.join("Hrrr", "static", "cin")    # Add CIN directory
+PNG_DIR_LCDC = os.path.join("Hrrr", "static", "LCDC")
+PNG_DIR_MCDC = os.path.join("Hrrr", "static", "MCDC")
+PNG_DIR_HCDC = os.path.join("Hrrr", "static", "HCDC")
+PNG_DIR_PRECIP = os.path.join("Hrrr", "static", "PRECIP")
 COLORBAR_DIR = os.path.join(BASE_DIR, "colorbars")  # Serve from project root colorbars folder
+
+
 
 @app.route("/")
 def home():
@@ -25,7 +31,7 @@ def home():
 
 @app.route("/reflectivity_images")
 def get_pngs():
-    # Find all REFC, MSLP, 2mtemp, Lightning, RH, HAIL, CAPE, and CIN PNGs by hour
+    # Find all REFC, MSLP, 2mtemp, Lightning, RH, HAIL, CAPE, CIN, LCDC, MCDC, HCDC, and PRECIP PNGs by hour
     refc_files = [f for f in os.listdir(PNG_DIR_REFC) if re.match(r"REFC_(\d+)\.png$", f)]
     mslp_files = [f for f in os.listdir(PNG_DIR_MSLP) if re.match(r"MSLP_(\d+)\.png$", f)]
     temp2m_files = [f for f in os.listdir(PNG_DIR_TEMP2M) if re.match(r"2mtemp_(\d+)\.png$", f)]
@@ -34,6 +40,10 @@ def get_pngs():
     hail_files = [f for f in os.listdir(PNG_DIR_HAIL) if re.match(r"HAIL_(\d+)\.png$", f)]  # HAIL
     cape_files = [f for f in os.listdir(PNG_DIR_CAPE) if re.match(r"cape_(\d+)\.png$", f)]  # CAPE
     cin_files = [f for f in os.listdir(PNG_DIR_CIN) if re.match(r"cin_(\d+)\.png$", f)]    # CIN
+    lcdc_files = [f for f in os.listdir(PNG_DIR_LCDC) if re.match(r"LCDC_(\d+)\.png$", f)]
+    mcdc_files = [f for f in os.listdir(PNG_DIR_MCDC) if re.match(r"MCDC_(\d+)\.png$", f)]
+    hcdc_files = [f for f in os.listdir(PNG_DIR_HCDC) if re.match(r"HCDC_(\d+)\.png$", f)]
+    precip_files = [f for f in os.listdir(PNG_DIR_PRECIP) if re.match(r"PRECIP_(\d+)\.png$", f)]
 
     # Use regex to extract hour from each filename (more robust)
     def extract_hour(pattern, filename):
@@ -48,7 +58,11 @@ def get_pngs():
     hail_dict = {extract_hour(r"HAIL_(\d+)\.png$", f): f for f in hail_files}  # HAIL
     cape_dict = {extract_hour(r"cape_(\d+)\.png$", f): f for f in cape_files}  # CAPE
     cin_dict = {extract_hour(r"cin_(\d+)\.png$", f): f for f in cin_files}    # CIN
-
+    lcdc_dict = {extract_hour(r"LCDC_(\d+)\.png$", f): f for f in lcdc_files}
+    mcdc_dict = {extract_hour(r"MCDC_(\d+)\.png$", f): f for f in mcdc_files}
+    hcdc_dict = {extract_hour(r"HCDC_(\d+)\.png$", f): f for f in hcdc_files}
+    precip_dict = {extract_hour(r"PRECIP_(\d+)\.png$", f): f for f in precip_files}
+    
     # Remove None keys if any file didn't match pattern
     refc_dict = {k: v for k, v in refc_dict.items() if k is not None}
     mslp_dict = {k: v for k, v in mslp_dict.items() if k is not None}
@@ -58,9 +72,13 @@ def get_pngs():
     hail_dict = {k: v for k, v in hail_dict.items() if k is not None}  # HAIL
     cape_dict = {k: v for k, v in cape_dict.items() if k is not None}  # CAPE
     cin_dict = {k: v for k, v in cin_dict.items() if k is not None}    # CIN
+    lcdc_dict = {k: v for k, v in lcdc_dict.items() if k is not None}
+    mcdc_dict = {k: v for k, v in mcdc_dict.items() if k is not None}
+    hcdc_dict = {k: v for k, v in hcdc_dict.items() if k is not None}
+    precip_dict = {k: v for k, v in precip_dict.items() if k is not None}
 
     # Union of all available hours from all overlays
-    all_hours = set(refc_dict) | set(mslp_dict) | set(temp2m_dict) | set(lightning_dict) | set(rh_dict) | set(hail_dict) | set(cape_dict) | set(cin_dict)  # Add CIN
+    all_hours = set(refc_dict) | set(mslp_dict) | set(temp2m_dict) | set(lightning_dict) | set(rh_dict) | set(hail_dict) | set(cape_dict) | set(cin_dict) | set(lcdc_dict) | set(mcdc_dict) | set(hcdc_dict) | set(precip_dict)
     all_hours = sorted(all_hours)
 
     result = []
@@ -73,8 +91,12 @@ def get_pngs():
             "lightning": f"/lightning_pngs/{lightning_dict[hour]}" if hour in lightning_dict else None,
             "rh": f"/rh_pngs/{rh_dict[hour]}" if hour in rh_dict else None,
             "hail": f"/hail_pngs/{hail_dict[hour]}" if hour in hail_dict else None,
-            "cape": f"/cape_pngs/{cape_dict[hour]}" if hour in cape_dict else None,  # CAPE
-            "cin": f"/cin_pngs/{cin_dict[hour]}" if hour in cin_dict else None      # CIN
+            "cape": f"/cape_pngs/{cape_dict[hour]}" if hour in cape_dict else None,
+            "cin": f"/cin_pngs/{cin_dict[hour]}" if hour in cin_dict else None,
+            "lcdc": f"/lcdc_pngs/{lcdc_dict[hour]}" if hour in lcdc_dict else None,
+            "mcdc": f"/mcdc_pngs/{mcdc_dict[hour]}" if hour in mcdc_dict else None,
+            "hcdc": f"/hcdc_pngs/{hcdc_dict[hour]}" if hour in hcdc_dict else None,
+            "precip": f"/precip_pngs/{precip_dict[hour]}" if hour in precip_dict else None
         })
     response = make_response(jsonify(result))
     response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
@@ -113,6 +135,22 @@ def serve_cape_png(filename):
 @app.route("/cin_pngs/<path:filename>")  # CIN
 def serve_cin_png(filename):
     return send_from_directory(PNG_DIR_CIN, filename)
+
+@app.route("/lcdc_pngs/<path:filename>")
+def serve_lcdc_png(filename):
+    return send_from_directory(PNG_DIR_LCDC, filename)
+
+@app.route("/mcdc_pngs/<path:filename>")
+def serve_mcdc_png(filename):
+    return send_from_directory(PNG_DIR_MCDC, filename)
+
+@app.route("/hcdc_pngs/<path:filename>")
+def serve_hcdc_png(filename):
+    return send_from_directory(PNG_DIR_HCDC, filename)
+
+@app.route("/precip_pngs/<path:filename>")
+def serve_precip_png(filename):
+    return send_from_directory(PNG_DIR_PRECIP, filename)
 
 @app.route("/colorbar/<path:filename>")
 def serve_colorbar(filename):
@@ -173,6 +211,35 @@ def run_task():
         except subprocess.CalledProcessError:
             error_trace = traceback.format_exc()
             print(f"Error running LIGHTNING.py:\n{error_trace}")
+
+        try:
+            subprocess.run(["python", os.path.join(BASE_DIR, "LCDC.py")], check=True)
+            print("LCDC.py ran successfully!")
+        except subprocess.CalledProcessError:
+            error_trace = traceback.format_exc()
+            print(f"Error running LCDC.py:\n{error_trace}")
+
+        try:
+            subprocess.run(["python", os.path.join(BASE_DIR, "MCDC.py")], check=True)
+            print("MCDC.py ran successfully!")
+        except subprocess.CalledProcessError:
+            error_trace = traceback.format_exc()
+            print(f"Error running MCDC.py:\n{error_trace}")
+
+        try:
+            subprocess.run(["python", os.path.join(BASE_DIR, "HCDC.py")], check=True)
+            print("HCDC.py ran successfully!")
+        except subprocess.CalledProcessError:
+            error_trace = traceback.format_exc()
+            print(f"Error running HCDC.py:\n{error_trace}")
+
+        # Add call to total_precip.py
+        try:
+            subprocess.run(["python", os.path.join(BASE_DIR, "total_precip.py")], check=True)
+            print("total_precip.py ran successfully!")
+        except subprocess.CalledProcessError:
+            error_trace = traceback.format_exc()
+            print(f"Error running total_precip.py:\n{error_trace}")
 
     threading.Thread(target=run_all_scripts).start()
     return "All scripts started sequentially in background!", 200
@@ -269,8 +336,16 @@ def run_task3():
             error_trace = traceback.format_exc()
             print(f"Error running LIGHTNING.py:\n{error_trace}")
 
+        # Add call to total_precip.py
+        try:
+            subprocess.run(["python", os.path.join(BASE_DIR, "total_precip.py")], check=True)
+            print("total_precip.py ran successfully!")
+        except subprocess.CalledProcessError:
+            error_trace = traceback.format_exc()
+            print(f"Error running total_precip.py:\n{error_trace}")
+
     threading.Thread(target=run_scripts).start()
-    return "HAIL.py, cape.py, LCDC.py, MCDC.py, HCDC.py, and LIGHTNING.py started in background!", 200
+    return "HAIL.py, cape.py, LCDC.py, MCDC.py, HCDC.py, LIGHTNING.py, and total_precip.py started in background!", 200
 
 @app.route("/<path:filename>")
 def serve_static_file(filename):

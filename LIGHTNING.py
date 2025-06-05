@@ -118,7 +118,6 @@ def count_and_plot_flashes(file_path, step):
         plt.savefig(png_path, bbox_inches='tight', pad_inches=0, transparent=True)
         plt.close()
         ds.close()  # Explicitly close dataset to free memory
-        gc.collect()  # Force garbage collection to reduce memory
         return total_flashes
     except Exception as e:
         print(f"Error processing {file_path}: {e}")
@@ -130,8 +129,9 @@ total_flashes_all_steps = 0
 def process_step(step):
     grib_file = download_file(hour_str, step)
     if grib_file:
-        time.sleep(3)  # Wait 3 seconds between GRIB download and PNG creation
         flashes = count_and_plot_flashes(grib_file, step)
+        gc.collect()         # Collect garbage after each PNG creation
+        time.sleep(3)        # Wait 3 seconds between each step
         return flashes
     return 0
 

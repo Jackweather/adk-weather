@@ -11,6 +11,8 @@ import cartopy.crs as ccrs  # Added import
 import cartopy
 import pyproj
 import shapely
+import time  # Added
+import gc    # Added
 
 print("Cartopy version:", cartopy.__version__)
 print("PyProj version:", pyproj.__version__)
@@ -131,5 +133,7 @@ for step in range(0, 49):
         png_file = generate_png(grib_file, step)
         if png_file:  # Only append if PNG was generated
             png_files.append(png_file)
+        gc.collect()         # Collect garbage after each PNG creation
+        time.sleep(3)        # Wait 3 seconds between each step
 
 print("All download and PNG creation tasks complete!")

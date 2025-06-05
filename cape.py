@@ -9,6 +9,8 @@ from matplotlib.colors import LinearSegmentedColormap, Normalize
 import cartopy.crs as ccrs
 import cartopy.feature as cfeature
 import matplotlib.patheffects  # Needed for text outline
+import time  # Added
+import gc    # Added
 
 # NY_ASOS Network stations: (ID, Name, Latitude, Longitude)
 NY_ASOS_STATIONS = [
@@ -274,5 +276,7 @@ grib_files = [f for f in grib_files if f]
 for i, grib_file in enumerate(grib_files):
     if grib_file:
         generate_png_xarray(grib_file, i)
+        gc.collect()         # Collect garbage after each PNG creation
+        time.sleep(3)        # Wait 3 seconds between each step
 
 print("CAPE processing complete!")
