@@ -202,7 +202,7 @@ def generate_clean_png(file_path, step):
         raise ValueError("10m wind variable not found in GRIB file")
     lats = ds['latitude']
     lons = ds['longitude']
-    fig = plt.figure(figsize=(10, 7), dpi=850)
+    fig = plt.figure(figsize=(10, 7), dpi=600)  # Reduced DPI from 850 to 300
     ax = plt.axes(projection=ccrs.PlateCarree())
     ax.set_extent([-126, -69, 24, 50], crs=ccrs.PlateCarree())
     contour = ax.contourf(
@@ -258,18 +258,19 @@ def generate_clean_png(file_path, step):
     png_path = os.path.join(wind_dir, f"WIND10M_{step:02d}.png")
     plt.savefig(png_path, bbox_inches='tight', pad_inches=0, transparent=True)
     plt.close(fig)
+    ds.close()  # Explicitly close xarray dataset
+    del ds, wind, lats, lons, fig, ax, contour  # Free memory
+    gc.collect()
     print(f"Generated clean PNG: {png_path}")
     return png_path
 
 # Main process: Download and plot
-grib_files = []
-png_files = []
+# Remove grib_files and png_files lists to avoid holding references
 for step in range(0, 49):  # Loop through forecast steps (00 to 48 hours)
     grib_file = download_file(hour_str, step)
     if grib_file:
-        grib_files.append(grib_file)
-        png_file = generate_clean_png(grib_file, step)
-        png_files.append(png_file)
+        generate_clean_png(grib_file, step)
+        os.remove(grib_file)  # Delete GRIB file after processing to save disk/memory
         gc.collect()
         time.sleep(3)
 
