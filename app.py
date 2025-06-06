@@ -21,6 +21,7 @@ PNG_DIR_LCDC = os.path.join("Hrrr", "static", "LCDC")
 PNG_DIR_MCDC = os.path.join("Hrrr", "static", "MCDC")
 PNG_DIR_HCDC = os.path.join("Hrrr", "static", "HCDC")
 PNG_DIR_PRECIP = os.path.join("Hrrr", "static", "PRECIP")
+PNG_DIR_WIND10M = os.path.join("Hrrr", "static", "WIND10M")  # Add this line for WIND10M
 COLORBAR_DIR = os.path.join(BASE_DIR, "colorbars")  # Serve from project root colorbars folder
 
 
@@ -31,7 +32,7 @@ def home():
 
 @app.route("/reflectivity_images")
 def get_pngs():
-    # Find all REFC, MSLP, 2mtemp, Lightning, RH, HAIL, CAPE, CIN, LCDC, MCDC, HCDC, and PRECIP PNGs by hour
+    # Find all REFC, MSLP, 2mtemp, Lightning, RH, HAIL, CAPE, CIN, LCDC, MCDC, HCDC, PRECIP, and WIND10M PNGs by hour
     refc_files = [f for f in os.listdir(PNG_DIR_REFC) if re.match(r"REFC_(\d+)\.png$", f)]
     mslp_files = [f for f in os.listdir(PNG_DIR_MSLP) if re.match(r"MSLP_(\d+)\.png$", f)]
     temp2m_files = [f for f in os.listdir(PNG_DIR_TEMP2M) if re.match(r"2mtemp_(\d+)\.png$", f)]
@@ -44,6 +45,7 @@ def get_pngs():
     mcdc_files = [f for f in os.listdir(PNG_DIR_MCDC) if re.match(r"MCDC_(\d+)\.png$", f)]
     hcdc_files = [f for f in os.listdir(PNG_DIR_HCDC) if re.match(r"HCDC_(\d+)\.png$", f)]
     precip_files = [f for f in os.listdir(PNG_DIR_PRECIP) if re.match(r"PRECIP_(\d+)\.png$", f)]
+    wind10m_files = [f for f in os.listdir(PNG_DIR_WIND10M) if re.match(r"WIND10M_(\d+)\.png$", f)]  # WIND10M
 
     # Use regex to extract hour from each filename (more robust)
     def extract_hour(pattern, filename):
@@ -62,6 +64,7 @@ def get_pngs():
     mcdc_dict = {extract_hour(r"MCDC_(\d+)\.png$", f): f for f in mcdc_files}
     hcdc_dict = {extract_hour(r"HCDC_(\d+)\.png$", f): f for f in hcdc_files}
     precip_dict = {extract_hour(r"PRECIP_(\d+)\.png$", f): f for f in precip_files}
+    wind10m_dict = {extract_hour(r"WIND10M_(\d+)\.png$", f): f for f in wind10m_files}  # WIND10M
     
     # Remove None keys if any file didn't match pattern
     refc_dict = {k: v for k, v in refc_dict.items() if k is not None}
@@ -76,9 +79,10 @@ def get_pngs():
     mcdc_dict = {k: v for k, v in mcdc_dict.items() if k is not None}
     hcdc_dict = {k: v for k, v in hcdc_dict.items() if k is not None}
     precip_dict = {k: v for k, v in precip_dict.items() if k is not None}
+    wind10m_dict = {k: v for k, v in wind10m_dict.items() if k is not None}  # WIND10M
 
     # Union of all available hours from all overlays
-    all_hours = set(refc_dict) | set(mslp_dict) | set(temp2m_dict) | set(lightning_dict) | set(rh_dict) | set(hail_dict) | set(cape_dict) | set(cin_dict) | set(lcdc_dict) | set(mcdc_dict) | set(hcdc_dict) | set(precip_dict)
+    all_hours = set(refc_dict) | set(mslp_dict) | set(temp2m_dict) | set(lightning_dict) | set(rh_dict) | set(hail_dict) | set(cape_dict) | set(cin_dict) | set(lcdc_dict) | set(mcdc_dict) | set(hcdc_dict) | set(precip_dict) | set(wind10m_dict)
     all_hours = sorted(all_hours)
 
     result = []
@@ -96,7 +100,8 @@ def get_pngs():
             "lcdc": f"/lcdc_pngs/{lcdc_dict[hour]}" if hour in lcdc_dict else None,
             "mcdc": f"/mcdc_pngs/{mcdc_dict[hour]}" if hour in mcdc_dict else None,
             "hcdc": f"/hcdc_pngs/{hcdc_dict[hour]}" if hour in hcdc_dict else None,
-            "precip": f"/precip_pngs/{precip_dict[hour]}" if hour in precip_dict else None
+            "precip": f"/precip_pngs/{precip_dict[hour]}" if hour in precip_dict else None,
+            "wind10m": f"/wind10m_pngs/{wind10m_dict[hour]}" if hour in wind10m_dict else None  # WIND10M
         })
     response = make_response(jsonify(result))
     response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
@@ -151,6 +156,10 @@ def serve_hcdc_png(filename):
 @app.route("/precip_pngs/<path:filename>")
 def serve_precip_png(filename):
     return send_from_directory(PNG_DIR_PRECIP, filename)
+
+@app.route("/wind10m_pngs/<path:filename>")  # WIND10M
+def serve_wind10m_png(filename):
+    return send_from_directory(PNG_DIR_WIND10M, filename)
 
 @app.route("/colorbar/<path:filename>")
 def serve_colorbar(filename):
@@ -247,6 +256,12 @@ def run_task1():
             error_trace = traceback.format_exc()
             print(f"Error running total_precip.py:\n{error_trace}")
 
+        try:
+            subprocess.run(["python", os.path.join(BASE_DIR, "WIND10M.py")], check=True)
+            print("WIND10M.py ran successfully!")
+        except subprocess.CalledProcessError:
+            error_trace = traceback.format_exc()
+            print(f"Error running WIND10M.py:\n{error_trace}")
     threading.Thread(target=run_all_scripts).start()
     return "All scripts started sequentially in background!", 200
 
