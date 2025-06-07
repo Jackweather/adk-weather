@@ -173,91 +173,91 @@ def serve_cartopy_base():
 def run_task1():
     def run_all_scripts():
         try:
-            subprocess.run(["python", os.path.join(BASE_DIR, "REFC.py")], check=True)
+            subprocess.run(["python", "/opt/render/project/src/HRRRUN/REFC.py"], check=True)
             print("REFC.py ran successfully!")
         except subprocess.CalledProcessError:
             error_trace = traceback.format_exc()
             print(f"Error running REFC.py:\n{error_trace}")
 
         try:
-            subprocess.run(["python", os.path.join(BASE_DIR, "mslp_script.py")], check=True)
+            subprocess.run(["python", "/opt/render/project/src/HRRRUN/mslp_script.py"], check=True)
             print("mslp_script.py ran successfully!")
         except subprocess.CalledProcessError:
             error_trace = traceback.format_exc()
             print(f"Error running mslp_script.py:\n{error_trace}")
 
         try:
-            subprocess.run(["python", os.path.join(BASE_DIR, "CIN.py")], check=True)
+            subprocess.run(["python", "/opt/render/project/src/HRRRUN/CIN.py"], check=True)
             print("CIN.py ran successfully!")
         except subprocess.CalledProcessError:
             error_trace = traceback.format_exc()
             print(f"Error running CIN.py:\n{error_trace}")
 
         try:
-            subprocess.run(["python", os.path.join(BASE_DIR, "temp2m.py")], check=True)
+            subprocess.run(["python", "/opt/render/project/src/HRRRUN/temp2m.py"], check=True)
             print("temp2m.py ran successfully!")
         except subprocess.CalledProcessError:
             error_trace = traceback.format_exc()
             print(f"Error running temp2m.py:\n{error_trace}")
 
         try:
-            subprocess.run(["python", os.path.join(BASE_DIR, "RH.py")], check=True)
+            subprocess.run(["python", "/opt/render/project/src/HRRRUN/RH.py"], check=True)
             print("RH.py ran successfully!")
         except subprocess.CalledProcessError:
             error_trace = traceback.format_exc()
             print(f"Error running RH.py:\n{error_trace}")
 
         try:
-            subprocess.run(["python", os.path.join(BASE_DIR, "HAIL.py")], check=True)
+            subprocess.run(["python", "/opt/render/project/src/HRRRUN/HAIL.py"], check=True)
             print("HAIL.py ran successfully!")
         except subprocess.CalledProcessError:
             error_trace = traceback.format_exc()
             print(f"Error running HAIL.py:\n{error_trace}")
 
         try:
-            subprocess.run(["python", os.path.join(BASE_DIR, "cape.py")], check=True)
+            subprocess.run(["python", "/opt/render/project/src/HRRRUN/cape.py"], check=True)
             print("cape.py ran successfully!")
         except subprocess.CalledProcessError:
             error_trace = traceback.format_exc()
             print(f"Error running cape.py:\n{error_trace}")
 
         try:
-            subprocess.run(["python", os.path.join(BASE_DIR, "LCDC.py")], check=True)
+            subprocess.run(["python", "/opt/render/project/src/HRRRUN/LCDC.py"], check=True)
             print("LCDC.py ran successfully!")
         except subprocess.CalledProcessError:
             error_trace = traceback.format_exc()
             print(f"Error running LCDC.py:\n{error_trace}")
 
         try:
-            subprocess.run(["python", os.path.join(BASE_DIR, "MCDC.py")], check=True)
+            subprocess.run(["python", "/opt/render/project/src/HRRRUN/MCDC.py"], check=True)
             print("MCDC.py ran successfully!")
         except subprocess.CalledProcessError:
             error_trace = traceback.format_exc()
             print(f"Error running MCDC.py:\n{error_trace}")
 
         try:
-            subprocess.run(["python", os.path.join(BASE_DIR, "HCDC.py")], check=True)
+            subprocess.run(["python", "/opt/render/project/src/HRRRUN/HCDC.py"], check=True)
             print("HCDC.py ran successfully!")
         except subprocess.CalledProcessError:
             error_trace = traceback.format_exc()
             print(f"Error running HCDC.py:\n{error_trace}")
 
         try:
-            subprocess.run(["python", os.path.join(BASE_DIR, "LIGHTNING.py")], check=True)
+            subprocess.run(["python", "/opt/render/project/src/HRRRUN/LIGHTNING.py"], check=True)
             print("LIGHTNING.py ran successfully!")
         except subprocess.CalledProcessError:
             error_trace = traceback.format_exc()
             print(f"Error running LIGHTNING.py:\n{error_trace}")
 
         try:
-            subprocess.run(["python", os.path.join(BASE_DIR, "total_precip.py")], check=True)
+            subprocess.run(["python", "/opt/render/project/src/HRRRUN/total_precip.py"], check=True)
             print("total_precip.py ran successfully!")
         except subprocess.CalledProcessError:
             error_trace = traceback.format_exc()
             print(f"Error running total_precip.py:\n{error_trace}")
 
         try:
-            subprocess.run(["python", os.path.join(BASE_DIR, "WIND10M.py")], check=True)
+            subprocess.run(["python", "/opt/render/project/src/HRRRUN/WIND10M.py"], check=True)
             print("WIND10M.py ran successfully!")
         except subprocess.CalledProcessError:
             error_trace = traceback.format_exc()
