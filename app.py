@@ -1,4 +1,4 @@
-from flask import Flask, send_from_directory, jsonify, make_response
+from flask import Flask, send_from_directory, jsonify, make_response, send_file, abort
 import os
 import re
 import subprocess
@@ -9,20 +9,20 @@ import getpass  # Add this import
 app = Flask(__name__)
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-PNG_DIR = os.path.join(BASE_DIR, "Hrrr", "static", "pngs")
-PNG_DIR_REFC = os.path.join(BASE_DIR, "Hrrr", "static", "REFC")
-PNG_DIR_MSLP = os.path.join(BASE_DIR, "Hrrr", "static", "MSLP")
-PNG_DIR_TEMP2M = os.path.join(BASE_DIR, "Hrrr", "static", "2mtemp")
-PNG_DIR_LIGHTNING = os.path.join(BASE_DIR, "Hrrr", "static", "lighting")
-PNG_DIR_RH = os.path.join(BASE_DIR, "Hrrr", "static", "RH")  # Added for RH
-PNG_DIR_HAIL = os.path.join(BASE_DIR, "Hrrr", "static", "HAIL")  # Added for HAIL
-PNG_DIR_CAPE = os.path.join(BASE_DIR, "Hrrr", "static", "cape")  # Add this line near other PNG_DIR_*
-PNG_DIR_CIN = os.path.join(BASE_DIR, "Hrrr", "static", "cin")    # Add CIN directory
-PNG_DIR_LCDC = os.path.join(BASE_DIR, "Hrrr", "static", "LCDC")
-PNG_DIR_MCDC = os.path.join(BASE_DIR, "Hrrr", "static", "MCDC")
-PNG_DIR_HCDC = os.path.join(BASE_DIR, "Hrrr", "static", "HCDC")
-PNG_DIR_PRECIP = os.path.join(BASE_DIR, "Hrrr", "static", "PRECIP")
-PNG_DIR_WIND10M = os.path.join(BASE_DIR, "Hrrr", "static", "WIND10M")  # Add this line for WIND10M
+PNG_DIR = os.path.join(BASE_DIR, "HRRRUN", "Hrrr", "static", "pngs")
+PNG_DIR_REFC = os.path.join(BASE_DIR, "HRRRUN", "Hrrr", "static", "REFC")
+PNG_DIR_MSLP = os.path.join(BASE_DIR, "HRRRUN", "Hrrr", "static", "MSLP")
+PNG_DIR_TEMP2M = os.path.join(BASE_DIR, "HRRRUN", "Hrrr", "static", "2mtemp")
+PNG_DIR_LIGHTNING = os.path.join(BASE_DIR, "HRRRUN", "Hrrr", "static", "lighting")
+PNG_DIR_RH = os.path.join(BASE_DIR, "HRRRUN", "Hrrr", "static", "RH")  # Added for RH
+PNG_DIR_HAIL = os.path.join(BASE_DIR, "HRRRUN", "Hrrr", "static", "HAIL")  # Added for HAIL
+PNG_DIR_CAPE = os.path.join(BASE_DIR, "HRRRUN", "Hrrr", "static", "cape")  # Add this line near other PNG_DIR_*
+PNG_DIR_CIN = os.path.join(BASE_DIR, "HRRRUN", "Hrrr", "static", "cin")    # Add CIN directory
+PNG_DIR_LCDC = os.path.join(BASE_DIR, "HRRRUN", "Hrrr", "static", "LCDC")
+PNG_DIR_MCDC = os.path.join(BASE_DIR, "HRRRUN", "Hrrr", "static", "MCDC")
+PNG_DIR_HCDC = os.path.join(BASE_DIR, "HRRRUN", "Hrrr", "static", "HCDC")
+PNG_DIR_PRECIP = os.path.join(BASE_DIR, "HRRRUN", "Hrrr", "static", "PRECIP")
+PNG_DIR_WIND10M = os.path.join(BASE_DIR, "HRRRUN", "Hrrr", "static", "WIND10M")  # Add this line for WIND10M
 COLORBAR_DIR = os.path.join(BASE_DIR, "colorbars")  # Serve from project root colorbars folder
 
 
@@ -33,20 +33,31 @@ def home():
 
 @app.route("/reflectivity_images")
 def get_pngs():
+    # Helper to safely list files in a directory
+    def safe_listdir(path):
+        try:
+            return os.listdir(path)
+        except FileNotFoundError:
+            print(f"Directory not found: {path}")
+            return []
+        except Exception as e:
+            print(f"Error listing directory {path}: {e}")
+            return []
+
     # Find all REFC, MSLP, 2mtemp, Lightning, RH, HAIL, CAPE, CIN, LCDC, MCDC, HCDC, PRECIP, and WIND10M PNGs by hour
-    refc_files = [f for f in os.listdir(PNG_DIR_REFC) if re.match(r"REFC_(\d+)\.png$", f)]
-    mslp_files = [f for f in os.listdir(PNG_DIR_MSLP) if re.match(r"MSLP_(\d+)\.png$", f)]
-    temp2m_files = [f for f in os.listdir(PNG_DIR_TEMP2M) if re.match(r"2mtemp_(\d+)\.png$", f)]
-    lightning_files = [f for f in os.listdir(PNG_DIR_LIGHTNING) if re.match(r"lght_(\d+)\.png$", f)]
-    rh_files = [f for f in os.listdir(PNG_DIR_RH) if re.match(r"RH_(\d+)\.png$", f)]  # RH
-    hail_files = [f for f in os.listdir(PNG_DIR_HAIL) if re.match(r"HAIL_(\d+)\.png$", f)]  # HAIL
-    cape_files = [f for f in os.listdir(PNG_DIR_CAPE) if re.match(r"cape_(\d+)\.png$", f)]  # CAPE
-    cin_files = [f for f in os.listdir(PNG_DIR_CIN) if re.match(r"cin_(\d+)\.png$", f)]    # CIN
-    lcdc_files = [f for f in os.listdir(PNG_DIR_LCDC) if re.match(r"LCDC_(\d+)\.png$", f)]
-    mcdc_files = [f for f in os.listdir(PNG_DIR_MCDC) if re.match(r"MCDC_(\d+)\.png$", f)]
-    hcdc_files = [f for f in os.listdir(PNG_DIR_HCDC) if re.match(r"HCDC_(\d+)\.png$", f)]
-    precip_files = [f for f in os.listdir(PNG_DIR_PRECIP) if re.match(r"PRECIP_(\d+)\.png$", f)]
-    wind10m_files = [f for f in os.listdir(PNG_DIR_WIND10M) if re.match(r"WIND10M_(\d+)\.png$", f)]  # WIND10M
+    refc_files = [f for f in safe_listdir(PNG_DIR_REFC) if re.match(r"REFC_(\d+)\.png$", f)]
+    mslp_files = [f for f in safe_listdir(PNG_DIR_MSLP) if re.match(r"MSLP_(\d+)\.png$", f)]
+    temp2m_files = [f for f in safe_listdir(PNG_DIR_TEMP2M) if re.match(r"2mtemp_(\d+)\.png$", f)]
+    lightning_files = [f for f in safe_listdir(PNG_DIR_LIGHTNING) if re.match(r"lght_(\d+)\.png$", f)]
+    rh_files = [f for f in safe_listdir(PNG_DIR_RH) if re.match(r"RH_(\d+)\.png$", f)]  # RH
+    hail_files = [f for f in safe_listdir(PNG_DIR_HAIL) if re.match(r"HAIL_(\d+)\.png$", f)]  # HAIL
+    cape_files = [f for f in safe_listdir(PNG_DIR_CAPE) if re.match(r"cape_(\d+)\.png$", f)]  # CAPE
+    cin_files = [f for f in safe_listdir(PNG_DIR_CIN) if re.match(r"cin_(\d+)\.png$", f)]    # CIN
+    lcdc_files = [f for f in safe_listdir(PNG_DIR_LCDC) if re.match(r"LCDC_(\d+)\.png$", f)]
+    mcdc_files = [f for f in safe_listdir(PNG_DIR_MCDC) if re.match(r"MCDC_(\d+)\.png$", f)]
+    hcdc_files = [f for f in safe_listdir(PNG_DIR_HCDC) if re.match(r"HCDC_(\d+)\.png$", f)]
+    precip_files = [f for f in safe_listdir(PNG_DIR_PRECIP) if re.match(r"PRECIP_(\d+)\.png$", f)]
+    wind10m_files = [f for f in safe_listdir(PNG_DIR_WIND10M) if re.match(r"WIND10M_(\d+)\.png$", f)]  # WIND10M
 
     # Use regex to extract hour from each filename (more robust)
     def extract_hour(pattern, filename):
@@ -110,57 +121,76 @@ def get_pngs():
     response.headers["Expires"] = "0"
     return response
 
+def log_and_serve(directory, filename):
+    full_path = os.path.join(directory, filename)
+    print(f"Trying to serve: {full_path}")
+    if not os.path.isfile(full_path):
+        print(f"File NOT FOUND: {full_path}")
+    else:
+        print(f"File FOUND: {full_path}")
+    return send_from_directory(directory, filename)
+
+def api_serve_image(directory, filename):
+    import mimetypes
+    full_path = os.path.join(directory, filename)
+    print(f"API serving: {full_path}")
+    if not os.path.isfile(full_path):
+        print(f"File NOT FOUND: {full_path}")
+        abort(404)
+    mime = mimetypes.guess_type(full_path)[0] or "image/png"
+    return send_file(full_path, mimetype=mime)
+
 @app.route("/refc_pngs/<path:filename>")
 def serve_refc_png(filename):
-    return send_from_directory(PNG_DIR_REFC, filename)
+    return api_serve_image(PNG_DIR_REFC, filename)
 
 @app.route("/mslp_pngs/<path:filename>")
 def serve_mslp_png(filename):
-    return send_from_directory(PNG_DIR_MSLP, filename)
+    return api_serve_image(PNG_DIR_MSLP, filename)
 
 @app.route("/temp2m_pngs/<path:filename>")
 def serve_temp2m_png(filename):
-    return send_from_directory(PNG_DIR_TEMP2M, filename)
+    return api_serve_image(PNG_DIR_TEMP2M, filename)
 
 @app.route("/lightning_pngs/<path:filename>")
 def serve_lightning_png(filename):
-    return send_from_directory(PNG_DIR_LIGHTNING, filename)
+    return api_serve_image(PNG_DIR_LIGHTNING, filename)
 
 @app.route("/rh_pngs/<path:filename>")  # RH
 def serve_rh_png(filename):
-    return send_from_directory(PNG_DIR_RH, filename)
+    return api_serve_image(PNG_DIR_RH, filename)
 
 @app.route("/hail_pngs/<path:filename>")  # HAIL
 def serve_hail_png(filename):
-    return send_from_directory(PNG_DIR_HAIL, filename)
+    return api_serve_image(PNG_DIR_HAIL, filename)
 
 @app.route("/cape_pngs/<path:filename>")  # CAPE
 def serve_cape_png(filename):
-    return send_from_directory(PNG_DIR_CAPE, filename)
+    return api_serve_image(PNG_DIR_CAPE, filename)
 
 @app.route("/cin_pngs/<path:filename>")  # CIN
 def serve_cin_png(filename):
-    return send_from_directory(PNG_DIR_CIN, filename)
+    return api_serve_image(PNG_DIR_CIN, filename)
 
 @app.route("/lcdc_pngs/<path:filename>")
 def serve_lcdc_png(filename):
-    return send_from_directory(PNG_DIR_LCDC, filename)
+    return api_serve_image(PNG_DIR_LCDC, filename)
 
 @app.route("/mcdc_pngs/<path:filename>")
 def serve_mcdc_png(filename):
-    return send_from_directory(PNG_DIR_MCDC, filename)
+    return api_serve_image(PNG_DIR_MCDC, filename)
 
 @app.route("/hcdc_pngs/<path:filename>")
 def serve_hcdc_png(filename):
-    return send_from_directory(PNG_DIR_HCDC, filename)
+    return api_serve_image(PNG_DIR_HCDC, filename)
 
 @app.route("/precip_pngs/<path:filename>")
 def serve_precip_png(filename):
-    return send_from_directory(PNG_DIR_PRECIP, filename)
+    return api_serve_image(PNG_DIR_PRECIP, filename)
 
 @app.route("/wind10m_pngs/<path:filename>")  # WIND10M
 def serve_wind10m_png(filename):
-    return send_from_directory(PNG_DIR_WIND10M, filename)
+    return api_serve_image(PNG_DIR_WIND10M, filename)
 
 @app.route("/colorbar/<path:filename>")
 def serve_colorbar(filename):
