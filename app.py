@@ -8,20 +8,20 @@ import traceback
 app = Flask(__name__)
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-PNG_DIR = os.path.join("Hrrr", "static", "pngs")
-PNG_DIR_REFC = os.path.join("Hrrr", "static", "REFC")
-PNG_DIR_MSLP = os.path.join("Hrrr", "static", "MSLP")
-PNG_DIR_TEMP2M = os.path.join("Hrrr", "static", "2mtemp")
-PNG_DIR_LIGHTNING = os.path.join("Hrrr", "static", "lighting")
-PNG_DIR_RH = os.path.join("Hrrr", "static", "RH")  # Added for RH
-PNG_DIR_HAIL = os.path.join("Hrrr", "static", "HAIL")  # Added for HAIL
-PNG_DIR_CAPE = os.path.join("Hrrr", "static", "cape")  # Add this line near other PNG_DIR_*
-PNG_DIR_CIN = os.path.join("Hrrr", "static", "cin")    # Add CIN directory
-PNG_DIR_LCDC = os.path.join("Hrrr", "static", "LCDC")
-PNG_DIR_MCDC = os.path.join("Hrrr", "static", "MCDC")
-PNG_DIR_HCDC = os.path.join("Hrrr", "static", "HCDC")
-PNG_DIR_PRECIP = os.path.join("Hrrr", "static", "PRECIP")
-PNG_DIR_WIND10M = os.path.join("Hrrr", "static", "WIND10M")  # Add this line for WIND10M
+PNG_DIR = os.path.join(BASE_DIR, "Hrrr", "static", "pngs")
+PNG_DIR_REFC = os.path.join(BASE_DIR, "Hrrr", "static", "REFC")
+PNG_DIR_MSLP = os.path.join(BASE_DIR, "Hrrr", "static", "MSLP")
+PNG_DIR_TEMP2M = os.path.join(BASE_DIR, "Hrrr", "static", "2mtemp")
+PNG_DIR_LIGHTNING = os.path.join(BASE_DIR, "Hrrr", "static", "lighting")
+PNG_DIR_RH = os.path.join(BASE_DIR, "Hrrr", "static", "RH")  # Added for RH
+PNG_DIR_HAIL = os.path.join(BASE_DIR, "Hrrr", "static", "HAIL")  # Added for HAIL
+PNG_DIR_CAPE = os.path.join(BASE_DIR, "Hrrr", "static", "cape")  # Add this line near other PNG_DIR_*
+PNG_DIR_CIN = os.path.join(BASE_DIR, "Hrrr", "static", "cin")    # Add CIN directory
+PNG_DIR_LCDC = os.path.join(BASE_DIR, "Hrrr", "static", "LCDC")
+PNG_DIR_MCDC = os.path.join(BASE_DIR, "Hrrr", "static", "MCDC")
+PNG_DIR_HCDC = os.path.join(BASE_DIR, "Hrrr", "static", "HCDC")
+PNG_DIR_PRECIP = os.path.join(BASE_DIR, "Hrrr", "static", "PRECIP")
+PNG_DIR_WIND10M = os.path.join(BASE_DIR, "Hrrr", "static", "WIND10M")  # Add this line for WIND10M
 COLORBAR_DIR = os.path.join(BASE_DIR, "colorbars")  # Serve from project root colorbars folder
 
 
