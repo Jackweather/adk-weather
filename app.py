@@ -4,6 +4,7 @@ import re
 import subprocess
 import threading
 import traceback
+import getpass  # Add this import
 
 app = Flask(__name__)
 
@@ -172,97 +173,206 @@ def serve_cartopy_base():
 @app.route("/run-task1")
 def run_task1():
     def run_all_scripts():
+        print("Flask is running as user:", getpass.getuser())  # Print user for debugging
         try:
-            subprocess.run(["python", "/opt/render/project/src/HRRRUN/REFC.py"], check=True)
+            result = subprocess.run(
+                ["python", "/opt/render/project/src/HRRRUN/REFC.py"],
+                check=True, cwd="/opt/render/project/src/HRRRUN",
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
+            )
             print("REFC.py ran successfully!")
-        except subprocess.CalledProcessError:
+            print("STDOUT:", result.stdout)
+            print("STDERR:", result.stderr)
+        except subprocess.CalledProcessError as e:
             error_trace = traceback.format_exc()
             print(f"Error running REFC.py:\n{error_trace}")
+            print("STDOUT:", e.stdout)
+            print("STDERR:", e.stderr)
 
         try:
-            subprocess.run(["python", "/opt/render/project/src/HRRRUN/mslp_script.py"], check=True)
+            result = subprocess.run(
+                ["python", "/opt/render/project/src/HRRRUN/mslp_script.py"],
+                check=True, cwd="/opt/render/project/src/HRRRUN",
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
+            )
             print("mslp_script.py ran successfully!")
-        except subprocess.CalledProcessError:
+            print("STDOUT:", result.stdout)
+            print("STDERR:", result.stderr)
+        except subprocess.CalledProcessError as e:
             error_trace = traceback.format_exc()
             print(f"Error running mslp_script.py:\n{error_trace}")
+            print("STDOUT:", e.stdout)
+            print("STDERR:", e.stderr)
 
         try:
-            subprocess.run(["python", "/opt/render/project/src/HRRRUN/CIN.py"], check=True)
+            result = subprocess.run(
+                ["python", "/opt/render/project/src/HRRRUN/CIN.py"],
+                check=True, cwd="/opt/render/project/src/HRRRUN",
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
+            )
             print("CIN.py ran successfully!")
-        except subprocess.CalledProcessError:
+            print("STDOUT:", result.stdout)
+            print("STDERR:", result.stderr)
+        except subprocess.CalledProcessError as e:
             error_trace = traceback.format_exc()
             print(f"Error running CIN.py:\n{error_trace}")
+            print("STDOUT:", e.stdout)
+            print("STDERR:", e.stderr)
 
         try:
-            subprocess.run(["python", "/opt/render/project/src/HRRRUN/temp2m.py"], check=True)
+            result = subprocess.run(
+                ["python", "/opt/render/project/src/HRRRUN/temp2m.py"],
+                check=True, cwd="/opt/render/project/src/HRRRUN",
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
+            )
             print("temp2m.py ran successfully!")
-        except subprocess.CalledProcessError:
+            print("STDOUT:", result.stdout)
+            print("STDERR:", result.stderr)
+        except subprocess.CalledProcessError as e:
             error_trace = traceback.format_exc()
             print(f"Error running temp2m.py:\n{error_trace}")
+            print("STDOUT:", e.stdout)
+            print("STDERR:", e.stderr)
 
         try:
-            subprocess.run(["python", "/opt/render/project/src/HRRRUN/RH.py"], check=True)
+            result = subprocess.run(
+                ["python", "/opt/render/project/src/HRRRUN/RH.py"],
+                check=True, cwd="/opt/render/project/src/HRRRUN",
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
+            )
             print("RH.py ran successfully!")
-        except subprocess.CalledProcessError:
+            print("STDOUT:", result.stdout)
+            print("STDERR:", result.stderr)
+        except subprocess.CalledProcessError as e:
             error_trace = traceback.format_exc()
             print(f"Error running RH.py:\n{error_trace}")
+            print("STDOUT:", e.stdout)
+            print("STDERR:", e.stderr)
 
         try:
-            subprocess.run(["python", "/opt/render/project/src/HRRRUN/HAIL.py"], check=True)
+            result = subprocess.run(
+                ["python", "/opt/render/project/src/HRRRUN/HAIL.py"],
+                check=True, cwd="/opt/render/project/src/HRRRUN",
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
+            )
             print("HAIL.py ran successfully!")
-        except subprocess.CalledProcessError:
+            print("STDOUT:", result.stdout)
+            print("STDERR:", result.stderr)
+        except subprocess.CalledProcessError as e:
             error_trace = traceback.format_exc()
             print(f"Error running HAIL.py:\n{error_trace}")
+            print("STDOUT:", e.stdout)
+            print("STDERR:", e.stderr)
 
         try:
-            subprocess.run(["python", "/opt/render/project/src/HRRRUN/cape.py"], check=True)
+            result = subprocess.run(
+                ["python", "/opt/render/project/src/HRRRUN/cape.py"],
+                check=True, cwd="/opt/render/project/src/HRRRUN",
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
+            )
             print("cape.py ran successfully!")
-        except subprocess.CalledProcessError:
+            print("STDOUT:", result.stdout)
+            print("STDERR:", result.stderr)
+        except subprocess.CalledProcessError as e:
             error_trace = traceback.format_exc()
             print(f"Error running cape.py:\n{error_trace}")
+            print("STDOUT:", e.stdout)
+            print("STDERR:", e.stderr)
 
         try:
-            subprocess.run(["python", "/opt/render/project/src/HRRRUN/LCDC.py"], check=True)
+            result = subprocess.run(
+                ["python", "/opt/render/project/src/HRRRUN/LCDC.py"],
+                check=True, cwd="/opt/render/project/src/HRRRUN",
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
+            )
             print("LCDC.py ran successfully!")
-        except subprocess.CalledProcessError:
+            print("STDOUT:", result.stdout)
+            print("STDERR:", result.stderr)
+        except subprocess.CalledProcessError as e:
             error_trace = traceback.format_exc()
             print(f"Error running LCDC.py:\n{error_trace}")
+            print("STDOUT:", e.stdout)
+            print("STDERR:", e.stderr)
 
         try:
-            subprocess.run(["python", "/opt/render/project/src/HRRRUN/MCDC.py"], check=True)
+            result = subprocess.run(
+                ["python", "/opt/render/project/src/HRRRUN/MCDC.py"],
+                check=True, cwd="/opt/render/project/src/HRRRUN",
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
+            )
             print("MCDC.py ran successfully!")
-        except subprocess.CalledProcessError:
+            print("STDOUT:", result.stdout)
+            print("STDERR:", result.stderr)
+        except subprocess.CalledProcessError as e:
             error_trace = traceback.format_exc()
             print(f"Error running MCDC.py:\n{error_trace}")
+            print("STDOUT:", e.stdout)
+            print("STDERR:", e.stderr)
 
         try:
-            subprocess.run(["python", "/opt/render/project/src/HRRRUN/HCDC.py"], check=True)
+            result = subprocess.run(
+                ["python", "/opt/render/project/src/HRRRUN/HCDC.py"],
+                check=True, cwd="/opt/render/project/src/HRRRUN",
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
+            )
             print("HCDC.py ran successfully!")
-        except subprocess.CalledProcessError:
+            print("STDOUT:", result.stdout)
+            print("STDERR:", result.stderr)
+        except subprocess.CalledProcessError as e:
             error_trace = traceback.format_exc()
             print(f"Error running HCDC.py:\n{error_trace}")
+            print("STDOUT:", e.stdout)
+            print("STDERR:", e.stderr)
 
         try:
-            subprocess.run(["python", "/opt/render/project/src/HRRRUN/LIGHTNING.py"], check=True)
+            result = subprocess.run(
+                ["python", "/opt/render/project/src/HRRRUN/LIGHTNING.py"],
+                check=True, cwd="/opt/render/project/src/HRRRUN",
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
+            )
             print("LIGHTNING.py ran successfully!")
-        except subprocess.CalledProcessError:
+            print("STDOUT:", result.stdout)
+            print("STDERR:", result.stderr)
+        except subprocess.CalledProcessError as e:
             error_trace = traceback.format_exc()
             print(f"Error running LIGHTNING.py:\n{error_trace}")
+            print("STDOUT:", e.stdout)
+            print("STDERR:", e.stderr)
 
         try:
-            subprocess.run(["python", "/opt/render/project/src/HRRRUN/total_precip.py"], check=True)
+            result = subprocess.run(
+                ["python", "/opt/render/project/src/HRRRUN/total_precip.py"],
+                check=True, cwd="/opt/render/project/src/HRRRUN",
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
+            )
             print("total_precip.py ran successfully!")
-        except subprocess.CalledProcessError:
+            print("STDOUT:", result.stdout)
+            print("STDERR:", result.stderr)
+        except subprocess.CalledProcessError as e:
             error_trace = traceback.format_exc()
             print(f"Error running total_precip.py:\n{error_trace}")
+            print("STDOUT:", e.stdout)
+            print("STDERR:", e.stderr)
 
         try:
-            subprocess.run(["python", "/opt/render/project/src/HRRRUN/WIND10M.py"], check=True)
+            result = subprocess.run(
+                ["python", "/opt/render/project/src/HRRRUN/WIND10M.py"],
+                check=True, cwd="/opt/render/project/src/HRRRUN",
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
+            )
             print("WIND10M.py ran successfully!")
-        except subprocess.CalledProcessError:
+            print("STDOUT:", result.stdout)
+            print("STDERR:", result.stderr)
+        except subprocess.CalledProcessError as e:
             error_trace = traceback.format_exc()
             print(f"Error running WIND10M.py:\n{error_trace}")
+            print("STDOUT:", e.stdout)
+            print("STDERR:", e.stderr)
+
     threading.Thread(target=run_all_scripts).start()
+    # For synchronous debug, comment above and uncomment below:
+    # run_all_scripts()
+    # return "Ran scripts synchronously for testing"
     return "All scripts started sequentially in background!", 200
 
 @app.route("/<path:filename>")
