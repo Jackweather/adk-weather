@@ -246,13 +246,14 @@ def saturation_mixing_ratio(pres_hpa, temp_c):
 def main():
     from datetime import datetime, timedelta
 
-    # --- Use current UTC date/time and select most recent HRRR run (0z, 6z, 12z, 18z) ---
+    # Get the current UTC date and time and select the most recent HRRR run (0z, 6z, 12z, 18z)
     current_utc_time = datetime.utcnow()
     run_hour = (current_utc_time.hour // 6) * 6
     if run_hour == 24:
         run_hour = 18
     date_for_run = current_utc_time
     if current_utc_time.hour < run_hour:
+        # If current hour is less than run_hour (shouldn't happen with integer division, but safe)
         date_for_run = current_utc_time - timedelta(hours=6)
         run_hour = (date_for_run.hour // 6) * 6
     date_str = date_for_run.strftime("%Y%m%d")
@@ -620,6 +621,9 @@ def plot_skewt_from_bufkit(bufkit_path, time_idx=0):
     from metpy.plots import SkewT
     import metpy.calc as mpcalc
     from metpy.units import units
+    from mpl_toolkits.axes_grid1.inset_locator import inset_axes
+    from metpy.plots import Hodograph
+    import matplotlib.colors as mcolors
 
     df = pd.DataFrame({
         'pres': buf['pres'],
@@ -641,6 +645,7 @@ def plot_skewt_from_bufkit(bufkit_path, time_idx=0):
     lclp, lclt = mpcalc.lcl(P[0], T[0], Td[0])
     parcel_prof = mpcalc.parcel_profile(P, T[0], Td[0]).to('degC')
 
+    # --- Skew-T style matching your interactive plot ---
     fig = plt.figure(figsize=(9, 9))
     skew = SkewT(fig, rotation=45)
     skew.plot(P, T, 'r', linewidth=4)
@@ -654,7 +659,48 @@ def plot_skewt_from_bufkit(bufkit_path, time_idx=0):
     skew.plot_dry_adiabats()
     skew.plot_moist_adiabats(colors='#58a358', linestyle='-')
     skew.plot_mixing_lines()
-    plt.title(f"HRRR Sounding {buf.get('lat','')},{buf.get('lon','')} Init: {buf.get('time','')}", fontsize=15, pad=15, color="#22223b")
+
+    # Title with lat/lon if available
+    lat = buf.get('lat', None)
+    lon = buf.get('lon', None)
+    latlon_str = f"{lat:.2f}°N, {lon:.2f}°W" if lat is not None and lon is not None else "Lat/Lon: N/A"
+    plt.title(f"HRRR Sounding {latlon_str} Init: {buf.get('time','')} | Model: HRRR", fontsize=15, pad=15, color="#22223b")
+
+    # Hodograph inset (optional, but matches your style)
+    ax_hod = inset_axes(skew.ax, '28%', '28%', loc=1, borderpad=2)
+    h = Hodograph(ax_hod, component_range=100.)
+    ax_hod.set_facecolor('white')
+    # Draw faint circles every 20 knots
+    for r in range(20, 101, 20):
+        circ = plt.Circle((0, 0), r, color="#adb5bd", fill=False, linewidth=0.7, alpha=0.4, zorder=0)
+        ax_hod.add_patch(circ)
+    # Draw grid lines and set ticks/labels for -15 to 50
+    ax_hod.set_xticks(np.arange(-15, 51, 5))
+    ax_hod.set_yticks(np.arange(-15, 51, 5))
+    ax_hod.set_xlim(-15, 50)
+    ax_hod.set_ylim(-15, 50)
+    ax_hod.grid(True, color="#dee2e6", linestyle="--", linewidth=0.7, alpha=0.7, zorder=0)
+    # Axis labels
+    ax_hod.set_xlabel("U (kt)", fontsize=9)
+    ax_hod.set_ylabel("V (kt)", fontsize=9)
+    ax_hod.tick_params(axis='both', which='major', labelsize=8, colors="#495057")
+    # Draw crosshairs
+    ax_hod.axhline(0, color="#adb5bd", lw=0.8, alpha=0.8, zorder=0)
+    ax_hod.axvline(0, color="#adb5bd", lw=0.8, alpha=0.8, zorder=0)
+    # Custom colormap: low=red→green, mid=purple, high=blue
+    hght = df['hght'].values
+    hmin, hmax = np.nanmin(hght), np.nanmax(hght)
+    norm = mcolors.Normalize(vmin=hmin, vmax=hmax)
+    custom_cmap = mcolors.LinearSegmentedColormap.from_list(
+        "custom_hodo", [
+            (0.0, "#ff2d00"),
+            (0.3, "#00ff00"),
+            (0.6, "#a259e6"),
+            (1.0, "#0096ff"),
+        ]
+    )
+    lc = h.plot_colormapped(u, v, hght, cmap=custom_cmap, norm=norm, linewidth=2.5)
+
     plt.tight_layout(rect=[0.07, 0.04, 0.98, 0.97])
 
     buf_io = io.BytesIO()
