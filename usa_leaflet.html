@@ -316,6 +316,15 @@
     <!-- Left panel with UTC/time and slider -->
     <div id="left-panel">
       <div class="utc-box" id="left-current-time-box"></div>
+      <div style="padding: 0 18px 10px 18px;">
+        <label style="font-size:1.08em;">
+          <input type="checkbox" id="toggle-soundings" style="vertical-align:middle;margin-right:6px;">
+          Show Sounding Stations
+        </label>
+        <span id="soundings-wait-note" style="display:block;font-size:0.97em;color:#b36b00;margin-top:4px;">
+          <b>Note:</b> It takes about 1 minute to load soundings after turning on.
+        </span>
+      </div>
       <div class="slider-box" id="left-slider-box" style="display:none;">
         <input type="range" id="hour-slider" min="0" max="0" value="0" step="1">
         <span id="hour-label"></span>
@@ -327,6 +336,13 @@
     </div>
     <div id="map-container">
       <div id="map"></div>
+      <!-- Modal for Skew-T -->
+      <div id="skewt-modal" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.5);z-index:5000;align-items:center;justify-content:center;">
+        <div style="background:#fff;padding:16px;border-radius:10px;box-shadow:0 4px 24px rgba(0,0,0,0.18);max-width:95vw;max-height:95vh;overflow:auto;position:relative;">
+          <span id="skewt-close" style="position:absolute;top:8px;right:16px;font-size:2em;cursor:pointer;">&times;</span>
+          <img id="skewt-img" src="" alt="Skew-T" style="max-width:90vw;max-height:80vh;display:block;margin:auto;">
+        </div>
+      </div>
     </div>
     <!-- Right panel with dropdowns -->
     <div id="right-panel">
@@ -952,6 +968,153 @@
       }
       updateColorbars(getVisibleLayers());
   };
+
+    // --- Soundings overlay logic ---
+    var soundingMarkers = [];
+    var soundingsDelayTimer = null;
+    var soundingsDelayActive = false;
+    var soundingAutoOffTimer = null;
+
+    function addSoundingMarkers(stations) {
+      removeSoundingMarkers(); // Always clear before adding
+      if (stations && stations.length > 0 && document.getElementById("toggle-soundings").checked) {
+        stations.forEach(function(stn) {
+          var marker = L.circleMarker([stn.lat, stn.lon], {
+            radius: 7,
+            color: "#1e90ff",
+            fillColor: "#1e90ff",
+            fillOpacity: 0.85,
+            weight: 1,
+            pane: "markerPane"
+          }).addTo(map);
+          marker.bindTooltip(stn.name, {permanent: false, direction: "top"});
+          marker.on('click', function() {
+            showSkewtModal(stn.name);
+          });
+          soundingMarkers.push(marker);
+        });
+      }
+      map.invalidateSize();
+    }
+    function removeSoundingMarkers() {
+      soundingMarkers.forEach(function(m) { map.removeLayer(m); });
+      soundingMarkers = [];
+      document.getElementById("skewt-modal").style.display = "none";
+      document.getElementById("skewt-img").src = "";
+      map.invalidateSize();
+    }
+    // Remove any dots on initial page load
+    removeSoundingMarkers();
+
+    function startSoundingsDelay(callback) {
+      soundingsDelayActive = true;
+      removeSoundingMarkers();
+      if (soundingsDelayTimer) clearTimeout(soundingsDelayTimer);
+      soundingsDelayTimer = setTimeout(function() {
+        soundingsDelayActive = false;
+        if (typeof callback === "function") callback();
+      }, 5000);
+    }
+
+    document.getElementById("toggle-soundings").addEventListener("change", function() {
+      document.getElementById("toggle-soundings").disabled = true;
+      // Clear any previous auto-off timer
+      if (soundingAutoOffTimer) {
+        clearTimeout(soundingAutoOffTimer);
+        soundingAutoOffTimer = null;
+      }
+      // Set a new 5-minute auto-off timer
+      if (this.checked) {
+        soundingAutoOffTimer = setTimeout(function() {
+          document.getElementById("toggle-soundings").checked = false;
+          removeSoundingMarkers();
+          document.getElementById("toggle-soundings").disabled = false;
+        }, 5 * 60 * 1000); // 5 minutes
+      }
+      startSoundingsDelay(() => {
+        if (document.getElementById("toggle-soundings").checked) {
+          fetch("/run_mainsounding", {method: "POST"})
+            .then(() => {
+              setTimeout(function() {
+                function pollReady(attempts) {
+                  fetch("/soundings_ready")
+                    .then(r => r.json())
+                    .then(function(resp) {
+                      if (resp && resp.ready) {
+                        fetch("/soundings_stations")
+                          .then(r => r.json())
+                          .then(addSoundingMarkers)
+                          .finally(() => { document.getElementById("toggle-soundings").disabled = false; });
+                      } else if (attempts < 60) {
+                        setTimeout(function() { pollReady(attempts + 1); }, 1000);
+                      } else {
+                        document.getElementById("toggle-soundings").disabled = false;
+                      }
+                    })
+                    .catch(function() {
+                      if (attempts < 60) setTimeout(function() { pollReady(attempts + 1); }, 1000);
+                      else document.getElementById("toggle-soundings").disabled = false;
+                    });
+                }
+                pollReady(0);
+              }, 60000); // 60 seconds delay
+            });
+        } else {
+          removeSoundingMarkers();
+          document.getElementById("toggle-soundings").disabled = false;
+        }
+      });
+    });
+    // Modal close logic
+    document.getElementById("skewt-close").onclick = function() {
+      document.getElementById("skewt-modal").style.display = "none";
+      document.getElementById("skewt-img").src = "";
+    };
+    document.getElementById("skewt-modal").onclick = function(e) {
+      if (e.target === this) {
+        this.style.display = "none";
+        document.getElementById("skewt-img").src = "";
+      }
+    };
+
+    // Add these variables to track current station and time index
+    var currentSkewtStation = null;
+    var currentSkewtTimes = [];
+    var currentSkewtIdx = 0;
+
+    function fetchSoundingTimes(station, callback) {
+      fetch("/soundings_times?station=" + encodeURIComponent(station))
+        .then(r => r.json())
+        .then(callback);
+    }
+
+    function showSkewtModal(station) {
+      currentSkewtStation = station;
+      fetchSoundingTimes(station, function(times) {
+        currentSkewtTimes = times;
+        currentSkewtIdx = 0;
+        updateSkewtImg();
+        document.getElementById("skewt-modal").style.display = "flex";
+      });
+    }
+
+    function updateSkewtImg() {
+      document.getElementById("skewt-img").src =
+        "/skewt_image?station=" + encodeURIComponent(currentSkewtStation) +
+        "&time=" + currentSkewtIdx;
+    }
+
+    document.addEventListener('keydown', function(e) {
+      if (document.getElementById("skewt-modal").style.display === "flex") {
+        if (e.key === "ArrowRight" && currentSkewtIdx < currentSkewtTimes.length - 1) {
+          currentSkewtIdx++;
+          updateSkewtImg();
+        } else if (e.key === "ArrowLeft" && currentSkewtIdx > 0) {
+          currentSkewtIdx--;
+          updateSkewtImg();
+        }
+      }
+    });
   </script>
 </body>
 </html>
