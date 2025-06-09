@@ -1,10 +1,11 @@
-from flask import Flask, send_from_directory, jsonify, make_response, send_file, abort
+from flask import Flask, send_from_directory, jsonify, make_response, send_file, abort, request
 import os
 import re
 import subprocess
 import threading
 import traceback
-import getpass  # Add this import
+import getpass
+import io
 
 app = Flask(__name__)
 
@@ -14,18 +15,16 @@ PNG_DIR_REFC = os.path.join(BASE_DIR, "HRRRUN", "Hrrr", "static", "REFC")
 PNG_DIR_MSLP = os.path.join(BASE_DIR, "HRRRUN", "Hrrr", "static", "MSLP")
 PNG_DIR_TEMP2M = os.path.join(BASE_DIR, "HRRRUN", "Hrrr", "static", "2mtemp")
 PNG_DIR_LIGHTNING = os.path.join(BASE_DIR, "HRRRUN", "Hrrr", "static", "lighting")
-PNG_DIR_RH = os.path.join(BASE_DIR, "HRRRUN", "Hrrr", "static", "RH")  # Added for RH
-PNG_DIR_HAIL = os.path.join(BASE_DIR, "HRRRUN", "Hrrr", "static", "HAIL")  # Added for HAIL
-PNG_DIR_CAPE = os.path.join(BASE_DIR, "HRRRUN", "Hrrr", "static", "cape")  # Add this line near other PNG_DIR_*
-PNG_DIR_CIN = os.path.join(BASE_DIR, "HRRRUN", "Hrrr", "static", "cin")    # Add CIN directory
+PNG_DIR_RH = os.path.join(BASE_DIR, "HRRRUN", "Hrrr", "static", "RH")
+PNG_DIR_HAIL = os.path.join(BASE_DIR, "HRRRUN", "Hrrr", "static", "HAIL")
+PNG_DIR_CAPE = os.path.join(BASE_DIR, "HRRRUN", "Hrrr", "static", "cape")
+PNG_DIR_CIN = os.path.join(BASE_DIR, "HRRRUN", "Hrrr", "static", "cin")
 PNG_DIR_LCDC = os.path.join(BASE_DIR, "HRRRUN", "Hrrr", "static", "LCDC")
 PNG_DIR_MCDC = os.path.join(BASE_DIR, "HRRRUN", "Hrrr", "static", "MCDC")
 PNG_DIR_HCDC = os.path.join(BASE_DIR, "HRRRUN", "Hrrr", "static", "HCDC")
 PNG_DIR_PRECIP = os.path.join(BASE_DIR, "HRRRUN", "Hrrr", "static", "PRECIP")
-PNG_DIR_WIND10M = os.path.join(BASE_DIR, "HRRRUN", "Hrrr", "static", "WIND10M")  # Add this line for WIND10M
-COLORBAR_DIR = os.path.join(BASE_DIR, "colorbars")  # Serve from project root colorbars folder
-
-
+PNG_DIR_WIND10M = os.path.join(BASE_DIR, "HRRRUN", "Hrrr", "static", "WIND10M")
+COLORBAR_DIR = os.path.join(BASE_DIR, "colorbars")
 
 @app.route("/")
 def home():
@@ -408,6 +407,95 @@ def run_task1():
 @app.route("/<path:filename>")
 def serve_static_file(filename):
     return send_from_directory(BASE_DIR, filename)
+
+@app.route("/soundings_stations")
+def soundings_stations():
+    # Only return stations if .download_complete exists
+    bufkit_dir = os.path.join(BASE_DIR, "Sounding", "bufkit_files")
+    marker_path = os.path.join(bufkit_dir, ".download_complete")
+    if not os.path.exists(marker_path):
+        return jsonify([])  # No stations until download is complete
+
+    stations = []
+    from Sounding.mainsounding1 import parse_bufkit
+    # Only consider files that actually exist and are .buf files
+    for fname in os.listdir(bufkit_dir):
+        if not fname.endswith(".buf"):
+            continue
+        path = os.path.join(bufkit_dir, fname)
+        if not os.path.isfile(path):
+            continue  # Skip if not a file
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                header = "".join([next(f) for _ in range(30)])
+            # Extract SLAT/SLON
+            import re
+            m = re.search(r"SLAT\s*=\s*([-\d.]+).*SLON\s*=\s*([-\d.]+)", header)
+            if not m:
+                continue
+            lat = float(m.group(1))
+            lon = float(m.group(2))
+            # Only include if at least one valid sounding exists
+            with open(path, "r", encoding="utf-8") as f2:
+                raw = f2.read()
+            soundings = parse_bufkit(raw)
+            if not soundings:
+                continue
+            stations.append({"name": fname, "lat": lat, "lon": lon})
+        except Exception:
+            continue
+    return jsonify(stations)
+@app.route("/run_mainsounding", methods=["POST"])
+def run_mainsounding():
+    import subprocess
+    script_path = os.path.join(BASE_DIR, "Sounding", "mainsounding1.py")
+    try:
+        subprocess.Popen(["python", script_path])
+        return jsonify({"status": "started"}), 200
+    except Exception as e:
+        return jsonify({"status": "error", "error": str(e)}), 500
+
+@app.route("/skewt_image")
+def skewt_image():
+    station = request.args.get("station")
+    time_idx = int(request.args.get("time", 0))
+    if not station:
+        return "Missing station", 400
+    from Sounding.mainsounding1 import parse_bufkit, plot_skewt_from_bufkit
+    bufkit_dir = os.path.join(BASE_DIR, "Sounding", "bufkit_files")
+    bufkit_path = os.path.join(bufkit_dir, station)
+    if not os.path.isfile(bufkit_path):
+        return "Station file not found", 404
+    with open(bufkit_path, "r", encoding="utf-8") as f:
+        raw = f.read()
+    soundings = parse_bufkit(raw)
+    if not soundings:
+        return "No soundings found", 404
+    if time_idx < 0 or time_idx >= len(soundings):
+        return "Invalid time index", 400
+    img_bytes = plot_skewt_from_bufkit(bufkit_path, time_idx)
+    return send_file(io.BytesIO(img_bytes), mimetype="image/png")
+
+@app.route("/soundings_times")
+def soundings_times():
+    station = request.args.get("station")
+    if not station:
+        return jsonify([])
+    from Sounding.mainsounding1 import parse_bufkit
+    bufkit_dir = os.path.join(BASE_DIR, "Sounding", "bufkit_files")
+    bufkit_path = os.path.join(bufkit_dir, station)
+    if not os.path.isfile(bufkit_path):
+        return jsonify([])
+    with open(bufkit_path, "r", encoding="utf-8") as f:
+        raw = f.read()
+    soundings = parse_bufkit(raw)
+    return jsonify([s.get("time", f"Time {i}") for i, s in enumerate(soundings)])
+
+@app.route("/soundings_ready")
+def soundings_ready():
+    bufkit_dir = os.path.join(BASE_DIR, "Sounding", "bufkit_files")
+    marker_path = os.path.join(bufkit_dir, ".download_complete")
+    return jsonify({"ready": os.path.exists(marker_path)})
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
