@@ -418,6 +418,10 @@
             <input type="checkbox" id="toggle-wind10m"> 10m Wind
             <input type="range" id="opacity-wind10m" min="0" max="1" step="0.01" value="0.7" style="width:80px;display:none;vertical-align:middle;">
           </label>
+          <label>
+            <input type="checkbox" id="toggle-wind10m-station"> 10m Wind at Stations
+            <input type="range" id="opacity-wind10m-station" min="0" max="1" step="0.01" value="0.7" style="width:80px;display:none;vertical-align:middle;">
+          </label>
         </div>
       </div>
       <div class="dropdown" id="dropdown-severe">
@@ -535,6 +539,7 @@
     var overlayHCDC = null;
     var overlayPrecip = null;
     var overlayWind10m = null; // WIND10M
+    var overlayWind10mStation = null; // WIND10M at stations
     var pngList = [];
     var showRefc = false;
     var showMslp = false;
@@ -549,6 +554,7 @@
     var showHCDC = false;
     var showPrecip = false;
     var showWind10m = false; // WIND10M
+    var showWind10mStation = false; // WIND10M at stations
     map.keyboard.disable();
 
     // Checkbox event listeners
@@ -617,6 +623,11 @@
       updateOverlay(parseInt(document.getElementById('hour-slider').value));
       updateColorbars(getVisibleLayers());
     });
+    document.getElementById('toggle-wind10m-station').addEventListener('change', function() {
+      showWind10mStation = this.checked;
+      updateOverlay(parseInt(document.getElementById('hour-slider').value));
+      updateColorbars(getVisibleLayers());
+    });
     // Set all checkboxes to unchecked and variables to false on load
     document.getElementById('toggle-refc').checked = false;
     document.getElementById('toggle-mslp').checked = false;
@@ -631,6 +642,7 @@
     document.getElementById('toggle-hcdc').checked = false;
     document.getElementById('toggle-precip').checked = false;
     document.getElementById('toggle-wind10m').checked = false; // WIND10M
+    document.getElementById('toggle-wind10m-station').checked = false; // WIND10M at stations
 
     // --- Dropdown logic for right panel ---
     function closeAllDropdowns() {
@@ -742,6 +754,7 @@
           if (overlayHCDC) { map.removeLayer(overlayHCDC); overlayHCDC = null; } // Remove HCDC overlay
           if (overlayPrecip) { map.removeLayer(overlayPrecip); overlayPrecip = null; } // Remove Precip overlay
           if (overlayWind10m) { map.removeLayer(overlayWind10m); overlayWind10m = null; } // Remove WIND10M overlay
+          if (overlayWind10mStation) { map.removeLayer(overlayWind10mStation); overlayWind10mStation = null; } // Remove WIND10M at stations overlay
 
           // Defensive: If idx is out of bounds, do nothing
           if (!pngList || idx < 0 || idx >= pngList.length) return;
@@ -763,6 +776,7 @@
           if (showHCDC && entry.hcdc) overlayHCDC = L.imageOverlay(entry.hcdc + cacheBuster, imageBounds, {opacity: overlayOpacity.hcdc}).addTo(map); // Add HCDC overlay
           if (showPrecip && entry.precip) overlayPrecip = L.imageOverlay(entry.precip + cacheBuster, imageBounds, {opacity: overlayOpacity.precip}).addTo(map); // Add Precip overlay
           if (showWind10m && entry.wind10m) overlayWind10m = L.imageOverlay(entry.wind10m + cacheBuster, imageBounds, {opacity: overlayOpacity.wind10m}).addTo(map); // Add WIND10M overlay
+          if (showWind10mStation && entry.wind10m_station) overlayWind10mStation = L.imageOverlay(entry.wind10m_station + cacheBuster, imageBounds, {opacity: overlayOpacity.wind10mStation}).addTo(map); // Add WIND10M at stations overlay
 
           // Always show hour label and forecast time if entry exists
           if (entry && typeof entry.hour !== "undefined") {
@@ -821,7 +835,8 @@
       document.getElementById("colorbar-mcdc").style.display = visibleLayers.includes("MCDC") ? "block" : "none";
       document.getElementById("colorbar-hcdc").style.display = visibleLayers.includes("HCDC") ? "block" : "none";
       document.getElementById("colorbar-precip").style.display = visibleLayers.includes("PRECIP") ? "block" : "none";
-      document.getElementById("colorbar-wind10m").style.display = visibleLayers.includes("WIND10M") ? "block" : "none";
+      document.getElementById("colorbar-wind10m").style.display =
+        (visibleLayers.includes("WIND10M") || visibleLayers.includes("WIND10M_STATION")) ? "block" : "none";
     }
 
     function getVisibleLayers() {
@@ -838,7 +853,8 @@
       if (showMCDC) visibleLayers.push("MCDC");
       if (showHCDC) visibleLayers.push("HCDC");
       if (showPrecip) visibleLayers.push("PRECIP");
-      if (showWind10m) visibleLayers.push("WIND10M"); // WIND10M
+      if (showWind10m) visibleLayers.push("WIND10M");
+      if (showWind10mStation) visibleLayers.push("WIND10M_STATION");
       return visibleLayers;
     }
 
@@ -927,7 +943,8 @@
     var overlayOpacity = {
       refc: 0.7, mslp: 0.7, temp2m: 0.7, rh: 0.7, precip: 0.7,
       lightning: 0.7, hail: 0.7, cape: 0.7, cin: 0.7,
-      lcdc: 0.7, mcdc: 0.7, hcdc: 0.7, wind10m: 0.7 // WIND10M
+      lcdc: 0.7, mcdc: 0.7, hcdc: 0.7, wind10m: 0.7,
+      wind10mStation: 0.7
     };
 
     // Helper to show/hide opacity sliders
@@ -940,7 +957,7 @@
     [
       'refc','mslp','temp2m','rh','precip',
       'lightning','hail','cape','cin',
-      'lcdc','mcdc','hcdc','wind10m' // WIND10M
+      'lcdc','mcdc','hcdc','wind10m','wind10m-station'
     ].forEach(function(layer) {
       var cb = document.getElementById('toggle-' + layer);
       var slider = document.getElementById('opacity-' + layer);
@@ -948,15 +965,14 @@
         cb.addEventListener('change', function() {
           toggleOpacitySlider(layer, cb.checked);
         });
-        // Show slider if checked on load
         toggleOpacitySlider(layer, cb.checked);
-        // Update opacity value on slider change
         slider.addEventListener('input', function() {
-          overlayOpacity[layer] = parseFloat(slider.value);
-          // If overlay is visible, update its opacity live
-          var overlayVar = window['overlay' + layer.charAt(0).toUpperCase() + layer.slice(1)];
+          // camelCase for JS variable
+          var key = layer.replace(/-([a-z])/g, function(g) { return g[1].toUpperCase(); });
+          overlayOpacity[key] = parseFloat(slider.value);
+          var overlayVar = window['overlay' + key.charAt(0).toUpperCase() + key.slice(1)];
           if (overlayVar && map.hasLayer(overlayVar)) {
-            overlayVar.setOpacity(overlayOpacity[layer]);
+            overlayVar.setOpacity(overlayOpacity[key]);
           }
         });
       }
@@ -978,6 +994,7 @@
       if (overlayHCDC) { map.removeLayer(overlayHCDC); overlayHCDC = null; } // Remove HCDC overlay
       if (overlayPrecip) { map.removeLayer(overlayPrecip); overlayPrecip = null; } // Remove Precip overlay
       if (overlayWind10m) { map.removeLayer(overlayWind10m); overlayWind10m = null; } // Remove WIND10M overlay
+      if (overlayWind10mStation) { map.removeLayer(overlayWind10mStation); overlayWind10mStation = null; } // Remove WIND10M at stations overlay
 
       // Defensive: If idx is out of bounds, do nothing
       if (!pngList || idx < 0 || idx >= pngList.length) return;
@@ -999,6 +1016,7 @@
       if (showHCDC && entry.hcdc) overlayHCDC = L.imageOverlay(entry.hcdc + cacheBuster, imageBounds, {opacity: overlayOpacity.hcdc}).addTo(map); // Add HCDC overlay
       if (showPrecip && entry.precip) overlayPrecip = L.imageOverlay(entry.precip + cacheBuster, imageBounds, {opacity: overlayOpacity.precip}).addTo(map); // Add Precip overlay
       if (showWind10m && entry.wind10m) overlayWind10m = L.imageOverlay(entry.wind10m + cacheBuster, imageBounds, {opacity: overlayOpacity.wind10m}).addTo(map); // Add WIND10M overlay
+      if (showWind10mStation && entry.wind10m_station) overlayWind10mStation = L.imageOverlay(entry.wind10m_station + cacheBuster, imageBounds, {opacity: overlayOpacity.wind10mStation}).addTo(map); // Add WIND10M at stations overlay
 
       // Always show hour label and forecast time if entry exists
       if (entry && typeof entry.hour !== "undefined") {
