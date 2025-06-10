@@ -243,6 +243,62 @@ def saturation_mixing_ratio(pres_hpa, temp_c):
     ws = 622.0 * es / (pres_hpa - es)
     return ws
 
+def extract_indices_from_bufkit(raw):
+    """
+    Extracts Skew-T indices from BUFKIT text.
+    Returns a dict of {index_name: value}.
+    """
+    indices = {}
+    for line in raw.splitlines():
+        if "=" in line and any(key in line for key in [
+            "SHOW", "LIFT", "SWET", "KINX", "LCLP", "PWAT", "TOTL", "CAPE",
+            "LCLT", "CINS", "EQLV", "LFCT", "BRCH"
+        ]):
+            parts = line.replace("=", " = ").split()
+            for i in range(0, len(parts) - 2, 3):
+                key = parts[i][:4]  # Only 4-letter code
+                if parts[i+1] == "=":
+                    try:
+                        val = float(parts[i+2])
+                    except Exception:
+                        val = parts[i+2]
+                    indices[key] = val
+    return indices
+
+def extract_indices_from_bufkit_section(section):
+    """
+    Extracts Skew-T indices from a BUFKIT section (single time).
+    Returns a dict of {index_name: value}.
+    """
+    indices = {}
+    for line in section.splitlines():
+        if "=" in line and any(key in line for key in [
+            "SHOW", "LIFT", "SWET", "KINX", "LCLP", "PWAT", "TOTL", "CAPE",
+            "LCLT", "CINS", "EQLV", "LFCT", "BRCH"
+        ]):
+            parts = line.replace("=", " = ").split()
+            for i in range(0, len(parts) - 2, 3):
+                key = parts[i][:4]
+                if parts[i+1] == "=":
+                    try:
+                        val = float(parts[i+2])
+                    except Exception:
+                        val = parts[i+2]
+                    indices[key] = val
+    return indices
+
+def extract_raw_for_time(raw, idx):
+    """
+    Extracts the BUFKIT section for the given time index.
+    """
+    lines = raw.splitlines()
+    time_indices = [i for i, line in enumerate(lines) if line.strip().startswith("STID") and "TIME" in line]
+    if not time_indices or idx >= len(time_indices):
+        return raw
+    start = time_indices[idx]
+    end = time_indices[idx+1] if idx+1 < len(time_indices) else len(lines)
+    return "\n".join(lines[start:end])
+
 def main():
     from datetime import datetime, timedelta
 
@@ -261,6 +317,40 @@ def main():
 
     # Compose the directory URL for the most recent HRRR run
     directory_url = f"https://mtarchive.geol.iastate.edu/{date_for_run.strftime('%Y/%m/%d')}/bufkit/{hour_str}/hrrr/"
+
+    # --- Try to fetch the directory, if not found, go back one hour and try again ---
+    def get_valid_directory_url():
+        nonlocal date_for_run, run_hour, directory_url
+        import requests
+        try:
+            resp = requests.get(directory_url)
+            resp.raise_for_status()
+            return directory_url
+        except Exception:
+            # Go back one hour and recompute everything
+            print(f"Directory not found: {directory_url} -- trying previous hour.")
+            prev_time = date_for_run - timedelta(hours=1)
+            prev_run_hour = (prev_time.hour // 6) * 6
+            # If the current run_hour is 0, go to previous day and hour 23
+            if run_hour == 0:
+                prev_time = date_for_run - timedelta(days=1)
+                prev_run_hour = 23
+            elif prev_run_hour == 24:
+                prev_run_hour = 18
+            prev_hour_str = str(prev_run_hour).zfill(2)
+            prev_url = f"https://mtarchive.geol.iastate.edu/{prev_time.strftime('%Y/%m/%d')}/bufkit/{prev_hour_str}/hrrr/"
+            try:
+                resp2 = requests.get(prev_url)
+                resp2.raise_for_status()
+                # Update state for rest of script
+                date_for_run = prev_time
+                run_hour = prev_run_hour
+                directory_url = prev_url
+                return prev_url
+            except Exception:
+                print(f"Previous hour directory also not found: {prev_url}")
+                raise
+    directory_url = get_valid_directory_url()
 
     # --- Delete all files in bufkit_files before loading new ones ---
     output_folder = os.path.join(os.path.dirname(__file__), "bufkit_files")
@@ -365,10 +455,10 @@ def main():
             other_stations = [s for s in other_stations if s not in must_have]
             random.shuffle(ny_stations)
             random.shuffle(other_stations)
-            # Ensure at least 20 NY stations (including must_have), fill up to 50 with others
+            # Ensure at least 20 NY stations (including must_have), fill up to 75 with others
             ny_needed = max(0, 20 - len(must_have))
             selected_ny = must_have + ny_stations[:ny_needed]
-            selected_other = other_stations[:50 - len(selected_ny)]
+            selected_other = other_stations[:75 - len(selected_ny)]
             stations = selected_ny + selected_other
 
             # Only run this logic the first time, then skip on future timer calls
@@ -378,10 +468,10 @@ def main():
 
             new_station_locations = {}
 
-            # --- Only keep the current 50 files in bufkit_files ---
+            # --- Only keep the current 75 files in bufkit_files ---
             # (No need to repeat deletion here, already done above)
 
-            # Download only missing files for the current 50
+            # Download only missing files for the current 75
             for fname in stations:
                 bufkit_url = directory_url + fname
                 local_file_path = os.path.join(output_folder, fname)
@@ -422,13 +512,14 @@ def main():
             # Update scatter plot
             lats, lons, names = [], [], []
             for fname, (lat, lon) in new_station_locations.items():
-                lats.append(lat)
-                lons.append(lon)
+                lats.append(float(lat) + 2.0)  # Shift north by 2 degrees
+                lons.append(float(lon))
                 names.append(fname)
 
             if scat is not None:
                 scat.remove()
-            scat = ax.scatter(lons, lats, c='red', s=60, marker='o', picker=True, zorder=5)
+            # Plot with lon, lat order for PlateCarree
+            scat = ax.scatter(lons, lats, c='red', s=60, marker='o', picker=True, zorder=5, transform=ccrs.PlateCarree())
             dot_to_station = {i: names[i] for i in range(len(names))}
             station_locations = new_station_locations
             fig.canvas.draw_idle()
@@ -494,8 +585,8 @@ def main():
                 skew = SkewT(fig, rotation=45)
 
                 # Plot the data using normal plotting functions
-                skew.plot(P, T, 'r', linewidth=4)  # Bolder temperature line
-                skew.plot(P, Td, color='#228B22', linewidth=4)  # Bolder, darker green dewpoint
+                skew.plot(P, T, 'r', linewidth=1.5)  # Thinner temperature line
+                skew.plot(P, Td, color='#228B22', linewidth=1.5)  # Thinner, darker green dewpoint
                 skew.plot_barbs(P[idx_barb], u[idx_barb], v[idx_barb])
                 skew.ax.set_ylim(pBot, pTop)
                 skew.ax.set_xlim(tMin, tMax)
@@ -559,6 +650,27 @@ def main():
                 )
                 lc = h.plot_colormapped(u, v, hght, cmap=custom_cmap, norm=norm, linewidth=2.5)
 
+                # --- Add dynamic indices as a vertical list to the right of wind barbs ---
+                indices = extract_indices_from_bufkit(raw)
+                index_keys = [
+                    "SHOW", "LIFT", "SWET", "KINX",
+                    "LCLP", "PWAT", "TOTL", "CAPE",
+                    "LCLT", "CINS", "EQLV", "LFCT",
+                    "BRCH"
+                ]
+                info_lines = []
+                for key in index_keys:
+                    short_key = key[:4]
+                    if short_key in indices:
+                        info_lines.append(f"{short_key} {indices[short_key]}")
+                info_text = "\n".join(info_lines)
+                # Place the box to the right of wind barbs (x=54, y=400 hPa)
+                skew.ax.text(
+                    54, 400, info_text,
+                    fontsize=8, color="#22223b", va="top", ha="left",
+                    bbox=dict(facecolor='white', edgecolor='#adb5bd', boxstyle='round,pad=0.2', alpha=0.85)
+                )
+
                 plt.tight_layout(rect=[0.07, 0.04, 0.98, 0.97])
 
                 # Print all available times for this station, highlight current
@@ -616,6 +728,10 @@ def plot_skewt_from_bufkit(bufkit_path, time_idx=0):
     if time_idx < 0 or time_idx >= len(soundings):
         raise Exception("Invalid time index.")
     buf = soundings[time_idx]
+
+    # --- Extract only the BUFKIT section for the selected time_idx ---
+    raw_this = extract_raw_for_time(raw, time_idx)
+
     import pandas as pd
     import numpy as np
     from metpy.plots import SkewT
@@ -648,8 +764,8 @@ def plot_skewt_from_bufkit(bufkit_path, time_idx=0):
     # --- Skew-T style matching your interactive plot ---
     fig = plt.figure(figsize=(9, 9))
     skew = SkewT(fig, rotation=45)
-    skew.plot(P, T, 'r', linewidth=4)
-    skew.plot(P, Td, color='#228B22', linewidth=4)
+    skew.plot(P, T, 'r', linewidth=1.5)  # Thinner temperature line
+    skew.plot(P, Td, color='#228B22', linewidth=1.5)  # Thinner, darker green dewpoint
     skew.plot_barbs(P[idx_barb], u[idx_barb], v[idx_barb])
     skew.ax.set_ylim(1050, 100)
     skew.ax.set_xlim(-40, 50)
@@ -700,6 +816,27 @@ def plot_skewt_from_bufkit(bufkit_path, time_idx=0):
         ]
     )
     lc = h.plot_colormapped(u, v, hght, cmap=custom_cmap, norm=norm, linewidth=2.5)
+
+    # --- Add small, vertical, 4-letter indices right next to wind barbs, no box ---
+    indices = extract_indices_from_bufkit_section(raw_this)
+    index_keys = [
+        "SHOW", "LIFT", "SWET", "KINX",
+        "LCLP", "PWAT", "TOTL", "CAPE",
+        "LCLT", "CINS", "EQLV", "LFCT",
+        "BRCH"
+    ]
+    info_lines = []
+    for key in index_keys:
+        short_key = key[:4]
+        if short_key in indices:
+            info_lines.append(f"{short_key} {indices[short_key]}")
+    info_text = "\n".join(info_lines)
+
+    # Move the text up a bit (e.g., y=800 hPa instead of 900 hPa)
+    skew.ax.text(
+        52, 800, info_text,  # y changed from 900 to 800 hPa
+        fontsize=8, color="#22223b", va="top", ha="left"
+    )
 
     plt.tight_layout(rect=[0.07, 0.04, 0.98, 0.97])
 
