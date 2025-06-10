@@ -302,6 +302,42 @@
     .leaflet-control-attribution {
       display: none !important;
     }
+    /* Spinner CSS */
+    .lds-ring {
+      display: inline-block;
+      position: relative;
+      width: 64px;
+      height: 64px;
+    }
+    .lds-ring div {
+      box-sizing: border-box;
+      display: block;
+      position: absolute;
+      width: 48px;
+      height: 48px;
+      margin: 8px;
+      border: 6px solid #1e90ff;
+      border-radius: 50%;
+      animation: lds-ring 1.1s cubic-bezier(0.5, 0, 0.5, 1) infinite;
+      border-color: #1e90ff transparent transparent transparent;
+    }
+    .lds-ring div:nth-child(1) {
+      animation-delay: -0.3s;
+    }
+    .lds-ring div:nth-child(2) {
+      animation-delay: -0.2s;
+    }
+    .lds-ring div:nth-child(3) {
+      animation-delay: -0.1s;
+    }
+    @keyframes lds-ring {
+      0% {
+        transform: rotate(0deg);
+      }
+      100% {
+        transform: rotate(360deg);
+      }
+    }
   </style>
 </head>
 <body>
@@ -340,6 +376,12 @@
       <div id="skewt-modal" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.5);z-index:5000;align-items:center;justify-content:center;">
         <div style="background:#fff;padding:16px;border-radius:10px;box-shadow:0 4px 24px rgba(0,0,0,0.18);max-width:95vw;max-height:95vh;overflow:auto;position:relative;">
           <span id="skewt-close" style="position:absolute;top:8px;right:16px;font-size:2em;cursor:pointer;">&times;</span>
+          <!-- Spinner overlay -->
+          <div id="skewt-spinner" style="display:none;position:absolute;left:0;top:0;width:100%;height:100%;background:rgba(255,255,255,0.7);z-index:10;align-items:center;justify-content:center;">
+            <div style="display:flex;align-items:center;justify-content:center;height:100%;">
+              <div class="lds-ring"><div></div><div></div><div></div><div></div></div>
+            </div>
+          </div>
           <img id="skewt-img" src="" alt="Skew-T" style="max-width:90vw;max-height:80vh;display:block;margin:auto;">
         </div>
       </div>
@@ -977,22 +1019,29 @@
 
     function addSoundingMarkers(stations) {
       removeSoundingMarkers(); // Always clear before adding
+      // Only plot stations within [-126, -69] longitude and [24, 50] latitude
+      const minLon = -126, maxLon = -69, minLat = 24, maxLat = 50;
       if (stations && stations.length > 0 && document.getElementById("toggle-soundings").checked) {
-        stations.forEach(function(stn) {
-          var marker = L.circleMarker([stn.lat, stn.lon], {
-            radius: 7,
-            color: "#1e90ff",
-            fillColor: "#1e90ff",
-            fillOpacity: 0.85,
-            weight: 1,
-            pane: "markerPane"
-          }).addTo(map);
-          marker.bindTooltip(stn.name, {permanent: false, direction: "top"});
-          marker.on('click', function() {
-            showSkewtModal(stn.name);
+        stations
+          .filter(stn =>
+            stn.lon >= minLon && stn.lon <= maxLon &&
+            stn.lat >= minLat && stn.lat <= maxLat
+          )
+          .forEach(function(stn) {
+            var marker = L.circleMarker([stn.lat + 0.9, stn.lon], { // <-- Shift north by 2 degrees
+              radius: 7,
+              color: "#1e90ff",
+              fillColor: "#1e90ff",
+              fillOpacity: 0.85,
+              weight: 1,
+              pane: "markerPane"
+            }).addTo(map);
+            marker.bindTooltip(stn.name, {permanent: false, direction: "top"});
+            marker.on('click', function() {
+              showSkewtModal(stn.name);
+            });
+            soundingMarkers.push(marker);
           });
-          soundingMarkers.push(marker);
-        });
       }
       map.invalidateSize();
     }
@@ -1057,7 +1106,7 @@
                     });
                 }
                 pollReady(0);
-              }, 60000); // 60 seconds delay
+              }, 45000); // 45 seconds delay
             });
         } else {
           removeSoundingMarkers();
@@ -1090,6 +1139,8 @@
 
     function showSkewtModal(station) {
       currentSkewtStation = station;
+      // Show spinner before fetching times and image
+      document.getElementById("skewt-spinner").style.display = "flex";
       fetchSoundingTimes(station, function(times) {
         currentSkewtTimes = times;
         currentSkewtIdx = 0;
@@ -1099,7 +1150,19 @@
     }
 
     function updateSkewtImg() {
-      document.getElementById("skewt-img").src =
+      var img = document.getElementById("skewt-img");
+      var spinner = document.getElementById("skewt-spinner");
+      spinner.style.display = "flex";
+      img.style.visibility = "hidden";
+      img.onload = function() {
+        spinner.style.display = "none";
+        img.style.visibility = "visible";
+      };
+      img.onerror = function() {
+        spinner.style.display = "none";
+        img.style.visibility = "visible";
+      };
+      img.src =
         "/skewt_image?station=" + encodeURIComponent(currentSkewtStation) +
         "&time=" + currentSkewtIdx;
     }
