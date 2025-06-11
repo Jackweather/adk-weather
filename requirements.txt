@@ -17,3 +17,4 @@ scipy==1.13.1
 pandas
 beautifulsoup4
 metpy
+psutil
