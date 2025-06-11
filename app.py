@@ -409,7 +409,7 @@ def run_task1():
 
         try:
             result = subprocess.run(
-                ["python", "/opt/render/project/src/HRRRUN/wind_bars_station.py"],
+                ["python", "/opt/render/project/src/HRRRUN/wind_bars_stations.py"],
                 check=True, cwd="/opt/render/project/src/HRRRUN",
                 stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
             )
@@ -418,7 +418,7 @@ def run_task1():
             print("STDERR:", result.stderr)
         except subprocess.CalledProcessError as e:
             error_trace = traceback.format_exc()
-            print(f"Error running wind_bars_station.py:\n{error_trace}")
+            print(f"Error running wind_bars_stations.py:\n{error_trace}")
             print("STDOUT:", e.stdout)
             print("STDERR:", e.stderr)
 
