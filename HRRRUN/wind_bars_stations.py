@@ -12,6 +12,14 @@ import time
 import gc
 from scipy.spatial import cKDTree
 
+import sys
+import psutil
+
+def print_mem_usage(note=""):
+    process = psutil.Process(os.getpid())
+    mem = process.memory_info().rss / 1024 / 1024
+    print(f"[MEMORY] {note} RSS: {mem:.2f} MB")
+
 # NY_ASOS Network stations: (ID, Name, Latitude, Longitude)
 NY_ASOS_STATIONS = [
     ("PGV", "Greenville", 35.6127, -77.3664),
@@ -109,6 +117,7 @@ NY_ASOS_STATIONS = [
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 # --- Clean up old files in grib_files and wind_bars_station directories ---
+print_mem_usage("Before cleanup")
 for folder in [
     os.path.join(BASE_DIR, "Hrrr", "static", "wind_bars_station", "grib_files"),
     os.path.join(BASE_DIR, "Hrrr", "static", "wind_bars_station")
@@ -118,6 +127,7 @@ for folder in [
             file_path = os.path.join(folder, f)
             if os.path.isfile(file_path):
                 os.remove(file_path)
+print_mem_usage("After cleanup")
 
 # Directories
 base_url = "https://nomads.ncep.noaa.gov/cgi-bin/filter_hrrr_2d.pl"
@@ -151,14 +161,19 @@ def download_file(hour_str, step):
                 if chunk:
                     f.write(chunk)
         print(f"Downloaded {file_name}")
+        print_mem_usage(f"After downloading {file_name}")
         return file_path
     else:
         print(f"Failed to download {file_name} (Status Code: {response.status_code})")
         return None
 
 def generate_wind_barbs_png(file_path, step, skip=20, max_barbs=1500, min_dist_deg=0.5):
+    print_mem_usage(f"Before opening {file_path}")
+    ds = None
+    fig = None
     try:
         ds = xr.open_dataset(file_path, engine="cfgrib")
+        print_mem_usage(f"After open_dataset {file_path}")
         u = ds['u10']
         v = ds['v10']
         lats = ds['latitude'].values if 'latitude' in ds else None
@@ -180,7 +195,8 @@ def generate_wind_barbs_png(file_path, step, skip=20, max_barbs=1500, min_dist_d
             print(f"Shapes: u={u.shape}, v={v.shape}, lats={lats.shape}, lons={lons.shape}")
             return None
 
-        fig = plt.figure(figsize=(12, 8), dpi=1500)  # Increased size and DPI for higher quality
+        # REDUCE DPI and FIGURE SIZE to save memory!
+        fig = plt.figure(figsize=(8, 6), dpi=850)
         ax = plt.axes(projection=ccrs.PlateCarree())
         ax.set_extent([-126, -69, 24, 50], crs=ccrs.PlateCarree())
 
@@ -209,23 +225,40 @@ def generate_wind_barbs_png(file_path, step, skip=20, max_barbs=1500, min_dist_d
         plt.subplots_adjust(left=0, right=1, top=1, bottom=0)
         png_path = os.path.join(wind_dir, f"wind_barbs_{step:02d}.png")
         plt.savefig(png_path, bbox_inches='tight', pad_inches=0, transparent=True)
+        print_mem_usage(f"After plt.savefig {png_path}")
         plt.close(fig)
-        print(f"Generated wind barbs PNG: {png_path}")
+        del fig
+        print_mem_usage(f"After plt.close {png_path}")
         return png_path
     except Exception as e:
         print(f"Error generating wind barbs PNG for step {step}: {e}")
+        import traceback
+        traceback.print_exc()
         return None
+    finally:
+        if ds is not None:
+            ds.close()
+            del ds
+        gc.collect()
+        print_mem_usage(f"After ds.close and gc.collect {file_path}")
 
 # Main process: Download and plot
 grib_files = []
 png_files = []
 for step in range(0, 49):  # 0 to 48 hours
+    print(f"=== STEP {step} ===")
+    print_mem_usage(f"Start of step {step}")
     grib_file = download_file(hour_str, step)
     if grib_file:
         grib_files.append(grib_file)
         png_file = generate_wind_barbs_png(grib_file, step)
         png_files.append(png_file)
         gc.collect()
+        print_mem_usage(f"After gc.collect step {step}")
         time.sleep(3)
+    else:
+        print(f"Skipping PNG generation for step {step} due to missing GRIB file.")
+    print_mem_usage(f"End of step {step}")
 
 print("All wind barbs GRGRIB file download and PNG creation tasks complete!")
+print_mem_usage("End of script")
