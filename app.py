@@ -27,6 +27,8 @@ PNG_DIR_WIND10M = os.path.join(BASE_DIR, "HRRRUN", "Hrrr", "static", "WIND10M")
 PNG_DIR_WIND10M_STATION = os.path.join(BASE_DIR, "HRRRUN", "Hrrr", "static", "wind_bars_station")
 COLORBAR_DIR = os.path.join(BASE_DIR, "colorbars")
 PNG_DIR_SRH = os.path.join(BASE_DIR, "HRRRUN", "Hrrr", "static", "HLCY")
+PNG_DIR_PWAT = os.path.join(BASE_DIR, "HRRRUN", "Hrrr", "static", "PWAT")
+PNG_DIR_GUST = os.path.join(BASE_DIR, "HRRRUN", "Hrrr", "static", "GUST")
 
 @app.route("/")
 def home():
@@ -61,6 +63,8 @@ def get_pngs():
     wind10m_files = [f for f in safe_listdir(PNG_DIR_WIND10M) if re.match(r"WIND10M_(\d+)\.png$", f)]  # WIND10M
     wind10m_station_files = [f for f in safe_listdir(PNG_DIR_WIND10M_STATION) if re.match(r"wind_barbs_(\d+)\.png$", f)]  # Wind barbs at stations
     srh_files = [f for f in safe_listdir(PNG_DIR_SRH) if re.match(r"HLCY_(\d+)\.png$", f)]  # SRH
+    pwat_files = [f for f in safe_listdir(PNG_DIR_PWAT) if re.match(r"PWAT_(\d+)\.png$", f)]  # PWAT
+    gust_files = [f for f in safe_listdir(PNG_DIR_GUST) if re.match(r"GUST_(\d+)\.png$", f)]  # GUST
 
     # Use regex to extract hour from each filename (more robust)
     def extract_hour(pattern, filename):
@@ -82,6 +86,8 @@ def get_pngs():
     wind10m_dict = {extract_hour(r"WIND10M_(\d+)\.png$", f): f for f in wind10m_files}  # WIND10M
     wind10m_station_dict = {extract_hour(r"wind_barbs_(\d+)\.png$", f): f for f in wind10m_station_files}  # Wind barbs at stations
     srh_dict = {extract_hour(r"HLCY_(\d+)\.png$", f): f for f in srh_files}  # SRH
+    pwat_dict = {extract_hour(r"PWAT_(\d+)\.png$", f): f for f in pwat_files}  # PWAT
+    gust_dict = {extract_hour(r"GUST_(\d+)\.png$", f): f for f in gust_files}  # GUST
 
     # Remove None keys if any file didn't match pattern
     refc_dict = {k: v for k, v in refc_dict.items() if k is not None}
@@ -99,9 +105,11 @@ def get_pngs():
     wind10m_dict = {k: v for k, v in wind10m_dict.items() if k is not None}  # WIND10M
     wind10m_station_dict = {k: v for k, v in wind10m_station_dict.items() if k is not None}  # Wind barbs at stations
     srh_dict = {k: v for k, v in srh_dict.items() if k is not None}  # SRH
+    pwat_dict = {k: v for k, v in pwat_dict.items() if k is not None}  # PWAT
+    gust_dict = {k: v for k, v in gust_dict.items() if k is not None}  # GUST
 
     # Union of all available hours from all overlays
-    all_hours = set(refc_dict) | set(mslp_dict) | set(temp2m_dict) | set(lightning_dict) | set(rh_dict) | set(hail_dict) | set(cape_dict) | set(cin_dict) | set(lcdc_dict) | set(mcdc_dict) | set(hcdc_dict) | set(precip_dict) | set(wind10m_dict) | set(wind10m_station_dict) | set(srh_dict)
+    all_hours = set(refc_dict) | set(mslp_dict) | set(temp2m_dict) | set(lightning_dict) | set(rh_dict) | set(hail_dict) | set(cape_dict) | set(cin_dict) | set(lcdc_dict) | set(mcdc_dict) | set(hcdc_dict) | set(precip_dict) | set(wind10m_dict) | set(wind10m_station_dict) | set(srh_dict) | set(pwat_dict) | set(gust_dict)
     all_hours = sorted(all_hours)
     result = []
     for hour in all_hours:
@@ -121,7 +129,9 @@ def get_pngs():
             "precip": f"/precip_pngs/{precip_dict[hour]}" if hour in precip_dict else None,
             "wind10m": f"/wind10m_pngs/{wind10m_dict[hour]}" if hour in wind10m_dict else None,
             "wind10m_station": f"/wind10m_station_pngs/{wind10m_station_dict[hour]}" if hour in wind10m_station_dict else None,
-            "srh": f"/srh_pngs/{srh_dict[hour]}" if hour in srh_dict else None  # SRH as severe
+            "srh": f"/srh_pngs/{srh_dict[hour]}" if hour in srh_dict else None,
+            "pwat": f"/pwat_pngs/{pwat_dict[hour]}" if hour in pwat_dict else None,  # PWAT
+            "gust": f"/gust_pngs/{gust_dict[hour]}" if hour in gust_dict else None,
         })
     response = make_response(jsonify(result))
     response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
@@ -441,6 +451,38 @@ def run_task1():
             print("STDOUT:", e.stdout)
             print("STDERR:", e.stderr)
 
+        # --- PWAT ---
+        try:
+            result = subprocess.run(
+                ["python", "/opt/render/project/src/HRRRUN/PWAT.py"],
+                check=True, cwd="/opt/render/project/src/HRRRUN",
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
+            )
+            print("PWAT.py ran successfully!")
+            print("STDOUT:", result.stdout)
+            print("STDERR:", result.stderr)
+        except subprocess.CalledProcessError as e:
+            error_trace = traceback.format_exc()
+            print(f"Error running PWAT.py:\n{error_trace}")
+            print("STDOUT:", e.stdout)
+            print("STDERR:", e.stderr)
+
+        # --- GUST ---
+        try:
+            result = subprocess.run(
+                ["python", "/opt/render/project/src/HRRRUN/GUST.py"],
+                check=True, cwd="/opt/render/project/src/HRRRUN",
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
+            )
+            print("GUST.py ran successfully!")
+            print("STDOUT:", result.stdout)
+            print("STDERR:", result.stderr)
+        except subprocess.CalledProcessError as e:
+            error_trace = traceback.format_exc()
+            print(f"Error running GUST.py:\n{error_trace}")
+            print("STDOUT:", e.stdout)
+            print("STDERR:", e.stderr)
+
     threading.Thread(target=run_all_scripts).start()
     # For synchronous debug, comment above and uncomment below:
     # run_all_scripts()
@@ -543,6 +585,14 @@ def soundings_ready():
 @app.route("/srh_pngs/<path:filename>")
 def serve_srh_png(filename):
     return api_serve_image(PNG_DIR_SRH, filename)
+
+@app.route("/pwat_pngs/<path:filename>")
+def serve_pwat_png(filename):
+    return api_serve_image(PNG_DIR_PWAT, filename)
+
+@app.route("/gust_pngs/<path:filename>")
+def serve_gust_png(filename):
+    return api_serve_image(PNG_DIR_GUST, filename)
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
