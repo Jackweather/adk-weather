@@ -342,122 +342,115 @@
     /* --- Responsive styles for mobile (iPhone/Safari) --- */
     @media (max-width: 900px) {
       #main-content {
-        flex-direction: row;
-        align-items: flex-start;
-        justify-content: center;
-        width: 100vw;
-        height: 100vh;
+        flex-direction: column;
+        align-items: stretch;
         margin-top: 54px;
-        box-sizing: border-box;
-        overflow-x: auto;
+        height: auto;
+        min-height: 100vh;
       }
       #left-panel {
-        width: 90px;
-        min-width: 70px;
-        margin-right: 8px;
-        margin-top: 8px;
-        padding: 8px 0 8px 0;
-        border-radius: 8px;
-        font-size: 0.85em;
+        width: 100vw;
+        min-width: 0;
+        margin: 16px 0 0 0;
+        border-radius: 0;
+        box-shadow: none;
+        border: none;
+        flex-direction: row;
+        justify-content: flex-start;
+        align-items: flex-start;
+        padding: 12px 0 12px 0;
+        height: auto;
       }
       #left-panel .utc-box,
       #left-panel .slider-box {
         min-width: 0;
         width: 100%;
-        padding: 6px 4px 4px 4px;
-        font-size: 0.85em;
-        margin-bottom: 8px;
+        margin-bottom: 0;
+        margin-right: 0;
+        padding: 10px 8px 8px 8px;
+        font-size: 1em;
       }
       #left-panel > div {
-        margin: 0 2px 0 2px;
+        margin: 0 8px 0 8px;
       }
       #map-container {
-        min-width: 120px;
-        width: 50vw;
-        max-width: 60vw;
-        min-height: 120px;
-        height: 60vw;
-        max-height: 60vw;
+        width: 100vw;
+        min-width: 0;
         margin: 0;
         padding: 0;
-        display: flex;
-        align-items: center;
-        justify-content: center;
+        height: 60vw;
+        min-height: 320px;
+        max-height: 60vh;
       }
       #map {
-        width: 100%;
-        min-width: 120px;
-        max-width: 100%;
+        width: 98vw;
+        min-width: 0;
+        max-width: 100vw;
         height: 60vw;
-        min-height: 120px;
-        max-height: 60vw;
-        border-radius: 8px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        min-height: 320px;
+        max-height: 60vh;
+        margin: 0 auto;
+        border-radius: 0;
       }
       #right-panel {
-        width: 90px;
-        min-width: 70px;
-        margin-left: 8px;
+        width: 100vw;
+        min-width: 0;
+        margin: 0;
         margin-top: 8px;
+        border-radius: 0;
+        box-shadow: none;
+        border: none;
         padding: 8px 0 8px 0;
-        border-radius: 8px;
-        font-size: 0.85em;
-        min-height: 120px;
+        min-height: 0;
       }
       .dropdown {
-        margin: 0 2px 8px 2px;
-        border-radius: 6px;
-        font-size: 0.85em;
+        margin: 0 8px 12px 8px;
       }
       .dropdown-header {
-        padding: 8px 6px;
-        font-size: 0.95em;
+        padding: 12px 10px;
+        font-size: 1em;
       }
       .dropdown-content {
-        padding: 0 6px 6px 6px;
+        padding: 0 10px 10px 10px;
       }
       #bottom-colorbar-bar {
-        min-height: 32px;
-        height: 38px;
+        min-height: 48px;
+        height: 60px;
         padding-bottom: env(safe-area-inset-bottom, 0);
       }
-      #colorbars-container {
-        gap: 4px;
-        padding-bottom: 2px;
-      }
       #colorbars-container img {
-        max-width: 40px !important;
-        min-width: 20px;
+        max-width: 120px !important;
       }
       #colorbar-size-slider-container {
-        font-size: 0.85em;
+        font-size: 0.95em;
       }
       #colorbar-size-slider {
-        width: 50px;
+        width: 100px;
       }
     }
     @media (max-width: 600px) {
       #main-content {
-        flex-direction: row;
         margin-top: 54px;
-        height: 100vh;
       }
-      #left-panel, #right-panel {
-        width: 60px;
-        min-width: 40px;
-        font-size: 0.7em;
-        padding: 4px 0 4px 0;
+      #left-panel {
+        flex-direction: column;
+        align-items: stretch;
+        padding: 6px 0 6px 0;
+        min-width: 160px;
       }
       #map-container, #map {
-        width: 60vw;
-        min-width: 80px;
-        height: 40vw;
-        min-height: 80px;
-        max-height: 40vw;
+        height: 48vw;
+        min-height: 120px;
+        max-height: 50vh;
+        min-width: 160px;
+      }
+      #right-panel {
+        padding: 2px 0 2px 0;
+        min-width: 160px;
       }
       #colorbars-container img {
-        max-width: 24px !important;
-        min-width: 12px;
+        max-width: 60px !important;
+        min-width: 30px;
       }
     }
     /* Modal: scrollable and touch-friendly */
@@ -482,6 +475,101 @@
     html, body {
       max-width: 100vw;
       overflow-x: auto;
+    }
+
+    /* --- Extra improvements for mobile usability --- */
+    @media (max-width: 900px) {
+      #main-content {
+        flex-direction: row;
+        align-items: flex-start;
+        justify-content: flex-start;
+        overflow-x: auto;
+        width: 100vw;
+        min-width: 480px;
+        /* This allows horizontal scroll if panels/map don't fit */
+      }
+      #left-panel, #right-panel {
+        min-width: 120px;
+        width: 120px;
+        max-width: 140px;
+        font-size: 0.85em;
+        margin-top: 8px;
+        margin-bottom: 8px;
+      }
+      #map-container {
+        min-width: 220px;
+        width: 60vw;
+        max-width: 80vw;
+        min-height: 180px;
+        height: 60vw;
+        max-height: 60vw;
+        margin: 0 8px;
+        padding: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      #map {
+        width: 100%;
+        min-width: 180px;
+        max-width: 100%;
+        height: 60vw;
+        min-height: 180px;
+        max-height: 60vw;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+      }
+      .dropdown {
+        font-size: 0.95em;
+      }
+      #bottom-colorbar-bar {
+        overflow-x: auto;
+        min-height: 40px;
+        height: 48px;
+      }
+      #colorbars-container {
+        gap: 8px;
+        padding-bottom: 2px;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+      }
+      #colorbars-container img {
+        max-width: 60px !important;
+        min-width: 30px;
+      }
+    }
+
+    /* For very small screens */
+    @media (max-width: 600px) {
+      #main-content {
+        min-width: 320px;
+      }
+      #left-panel, #right-panel {
+        min-width: 80px;
+        width: 80px;
+        font-size: 0.7em;
+      }
+      #map-container, #map {
+        min-width: 100px;
+        width: 50vw;
+        min-height: 80px;
+        height: 40vw;
+        max-height: 40vw;
+      }
+      #colorbars-container img {
+        max-width: 32px !important;
+        min-width: 16px;
+      }
+    }
+
+    /* Make modal and dropdowns never overflow screen */
+    #skewt-modal > div {
+      max-width: 98vw !important;
+      max-height: 98vh !important;
+      overflow: auto !important;
+    }
+    .dropdown-content {
+      word-break: break-word;
     }
   </style>
 </head>
