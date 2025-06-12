@@ -436,140 +436,33 @@
         flex-direction: column;
         align-items: stretch;
         padding: 6px 0 6px 0;
-        min-width: 160px;
       }
       #map-container, #map {
-        height: 48vw;
-        min-height: 120px;
+        height: 50vw;
+        min-height: 200px;
         max-height: 50vh;
-        min-width: 160px;
       }
       #right-panel {
-        padding: 2px 0 2px 0;
-        min-width: 160px;
+        padding: 4px 0 4px 0;
       }
       #colorbars-container img {
-        max-width: 60px !important;
-        min-width: 30px;
+        max-width: 80px !important;
       }
     }
-    /* Modal: scrollable and touch-friendly */
+    /* Make modal fit on mobile */
     #skewt-modal > div {
       max-width: 98vw !important;
       max-height: 98vh !important;
-      padding: 4vw 1vw 4vw 1vw !important;
-      overflow: auto !important;
-      touch-action: manipulation;
+      padding: 6vw 2vw 6vw 2vw !important;
     }
     #skewt-img {
       max-width: 96vw !important;
-      max-height: 60vh !important;
+      max-height: 70vh !important;
     }
     /* Prevent nav bar from overlapping content */
     body {
       padding-top: 54px;
       box-sizing: border-box;
-      overflow-x: hidden;
-    }
-    /* Always allow horizontal scroll if needed */
-    html, body {
-      max-width: 100vw;
-      overflow-x: auto;
-    }
-
-    /* --- Extra improvements for mobile usability --- */
-    @media (max-width: 900px) {
-      #main-content {
-        flex-direction: row;
-        align-items: flex-start;
-        justify-content: flex-start;
-        overflow-x: auto;
-        width: 100vw;
-        min-width: 480px;
-        /* This allows horizontal scroll if panels/map don't fit */
-      }
-      #left-panel, #right-panel {
-        min-width: 120px;
-        width: 120px;
-        max-width: 140px;
-        font-size: 0.85em;
-        margin-top: 8px;
-        margin-bottom: 8px;
-      }
-      #map-container {
-        min-width: 220px;
-        width: 60vw;
-        max-width: 80vw;
-        min-height: 180px;
-        height: 60vw;
-        max-height: 60vw;
-        margin: 0 8px;
-        padding: 0;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-      }
-      #map {
-        width: 100%;
-        min-width: 180px;
-        max-width: 100%;
-        height: 60vw;
-        min-height: 180px;
-        max-height: 60vw;
-        border-radius: 8px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-      }
-      .dropdown {
-        font-size: 0.95em;
-      }
-      #bottom-colorbar-bar {
-        overflow-x: auto;
-        min-height: 40px;
-        height: 48px;
-      }
-      #colorbars-container {
-        gap: 8px;
-        padding-bottom: 2px;
-        flex-wrap: nowrap;
-        overflow-x: auto;
-      }
-      #colorbars-container img {
-        max-width: 60px !important;
-        min-width: 30px;
-      }
-    }
-
-    /* For very small screens */
-    @media (max-width: 600px) {
-      #main-content {
-        min-width: 320px;
-      }
-      #left-panel, #right-panel {
-        min-width: 80px;
-        width: 80px;
-        font-size: 0.7em;
-      }
-      #map-container, #map {
-        min-width: 100px;
-        width: 50vw;
-        min-height: 80px;
-        height: 40vw;
-        max-height: 40vw;
-      }
-      #colorbars-container img {
-        max-width: 32px !important;
-        min-width: 16px;
-      }
-    }
-
-    /* Make modal and dropdowns never overflow screen */
-    #skewt-modal > div {
-      max-width: 98vw !important;
-      max-height: 98vh !important;
-      overflow: auto !important;
-    }
-    .dropdown-content {
-      word-break: break-word;
     }
   </style>
 </head>
@@ -610,6 +503,18 @@
         <div style="background:#fff;padding:16px;border-radius:10px;box-shadow:0 4px 24px rgba(0,0,0,0.18);max-width:95vw;max-height:95vh;overflow:auto;position:relative;">
           <span id="skewt-close" style="position:absolute;top:8px;right:16px;font-size:2em;cursor:pointer;">&times;</span>
           <!-- Spinner overlay -->
+          <div id="skewt-spinner" style="display:none;position:absolute;left:0;top:0;width:100%;height:100%;background:rgba(255,255,255,0.7);z-index:10;align-items:center;justify-content:center;">
+            <div style="display:flex;align-items:center;justify-content:center;height:100%;">
+              <div class="lds-ring"><div></div><div></div><div></div><div></div></div>
+            </div>
+          </div>
+          <img id="skewt-img" src="" alt="Skew-T" style="max-width:90vw;max-height:80vh;display:block;margin:auto;">
+        </div>
+      </div>
+    </div>
+    <!-- Right panel with dropdowns -->
+    <div id="right-panel">
+      <div class="dropdown" id="dropdown-surface">
         <div class="dropdown-header">
           Surface DATA
           <span class="dropdown-arrow">&#9654;</span>
