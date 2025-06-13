@@ -1,1695 +1,289 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <title>USA Reflectivity Overlay</title>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
-  <style>
-    body {
-      margin: 0;
-      padding: 0;
-      background: #f7f7f7;
-      font-family: 'Segoe UI', Arial, sans-serif;
-    }
-    /* Top navigation bar */
-    #top-navbar {
-      width: 100vw;
-      background: #263159;
-      color: #fff;
-      display: flex;
-      align-items: center;
-      justify-content: flex-start;
-      padding: 0 32px;
-      height: 54px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-      position: fixed;
-      top: 0;
-      left: 0;
-      z-index: 2000;
-    }
-    #top-navbar .nav-item {
-      margin-right: 32px;
-      font-size: 1.1em;
-      font-weight: 500;
-      cursor: pointer;
-      user-select: none;
-      transition: color 0.15s;
-      color: #fff; /* Ensure white text for all nav items */
-      text-decoration: none; /* Remove underline for links */
-    }
-    #top-navbar .nav-item:hover {
-      color: #ffb400;
-    }
-    /* Center map and right panel */
-    #main-content {
-      display: flex;
-      flex-direction: row;
-      justify-content: center;
-      align-items: flex-start;
-      width: 100vw;
-      height: 100vh;
-      margin-top: 54px; /* height of navbar */
-      box-sizing: border-box;
-    }
-    /* Left panel for UTC/time and slider - cleaner look */
-    #left-panel {
-      width: 200px;
-      min-width: 120px;
-      background: #fff;
-      border-radius: 14px;
-      box-shadow: 0 2px 12px rgba(60,72,88,0.07);
-      margin-right: 28px;
-      margin-top: 32px;
-      padding: 22px 0 22px 0;
-      display: flex;
-      flex-direction: column;
-      align-items: stretch;
-      z-index: 1200;
-      height: fit-content;
-      border: 1px solid #e6e8ef;
-      transition: box-shadow 0.2s;
-    }
-    #left-panel .utc-box {
-      background: #fff;
-      border-radius: 10px;
-      box-shadow: none;
-      border: none;
-      padding: 14px 14px 10px 14px;
-      font-family: monospace;
-      font-size: 1.04em;
-      color: #263159;
-      min-width: 120px;
-      text-align: center;
-      margin-bottom: 18px;
-      pointer-events: none;
-      user-select: none;
-      letter-spacing: 0.01em;
-      transition: border 0.2s;
-    }
-    #left-panel .slider-box {
-      background: #f8fafc;
-      border-radius: 10px;
-      box-shadow: none;
-      border: none;
-      padding: 14px 10px 10px 10px;
-      text-align: center;
-      min-width: 120px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      margin-bottom: 0;
-      transition: border 0.2s;
-    }
-    #left-panel #hour-slider {
-      width: 110px;
-      margin-bottom: 8px;
-      accent-color: #263159;
-      height: 2px;
-      border-radius: 2px;
-      background: #e0e3ef;
-      outline: none;
-    }
-    #left-panel #hour-label {
-      font-family: monospace;
-      font-size: 1.08em;
-      color: #263159;
-      margin-bottom: 2px;
-      letter-spacing: 0.01em;
-    }
-    #left-panel #forecast-time-est {
-      margin-top: 4px;
-      font-family: monospace;
-      color: #444;
-      font-size: 0.98em;
-      background: none;
-      border: none;
-      padding: 0;
-    }
-    /* Center map and right panel */
-    #map-container {
-      flex: 1 1 auto;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      min-width: 0;
-      min-height: 0;
-      height: calc(100vh - 54px);
-    }
-    #map {
-      height: 80vh;
-      width: 70vw;
-      min-width: 400px;
-      min-height: 400px;
-      max-width: 1200px;
-      max-height: 900px;
-      background: #fff;
-      border-radius: 12px;
-      box-shadow: 0 4px 24px rgba(0,0,0,0.08);
-      margin: 0 auto;
-    }
-    /* Right panel */
-    #right-panel {
-      width: 270px;
-      background: rgba(255,255,255,0.98);
-      border-radius: 12px 0 0 12px;
-      box-shadow: -2px 2px 16px rgba(0,0,0,0.08);
-      margin-left: 24px;
-      margin-top: 24px;
-      padding: 18px 0 18px 0;
-      display: flex;
-      flex-direction: column;
-      align-items: stretch;
-      min-height: 320px;
-      z-index: 1200;
-    }
-    /* Dropdown style */
-    .dropdown {
-      margin: 0 18px 18px 18px;
-      border-radius: 8px;
-      background: #f5f7fa;
-      box-shadow: 0 1px 4px rgba(0,0,0,0.04);
-      overflow: hidden;
-      border: 1px solid #e0e0e0;
-    }
-    .dropdown-header {
-      padding: 16px 18px;
-      font-size: 1.13em;
-      font-weight: bold;
-      color: #263159;
-      background: #e8eaf6;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      user-select: none;
-    }
-    .dropdown-header.severe {
-      color: #b71c1c;
-      background: #ffebee;
-    }
-    .dropdown-arrow {
-      font-size: 1.2em;
-      margin-left: 8px;
-      transition: transform 0.2s;
-    }
-    .dropdown.open .dropdown-arrow {
-      transform: rotate(90deg);
-    }
-    .dropdown-content {
-      display: none;
-      padding: 0 18px 14px 18px;
-      animation: fadeIn 0.2s;
-    }
-    .dropdown.open .dropdown-content {
-      display: block;
-    }
-    .dropdown-content label {
-      display: block;
-      margin: 10px 0 0 0;
-      font-size: 1em;
-      color: #333;
-      cursor: pointer;
-    }
-    /* Hide old fixed UTC/time and slider containers */
-    #current-time-box, #custom-slider-container, #slider-container {
-      display: none !important;
-    }
-    /* Bottom colorbar sidebar */
-    #bottom-colorbar-bar {
-      position: fixed;
-      left: 0;
-      bottom: 0;
-      width: 100vw;
-      background: rgba(255,255,255,0.98);
-      box-shadow: 0 -2px 16px rgba(0,0,0,0.08);
-      border-top: 1px solid #e6e8ef;
-      z-index: 3000;
-      display: flex;
-      flex-direction: column;
-      justify-content: flex-end;
-      align-items: center;
-      padding: 0;
-      min-height: 60px;
-      height: 80px; /* Default height, can be changed by user */
-      transition: height 0.15s;
-      box-sizing: border-box;
-    }
-    #colorbar-resize-handle {
-      width: 100px;
-      height: 8px;
-      cursor: ns-resize;
-      background: #e0e3ef;
-      border-radius: 4px;
-      margin: 6px auto 0 auto;
-      position: relative;
-      top: 4px;
-      transition: background 0.2s;
-      z-index: 1;
-    }
-    #colorbar-resize-handle:hover {
-      background: #bfc6e0;
-    }
-    #colorbar-size-slider-container {
-      width: 100%;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      margin: 0 0 2px 0;
-      padding: 0;
-      font-size: 0.98em;
-      color: #444;
-      user-select: none;
-      gap: 10px;
-    }
-    #colorbar-size-slider {
-      width: 180px;
-      accent-color: #263159;
-      margin: 0 8px;
-    }
-    #colorbars-container {
-      display: flex;
-      flex-direction: row;
-      gap: 32px;
-      align-items: flex-end;
-      justify-content: center;
-      width: 100%;
-      margin: 0;
-      padding: 0;
-      background: none;
-      box-shadow: none;
-      padding-bottom: 8px;
-    }
-    #colorbars-container > div {
-      display: flex;
-      align-items: flex-end;
-      justify-content: center;
-      background: none;
-      box-shadow: none;
-      margin: 0;
-      padding: 0;
-    }
-    #colorbars-container img {
-      max-width: 260px;
-      width: 100%;
-      height: auto;
-      background: none;
-      border-radius: 6px;
-      box-shadow: 0 1px 8px rgba(0,0,0,0.04);
-      transition: max-width 0.15s;
-    }
-    /* Remove Leaflet attribution */
-    .leaflet-control-attribution {
-      display: none !important;
-    }
-    /* Spinner CSS */
-    .lds-ring {
-      display: inline-block;
-      position: relative;
-      width: 64px;
-      height: 64px;
-    }
-    .lds-ring div {
-      box-sizing: border-box;
-      display: block;
-      position: absolute;
-      width: 48px;
-      height: 48px;
-      margin: 8px;
-      border: 6px solid #1e90ff;
-      border-radius: 50%;
-      animation: lds-ring 1.1s cubic-bezier(0.5, 0, 0.5, 1) infinite;
-      border-color: #1e90ff transparent transparent transparent;
-    }
-    .lds-ring div:nth-child(1) {
-      animation-delay: -0.3s;
-    }
-    .lds-ring div:nth-child(2) {
-      animation-delay: -0.2s;
-    }
-    .lds-ring div:nth-child(3) {
-      animation-delay: -0.1s;
-    }
-    @keyframes lds-ring {
-      0% {
-        transform: rotate(0deg);
-      }
-      100% {
-        transform: rotate(360deg);
-      }
-    }
+import os
+import requests
+from datetime import datetime, timedelta
+import xarray as xr
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+import cartopy.crs as ccrs
+import numpy as np
+from matplotlib.colors import ListedColormap, BoundaryNorm
+import matplotlib.patheffects as patheffects
+import time  # Added for sleep
+import gc    # Added for garbage collection
 
-    /* --- Responsive styles for mobile (iPhone/Safari) --- */
-    @media (max-width: 900px) {
-      #main-content {
-        flex-direction: column;
-        align-items: stretch;
-        margin-top: 54px;
-        height: auto;
-        min-height: 100vh;
-      }
-      #left-panel {
-        width: 100vw;
-        min-width: 0;
-        margin: 16px 0 0 0;
-        border-radius: 0;
-        box-shadow: none;
-        border: none;
-        flex-direction: row;
-        justify-content: flex-start;
-        align-items: flex-start;
-        padding: 12px 0 12px 0;
-        height: auto;
-      }
-      #left-panel .utc-box,
-      #left-panel .slider-box {
-        min-width: 0;
-        width: 100%;
-        margin-bottom: 0;
-        margin-right: 0;
-        padding: 10px 8px 8px 8px;
-        font-size: 1em;
-      }
-      #left-panel > div {
-        margin: 0 8px 0 8px;
-      }
-      #map-container {
-        width: 100vw;
-        min-width: 0;
-        margin: 0;
-        padding: 0;
-        height: 60vw;
-        min-height: 320px;
-        max-height: 60vh;
-      }
-      #map {
-        width: 98vw;
-        min-width: 0;
-        max-width: 100vw;
-        height: 60vw;
-        min-height: 320px;
-        max-height: 60vh;
-        margin: 0 auto;
-        border-radius: 0;
-      }
-      #right-panel {
-        width: 100vw;
-        min-width: 0;
-        margin: 0;
-        margin-top: 8px;
-        border-radius: 0;
-        box-shadow: none;
-        border: none;
-        padding: 8px 0 8px 0;
-        min-height: 0;
-      }
-      .dropdown {
-        margin: 0 8px 12px 8px;
-      }
-      .dropdown-header {
-        padding: 12px 10px;
-        font-size: 1em;
-      }
-      .dropdown-content {
-        padding: 0 10px 10px 10px;
-      }
-      #bottom-colorbar-bar {
-        min-height: 48px;
-        height: 60px;
-        padding-bottom: env(safe-area-inset-bottom, 0);
-      }
-      #colorbars-container img {
-        max-width: 120px !important;
-      }
-      #colorbar-size-slider-container {
-        font-size: 0.95em;
-      }
-      #colorbar-size-slider {
-        width: 100px;
-      }
-    }
-    @media (max-width: 600px) {
-      #main-content {
-        margin-top: 54px;
-      }
-      #left-panel {
-        flex-direction: column;
-        align-items: stretch;
-        padding: 6px 0 6px 0;
-      }
-      #map-container, #map {
-        height: 50vw;
-        min-height: 200px;
-        max-height: 50vh;
-      }
-      #right-panel {
-        padding: 4px 0 4px 0;
-      }
-      #colorbars-container img {
-        max-width: 80px !important;
-      }
-    }
-    /* Make modal fit on mobile */
-    #skewt-modal > div {
-      max-width: 98vw !important;
-      max-height: 98vh !important;
-      padding: 6vw 2vw 6vw 2vw !important;
-    }
-    #skewt-img {
-      max-width: 96vw !important;
-      max-height: 70vh !important;
-    }
-    /* Prevent nav bar from overlapping content */
-    body {
-      padding-top: 54px;
-      box-sizing: border-box;
-    }
-  </style>
-</head>
-<body>
-  <!-- Top navigation bar -->
-  <div id="top-navbar">
-    <a class="nav-item" href="/home.html">Home</a>
-    <a class="nav-item" href="/more.html">More</a>
-    <a class="nav-item" href="/settings.html">Settings</a>
-    <a class="nav-item" href="/usa_leaflet.html">Weather Model Page</a>
-  </div>
-  <div id="main-content">
-    <!-- Left panel with UTC/time and slider -->
-    <div id="left-panel">
-      <div class="utc-box" id="left-current-time-box"></div>
-      <div style="padding: 0 18px 10px 18px;">
-        <label style="font-size:1.08em;">
-          <input type="checkbox" id="toggle-soundings" style="vertical-align:middle;margin-right:6px;">
-          Show Sounding Stations
-        </label>
-        <span id="soundings-wait-note" style="display:block;font-size:0.97em;color:#b36b00;margin-top:4px;">
-          <b>Note:</b> It takes about 45 Seconds to load soundings after turning on.
-        </span>
-      </div>
-      <div class="slider-box" id="left-slider-box" style="display:none;">
-        <input type="range" id="hour-slider" min="0" max="0" value="0" step="1">
-        <span id="hour-label"></span>
-        <div id="forecast-time-est"></div>
-        <div style="font-size:0.97em;color:#888;margin-top:10px;">
-          New runs 3:50am, 9:50am, 3:50pm, 9:50pm EST
-        </div>
-        <!-- Play button below the new runs info -->
-        <button id="slider-play-btn" style="margin:10px auto 0 auto;display:block;padding:6px 18px;font-size:1.05em;border-radius:6px;border:none;background:#263159;color:#fff;cursor:pointer;">
-          ▶ Play
-        </button>
-      </div>
-    </div>
-    <div id="map-container">
-      <div id="map"></div>
-      <!-- Modal for Skew-T -->
-      <div id="skewt-modal" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.5);z-index:5000;align-items:center;justify-content:center;">
-        <div style="background:#fff;padding:16px;border-radius:10px;box-shadow:0 4px 24px rgba(0,0,0,0.18);max-width:95vw;max-height:95vh;overflow:auto;position:relative;">
-          <span id="skewt-close" style="position:absolute;top:8px;right:16px;font-size:2em;cursor:pointer;">&times;</span>
-          <!-- Spinner overlay -->
-          <div id="skewt-spinner" style="display:none;position:absolute;left:0;top:0;width:100%;height:100%;background:rgba(255,255,255,0.7);z-index:10;align-items:center;justify-content:center;">
-            <div style="display:flex;align-items:center;justify-content:center;height:100%;">
-              <div class="lds-ring"><div></div><div></div><div></div><div></div></div>
-            </div>
-          </div>
-          <img id="skewt-img" src="" alt="Skew-T" style="max-width:90vw;max-height:80vh;display:block;margin:auto;">
-        </div>
-      </div>
-    </div>
-    <!-- Right panel with dropdowns -->
-    <div id="right-panel">
-      <div class="dropdown" id="dropdown-surface">
-        <div class="dropdown-header">
-          Surface DATA
-          <span class="dropdown-arrow">&#9654;</span>
-        </div>
-        <div class="dropdown-content">
-          <label>
-            <input type="checkbox" id="toggle-refc"> Composite Reflectivity
-            <input type="range" id="opacity-refc" min="0" max="1" step="0.01" value="0.7" style="width:80px;display:none;vertical-align:middle;">
-          </label>
-          <label>
-            <input type="checkbox" id="toggle-mslp"> Mean Sea Level Pressure
-            <input type="range" id="opacity-mslp" min="0" max="1" step="0.01" value="0.7" style="width:80px;display:none;vertical-align:middle;">
-          </label>
-          <label>
-            <input type="checkbox" id="toggle-temp2m"> 2m Temperature
-            <input type="range" id="opacity-temp2m" min="0" max="1" step="0.01" value="0.7" style="width:80px;display:none;vertical-align:middle;">
-          </label>
-          <label>
-            <input type="checkbox" id="toggle-rh"> 2m Relative Humidity
-            <input type="range" id="opacity-rh" min="0" max="1" step="0.01" value="0.7" style="width:80px;display:none;vertical-align:middle;">
-          </label>
-          <label>
-            <input type="checkbox" id="toggle-precip"> Total Precipitation
-            <input type="range" id="opacity-precip" min="0" max="1" step="0.01" value="0.7" style="width:80px;display:none;vertical-align:middle;">
-          </label>
-          <label>
-            <input type="checkbox" id="toggle-wind10m"> 10m Wind
-            <input type="range" id="opacity-wind10m" min="0" max="1" step="0.01" value="0.7" style="width:80px;display:none;vertical-align:middle;">
-          </label>
-          <label>
-            <input type="checkbox" id="toggle-wind10m-station"> 10m Wind Bars
-            <input type="range" id="opacity-wind10m-station" min="0" max="1" step="0.01" value="0.7" style="width:80px;display:none;vertical-align:middle;">
-          </label>
-          <label>
-            <input type="checkbox" id="toggle-gust"> Wind Gust (mph)
-            <input type="range" id="opacity-gust" min="0" max="1" step="0.01" value="0.7" style="width:80px;display:none;vertical-align:middle;">
-          </label>
-        </div>
-      </div>
-      <div class="dropdown" id="dropdown-severe">
-        <div class="dropdown-header severe">
-          Severe Weather
-          <span class="dropdown-arrow">&#9654;</span>
-        </div>
-        <div class="dropdown-content">
-          <label>
-            <input type="checkbox" id="toggle-lightning"> Lightning
-            <input type="range" id="opacity-lightning" min="0" max="1" step="0.01" value="0.7" style="width:80px;display:none;vertical-align:middle;">
-          </label>
-          <label>
-            <input type="checkbox" id="toggle-hail"> Hail Threat Scale
-            <input type="range" id="opacity-hail" min="0" max="1" step="0.01" value="0.7" style="width:80px;display:none;vertical-align:middle;">
-          </label>
-          <label>
-            <input type="checkbox" id="toggle-cape"> CAPE
-            <input type="range" id="opacity-cape" min="0" max="1" step="0.01" value="0.7" style="width:80px;display:none;vertical-align:middle;">
-          </label>
-          <label>
-            <input type="checkbox" id="toggle-cin"> CIN
-            <input type="range" id="opacity-cin" min="0" max="1" step="0.01" value="0.7" style="width:80px;display:none;vertical-align:middle;">
-          </label>
-          <label>
-            <input type="checkbox" id="toggle-srh"> Storm Relative Helicity
-            <input type="range" id="opacity-srh" min="0" max="1" step="0.01" value="0.7" style="width:80px;display:none;vertical-align:middle;">
-          </label>
-          <label>
-            <input type="checkbox" id="toggle-shear-vector"> Wind Shear Direction 0-6000m
-            <input type="range" id="opacity-shear-vector" min="0" max="1" step="0.01" value="0.7" style="width:80px;display:none;vertical-align:middle;">
-          </label>
-        </div>
-      </div>
-      <div class="dropdown" id="dropdown-diagnostics">
-        <div class="dropdown-header">
-          Diagnostics
-          <span class="dropdown-arrow">&#9654;</span>
-        </div>
-        <div class="dropdown-content">
-          <label>
-            <input type="checkbox" id="toggle-lcdc"> Low Cloud Cover
-            <input type="range" id="opacity-lcdc" min="0" max="1" step="0.01" value="0.7" style="width:80px;display:none;vertical-align:middle;">
-          </label>
-          <label>
-            <input type="checkbox" id="toggle-mcdc"> Medium Cloud Cover
-            <input type="range" id="opacity-mcdc" min="0" max="1" step="0.01" value="0.7" style="width:80px;display:none;vertical-align:middle;">
-          </label>
-          <label>
-            <input type="checkbox" id="toggle-hcdc"> High Cloud Cover
-            <input type="range" id="opacity-hcdc" min="0" max="1" step="0.01" value="0.7" style="width:80px;display:none;vertical-align:middle;">
-          </label>
-          <label>
-            <input type="checkbox" id="toggle-pwat">Precipitable Water 
-            <input type="range" id="opacity-pwat" min="0" max="1" step="0.01" value="0.7" style="width:80px;display:none;vertical-align:middle;">
-          </label>
-        </div>
-      </div>
-    </div>
-  </div>
-  <!-- Bottom colorbar sidebar -->
-  <div id="bottom-colorbar-bar">
-    <div id="colorbar-resize-handle" title="Drag to resize"></div>
-    <div id="colorbar-size-slider-container">
-      <span style="margin-right:4px;">Colorbar size</span>
-      <input type="range" id="colorbar-size-slider" min="120" max="600" value="260">
-      <span id="colorbar-size-value">260</span>px
-    </div>
-    <div id="colorbars-container">
-      <div id="colorbar-refc" style="display:none;">
-        <img src="/colorbar/REFC_colorbar.png" alt="REFC Color Bar">
-      </div>
-      <div id="colorbar-temp" style="display:none;">
-        <img src="/colorbar/TEMP_colorbar.png" alt="TEMP Color Bar">
-      </div>
-      <div id="colorbar-lightning" style="display:none;">
-        <img src="/colorbar/LIGHTNING_colorbar.png" alt="LIGHTNING Color Bar">
-      </div>
-      <div id="colorbar-mslp" style="display:none;">
-        <img src="/colorbar/mslp_colorbar.png" alt="MSLP Color Bar">
-      </div>
-      <div id="colorbar-rh" style="display:none;">
-        <img src="/colorbar/RH_colorbar.png" alt="RH Color Bar">
-      </div>
-      <div id="colorbar-hail" style="display:none;">
-        <img src="/colorbar/HAIL_colorbar.png" alt="HAIL Color Bar">
-      </div>
-      <div id="colorbar-cape" style="display:none;">
-        <img src="/colorbar/CAPE_colorbar.png" alt="CAPE Color Bar">
-      </div>
-      <div id="colorbar-cin" style="display:none;">
-        <img src="/colorbar/CIN_colorbar.png" alt="CIN Color Bar">
-      </div>
-      <div id="colorbar-lcdc" style="display:none;">
-        <img src="/colorbar/lcdc_colorbar.png" alt="LCDC Color Bar">
-      </div>
-      <div id="colorbar-mcdc" style="display:none;">
-        <img src="/colorbar/MCDC_colorbar.png" alt="MCDC Color Bar">
-      </div>
-      <div id="colorbar-hcdc" style="display:none;">
-        <img src="/colorbar/HCDC_colorbar.png" alt="HCDC Color Bar">
-      </div>
-      <div id="colorbar-precip" style="display:none;">
-        <img src="/colorbar/PRECIP_colorbar.png" alt="PRECIP Color Bar">
-      </div>
-      <div id="colorbar-wind10m" style="display:none;">
-        <img src="/colorbar/WIND10M_colorbar.png" alt="WIND10M Color Bar">
-      </div>
-      <div id="colorbar-srh" style="display:none;">
-        <img src="/colorbar/SRH_colorbar.png" alt="SRH Color Bar">
-      </div>
-      <div id="colorbar-pwat" style="display:none;">
-        <img src="/colorbar/PWAT_colorbar.png" alt="PWAT Color Bar">
-      </div>
-      <div id="colorbar-gust" style="display:none;">
-        <img src="/colorbar/GUST_colorbar.png" alt="GUST Color Bar">
-      </div>
-      <div id="colorbar-shear-vector" style="display:none;">
-        <img src="/colorbar/SHEAR_VECTOR_colorbar.png" alt="Wind Shear Direction Color Bar">
-      </div>
-    </div>
-  </div>
-  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-  <script>
-    var map = L.map('map', { attributionControl: false }).setView([37.8, -96], 4);
-    var imageBounds = [[24, -126], [50, -69]];
-    var cartopyBase = L.imageOverlay('/cartopy_base.png', imageBounds, {opacity: 1, interactive: false});
-    cartopyBase.addTo(map);
-    var overlayRefc = null;
-    var overlayMslp = null;
-    var overlayTemp2m = null;
-    var overlayLightning = null;
-    var overlayRH = null;
-    var overlayHail = null;
-    var overlayCAPE = null;
-    var overlayCIN = null;
-    var overlayLCDC = null;
-    var overlayMCDC = null;
-    var overlayHCDC = null;
-    var overlayPrecip = null;
-    var overlayWind10m = null; // WIND10M
-    var overlayWind10mStation = null; // WIND10M at stations
-    var overlaySRH = null;
-    var overlayPWAT = null;
-    var overlayGust = null;
-    var overlayShearVector = null;
-    var pngList = [];
-    var showRefc = false;
-    var showMslp = false;
-    var showTemp2m = false;
-    var showLightning = false;
-    var showRH = false;
-    var showHail = false;
-    var showCAPE = false;
-    var showCIN = false;
-    var showLCDC = false;
-    var showMCDC = false;
-    var showHCDC = false;
-    var showPrecip = false;
-    var showWind10m = false; // WIND10M
-    var showWind10mStation = false; // WIND10M at stations
-    var showSRH = false;
-    var showPWAT = false;
-    var showGust = false;
-    var showShearVector = false;
-    map.keyboard.disable();
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-    // Checkbox event listeners
-    document.getElementById('toggle-refc').addEventListener('change', function() {
-      showRefc = this.checked;
-      updateOverlay(parseInt(document.getElementById('hour-slider').value));
-      updateColorbars(getVisibleLayers());
-    });
-    document.getElementById('toggle-mslp').addEventListener('change', function() {
-      showMslp = this.checked;
-      updateOverlay(parseInt(document.getElementById('hour-slider').value));
-      updateColorbars(getVisibleLayers());
-    });
-    document.getElementById('toggle-temp2m').addEventListener('change', function() {
-      showTemp2m = this.checked;
-      updateOverlay(parseInt(document.getElementById('hour-slider').value));
-      updateColorbars(getVisibleLayers());
-    });
-    document.getElementById('toggle-lightning').addEventListener('change', function() {
-      showLightning = this.checked;
-      updateOverlay(parseInt(document.getElementById('hour-slider').value));
-      updateColorbars(getVisibleLayers());
-    });
-    document.getElementById('toggle-rh').addEventListener('change', function() { // RH event
-      showRH = this.checked;
-      updateOverlay(parseInt(document.getElementById('hour-slider').value));
-      updateColorbars(getVisibleLayers());
-    });
-    document.getElementById('toggle-hail').addEventListener('change', function() {
-      showHail = this.checked;
-      updateOverlay(parseInt(document.getElementById('hour-slider').value));
-      updateColorbars(getVisibleLayers());
-    });
-    document.getElementById('toggle-cape').addEventListener('change', function() {
-      showCAPE = this.checked;
-      updateOverlay(parseInt(document.getElementById('hour-slider').value));
-      updateColorbars(getVisibleLayers());
-    });
-    document.getElementById('toggle-cin').addEventListener('change', function() {
-      showCIN = this.checked;
-      updateOverlay(parseInt(document.getElementById('hour-slider').value));
-      updateColorbars(getVisibleLayers());
-    });
-    document.getElementById('toggle-lcdc').addEventListener('change', function() {
-      showLCDC = this.checked;
-      updateOverlay(parseInt(document.getElementById('hour-slider').value));
-      updateColorbars(getVisibleLayers());
-    });
-    document.getElementById('toggle-mcdc').addEventListener('change', function() {
-      showMCDC = this.checked;
-      updateOverlay(parseInt(document.getElementById('hour-slider').value));
-      updateColorbars(getVisibleLayers());
-    });
-    document.getElementById('toggle-hcdc').addEventListener('change', function() {
-      showHCDC = this.checked;
-      updateOverlay(parseInt(document.getElementById('hour-slider').value));
-      updateColorbars(getVisibleLayers());
-    });
-    document.getElementById('toggle-precip').addEventListener('change', function() {
-      showPrecip = this.checked;
-      updateOverlay(parseInt(document.getElementById('hour-slider').value));
-      updateColorbars(getVisibleLayers());
-    });
-    document.getElementById('toggle-wind10m').addEventListener('change', function() {
-      showWind10m = this.checked;
-      updateOverlay(parseInt(document.getElementById('hour-slider').value));
-      updateColorbars(getVisibleLayers());
-    });
-    document.getElementById('toggle-wind10m-station').addEventListener('change', function() {
-      showWind10mStation = this.checked;
-      updateOverlay(parseInt(document.getElementById('hour-slider').value));
-      updateColorbars(getVisibleLayers());
-    });
-    document.getElementById('toggle-srh').addEventListener('change', function() {
-      showSRH = this.checked;
-      updateOverlay(parseInt(document.getElementById('hour-slider').value));
-      updateColorbars(getVisibleLayers());
-    });
-    document.getElementById('toggle-pwat').addEventListener('change', function() {
-      showPWAT = this.checked;
-      updateOverlay(parseInt(document.getElementById('hour-slider').value));
-      updateColorbars(getVisibleLayers());
-    });
-    document.getElementById('toggle-gust').addEventListener('change', function() {
-      showGust = this.checked;
-      updateOverlay(parseInt(document.getElementById('hour-slider').value));
-      updateColorbars(getVisibleLayers());
-    });
-    document.getElementById('toggle-shear-vector').addEventListener('change', function() {
-      showShearVector = this.checked;
-      updateOverlay(parseInt(document.getElementById('hour-slider').value));
-      updateColorbars(getVisibleLayers());
-    });
-    // Set all checkboxes to unchecked and variables to false on load
-    document.getElementById('toggle-refc').checked = false;
-    document.getElementById('toggle-mslp').checked = false;
-    document.getElementById('toggle-temp2m').checked = false;
-    document.getElementById('toggle-lightning').checked = false;
-    document.getElementById('toggle-rh').checked = false; // RH
-    document.getElementById('toggle-hail').checked = false;
-    document.getElementById('toggle-cape').checked = false;
-    document.getElementById('toggle-cin').checked = false; // CIN
-    document.getElementById('toggle-lcdc').checked = false;
-    document.getElementById('toggle-mcdc').checked = false;
-    document.getElementById('toggle-hcdc').checked = false;
-    document.getElementById('toggle-precip').checked = false;
-    document.getElementById('toggle-wind10m').checked = false; // WIND10M
-    document.getElementById('toggle-wind10m-station').checked = false; // WIND10M at stations
-    document.getElementById('toggle-srh').checked = false;
-    document.getElementById('toggle-pwat').checked = false;
-    document.getElementById('toggle-gust').checked = false;
-    document.getElementById('toggle-shear-vector').checked = false;
+# --- Clean up old files in grib_files and pngs directories ---
+for folder in [
+    os.path.join(BASE_DIR, "Hrrr", "static", "RH", "grib_files"),
+    os.path.join(BASE_DIR, "Hrrr", "static", "RH")
+]:
+    if os.path.exists(folder):
+        for f in os.listdir(folder):
+            file_path = os.path.join(folder, f)
+            if os.path.isfile(file_path):
+                os.remove(file_path)
 
-    // --- Dropdown logic for right panel ---
-    function closeAllDropdowns() {
-      document.querySelectorAll('.dropdown').forEach(function(drop) {
-        drop.classList.remove('open');
-      });
-    }
-    // Close all dropdowns on load
-    closeAllDropdowns();
-    // Toggle dropdown open/close on header click
-    document.querySelectorAll('.dropdown').forEach(function(drop) {
-      var header = drop.querySelector('.dropdown-header');
-      header.addEventListener('click', function(e) {
-        // Only toggle if not clicking a checkbox
-        if (e.target.tagName === 'INPUT') return;
-        var isOpen = drop.classList.contains('open');
-        closeAllDropdowns();
-        if (!isOpen) drop.classList.add('open');
-      });
-    });
-    // Optional: close dropdowns if clicking outside
-    document.addEventListener('click', function(e) {
-      if (!e.target.closest('.dropdown')) {
-        closeAllDropdowns();
-      }
-    });
+# Directories
+output_dir = os.path.join(BASE_DIR, "Hrrr")
+rh_dir = os.path.join(output_dir, "static", "RH")
+grib_dir = os.path.join(rh_dir, "grib_files")
+os.makedirs(grib_dir, exist_ok=True)
+os.makedirs(rh_dir, exist_ok=True)
 
-    // --- Slider logic (now in left panel) ---
-    fetch('/reflectivity_images')
-      .then(response => response.json())
-      .then(function(images) {
-        pngList = images;
-        if (pngList.length === 0) return;
-        var slider = document.getElementById('hour-slider');
-        var label = document.getElementById('hour-label');
-        var forecastTimeBox = document.getElementById('forecast-time-est');
-        document.getElementById('left-slider-box').style.display = 'flex';
-        slider.max = pngList.length - 1;
-        slider.value = 0;
+# Get the current UTC date and time and select the most recent HRRR run (0z, 6z, 12z, 18z)
+current_utc_time = datetime.utcnow()
+run_hour = (current_utc_time.hour // 6) * 6
+if run_hour == 24:
+    run_hour = 18
+date_for_run = current_utc_time
+if current_utc_time.hour < run_hour:
+    date_for_run = current_utc_time - timedelta(hours=6)
+    run_hour = (date_for_run.hour // 6) * 6
+date_str = date_for_run.strftime("%Y%m%d")
+hour_str = str(run_hour).zfill(2)  # 00, 06, 12, 18
 
-        function getForecastTimeEST(hourOffset) {
-          // Get current UTC time
-          const now = new Date();
-          const utcYear = now.getUTCFullYear();
-          const utcMonth = now.getUTCMonth();
-          const utcDay = now.getUTCDate();
-          const utcHour = now.getUTCHours();
+# RH variable and colormap
+variable_rh = "RH"
+bounds = [0, 20, 40, 60, 80, 90, 100]
+colors = [
+    "#ffffff",  # 0–20: White
+    "#f5deb3",  # 20–40: Light Tan (Wheat)
+    "#b9fbc0",  # 40–60: Light Green
+    "#34c759",  # 60–80: Green
+    "#006400",  # 80–90: Dark Green
+    "#1e90ff"   # 90–100: Blue
+]
+cmap = ListedColormap(colors)
+norm = BoundaryNorm(boundaries=bounds, ncolors=len(colors))
 
-          // Find most recent HRRR run hour (00, 06, 12, 18) <= current UTC hour
-          let runHour = Math.floor(utcHour / 6) * 6;
-          if (runHour === 24) runHour = 18;
-          let runDate = new Date(Date.UTC(utcYear, utcMonth, utcDay, runHour));
-          if (utcHour < runHour) {
-            runDate.setUTCHours(runDate.getUTCHours() - 6);
-            runHour = Math.floor(runDate.getUTCHours() / 6) * 6;
-          }
+# Function to download GRIB files
+def download_file(hour_str, step):
+    file_name = f"hrrr.t{hour_str}z.wrfsfcf{step:02d}.grib2"
+    file_path = os.path.join(grib_dir, file_name)
+    url_rh = (f"https://nomads.ncep.noaa.gov/cgi-bin/filter_hrrr_2d.pl?"
+              f"dir=%2Fhrrr.{date_str}%2Fconus&file={file_name}"
+              f"&var_{variable_rh}=on&lev_2_m_above_ground=on")
+    response = requests.get(url_rh, stream=True)
+    if response.status_code == 200:
+        with open(file_path, 'wb') as f:
+            for chunk in response.iter_content(chunk_size=1024):
+                if chunk:
+                    f.write(chunk)
+        print(f"Downloaded {file_name}")
+        return file_path
+    else:
+        print(f"Failed to download {file_name} (Status Code: {response.status_code})")
+        return None
 
-          // Map runHour to EST start hour
-          // 00z = 8pm prev day, 06z = 2am, 12z = 8am, 18z = 2pm (all EST)
-          let estStartHour;
-          if (runHour === 0) estStartHour = 20;      // 8pm previous day
-          else if (runHour === 6) estStartHour = 2;  // 2am
-          else if (runHour === 12) estStartHour = 8; // 8am
-          else if (runHour === 18) estStartHour = 14;// 2pm
+# NY_ASOS Network stations: (ID, Name, Latitude, Longitude)
+NY_ASOS_STATIONS = [
+    ("PGV", "Greenville", 35.6127, -77.3664),
+    ("PIT", "Pittsburgh", 40.4406, -79.9959),
+    ("SHV", "Shreveport", 32.5252, -93.7502),
+    ("DSM", "Des Moines", 41.5868, -93.6250),
+    ("GDV", "Glendive", 47.1050, -104.7102),
+    ("CDC", "Cedar City", 37.6775, -113.0619),
+    ("MCI", "Kansas City", 39.0997, -94.5786),
+    ("UOX", "Oxford", 34.3665, -89.5342),
+    ("HSV", "Huntsville", 34.7304, -86.5861),
+    ("CSG", "Columbus", 32.4609, -84.9877),
+    ("TLH", "Tallahassee", 30.4383, -84.2807),
+    ("WMC", "Winnemucca", 40.9729, -117.7357),
+    ("PHX", "Phoenix", 33.4484, -112.0740),
+    ("ABQ", "Albuquerque", 35.0844, -106.6504),
+    ("OKC", "Oklahoma City", 35.4676, -97.5164),
+    ("LSE", "La Crosse", 43.8014, -91.2396),
+    ("SLC", "Salt Lake City", 40.7608, -111.8910),
+    ("SHV", "Shreveport", 32.5252, -93.7502),
+    ("MSY", "New Orleans", 29.9511, -90.0715),
+    ("ICT", "Wichita", 37.6872, -97.3301),
+    ("AIA", "Alliance", 42.1014, -102.8724),
+    ("MSN", "Madison", 43.0731, -89.4012),
+    ("DLH", "Duluth", 46.7867, -92.1005),
+    ("DTW", "Detroit", 42.3314, -83.0458),
+    ("TVC", "Traverse City", 44.7631, -85.6206),
+    ("SPI", "Springfield", 39.7817, -89.6501),
+    ("IND", "Indianapolis", 39.7684, -86.1581),
+    ("LEX", "Lexington", 38.0406, -84.5037),
+    ("CGI", "Cape Girardeau", 37.3059, -89.5181),
+    ("CRW", "Charleston", 38.3498, -81.6326),
+    ("ABE", "Allentown", 40.6084, -75.4902),
+    ("ACY", "Atlantic City", 39.3643, -74.4229),
+    ("YNG", "Youngstown", 41.0998, -80.6495),
+    ("RUT", "Rutland", 43.6106, -72.9726),
+    ("GFD", "Greenfield", 42.5876, -72.5995),
+    ("BOS", "Boston", 42.3601, -71.0589),
+    ("NPT", "Newport", 41.4901, -71.3128),
+    ("WAT", "Waterbury", 41.5582, -73.0515),
+    ("GON", "New London", 41.3557, -72.0995),
+    ("CON", "Concord", 43.2081, -71.5376),
+    ("AUG", "Augusta", 44.3106, -69.7795),
+    ("CPR", "Casper", 42.8666, -106.3131),
+    ("BOI", "Boise", 43.6150, -116.2023),
+    ("PDX", "Portland", 45.5152, -122.6784),
+    ("SEA", "Seattle", 47.6062, -122.3321),
+    ("RAP", "Rapid City", 44.0805, -103.2310),
+    ("LIT", "Little Rock", 34.7465, -92.2896),
+    ("MEM", "Memphis", 35.1495, -90.0490),
+    ("MOB", "Mobile", 30.6954, -88.0399),
+    ("TPA", "Tampa", 27.9506, -82.4572),
+    ("MIA", "Miami", 25.7617, -80.1918),
+    ("JAX", "Jacksonville", 30.3322, -81.6557),
+    ("MYR", "Myrtle Beach", 33.6891, -78.8867),
+    ("AVL", "Asheville", 35.5951, -82.5515),
+    ("RIC", "Richmond", 37.5407, -77.4360),
+    ("CMH", "Columbus", 39.9612, -82.9988),
+    ("OMA", "Omaha", 41.2565, -95.9345),
+    ("FAR", "Fargo", 46.8772, -96.7898),
+    ("GTF", "Great Falls", 47.4942, -111.2833),
+    ("SJC", "San Jose", 37.3541, -121.9552),
+    ("LAS", "Las Vegas", 36.1699, -115.1398),
+    ("DFW", "Dallas", 32.7767, -96.7970),
+    ("CRP", "Corpus Christi", 27.8006, -97.3964),
+    ("AMA", "Amarillo", 35.2219, -101.8313),
+    ("DENVER", "Denver", 39.7392, -104.9903),
+    ("ISP", "Islip", 40.7952, -73.1002),
+    ("FOK", "Westhampton Beach", 40.8437, -72.6318),
+    ("HPN", "White Plains", 41.0669, -73.7076),
+    ("ALB", "Albany", 42.7576, -73.8036),
+    ("ART", "Watertown", 43.9888, -76.0262),
+    ("BGM", "Binghamton", 42.2086, -75.9797),
+    ("BUF", "Buffalo", 42.9408, -78.7358),
+    ("DKK", "Dunkirk", 42.4933, -79.272),
+    ("DSV", "Dansville", 42.5709, -77.713),
+    ("ELM", "Elmira", 42.1571, -76.8994),
+    ("GFL", "Glens Falls", 43.3412, -73.6103),
+    ("ITH", "Ithaca", 42.491, -76.4584),
+    ("JHW", "Jamestown", 42.1533, -79.2581),
+    ("MSS", "Massena", 44.9358, -74.8456),
+    ("NYC", "Central Park", 40.7794, -73.9692),
+    ("OGS", "Ogdensburg", 44.6819, -75.4655),
+    ("PEO", "Penn Yan", 42.6373, -77.0522),
+    ("PBG", "Plattsburgh Intl", 44.6509, -73.4681),
+    ("ROC", "Rochester", 43.1189, -77.6724),
+    ("RME", "Rome", 43.2338, -75.4061),
+    ("SLK", "Saranac Lake", 44.3853, -74.2062),
+    ("SWF", "Newburgh", 41.5041, -74.1048),
+    ("SYR", "Syracuse", 43.1112, -76.1063),
+    ("AND", "Andes", 42.1906, -74.7857),
+    ("OLF", "Old Forge", 43.7117, -74.9732),
+    ("JNY", "Johnstown", 42.9942, -74.3735),
+    ("ONH", "Oneonta", 42.4529, -75.0638),
+    ("KNG", "Kingston", 41.9270, -73.9974),
+    ("NBN", "New Berlin", 42.6248, -75.3326),
+    ("SPC", "Speculator", 43.4967, -74.3571),
+    ("NCK", "North Creek", 43.6948, -73.9824),
+    ("PHN", "Port Henry", 44.0473, -73.4601),
+    ("STL", "Star Lake", 44.1559, -74.9327),
+     ("BEN", "Bennington", 42.8781, -73.1968),
+    ("RAN", "Randolph", 43.9242, -72.6657),
+    ( "MPL", "Montpelier", 44.2601, -72.5754),
+    ("JPK", "Jay Peak", 44.9377, -72.5146),
+    ("IPD", "Island Pond", 44.8145, -71.8826),
+     ("SPF", "Springfield", 42.1015, -72.5898),
+    ("WOR", "Worcester", 42.2626, -71.8023),
+    ("CPC", "Cape Cod", 41.6688, -70.2962),
+    ("HAV", "Haverhill", 42.7762, -71.0773),
+    ("SFD", "Sanford", 43.4390, -70.7748), 
+    ("DNM", "Denmark", 43.9492, -70.8026),
+    ("RMF", "Rumford", 44.5534, -70.5459),
+    ("BGL", "Bigelow", 45.1484, -70.2653),
+    ("KKJ", "Kokadjo", 45.7262, -69.4648),
+    ("NWD", "North Woodstock", 44.0323, -71.6868),
+    ("KEN", "Keene", 42.9337, -72.2781),
+    ("GRH", "Gorham", 44.3876, -71.1723),
+    ("LNC", "Lancaster", 44.4881, -71.5692),
+    ("ERR", "Errol", 44.7801, -71.1245),
+    ("HUD", "Hudson", 42.2529, -73.7909),
+    ("BRV", "Branchville", 41.1534, -74.6932),
+    ("NEG", "New Egypt", 40.1031, -74.4430),
+    ("SAL", "Salem", 39.5701, -75.4681),
+    ("STC", "State College", 40.7934, -77.8600),
+    ("WLB", "Wellsboro", 41.7487, -77.3019),
+    ("BED", "Bedford", 40.0148, -78.5034),
+    ("KAN", "Kane", 41.6615, -78.8054),
+    ("EDB", "Edinboro", 41.9431, -80.1289),
+    ("WCH", "West Chester", 39.9606, -75.6055),
+    ("SCR", "Scranton", 41.4089, -75.6624),
+]
 
-          // For 00z, move to previous day for EST start
-          let estRunDate = new Date(runDate.getTime());
-          if (runHour === 0) {
-            estRunDate.setUTCDate(estRunDate.getUTCDate() - 1);
-          }
-          // Set EST run start hour
-          estRunDate.setUTCHours(estStartHour + 5, 0, 0, 0); // EST to UTC (+5)
+# Function to generate a PNG from GRIB file using xarray
+def plot_relative_humidity(filepath, save_path=None):
+    try:
+        ds = xr.open_dataset(filepath, engine="cfgrib")
+        rh_vals = ds['r2'].squeeze()
 
-          // Forecast valid time = estRunDate + hourOffset (in hours)
-          let validDate = new Date(estRunDate.getTime() + hourOffset * 3600 * 1000);
+        fig = plt.figure(figsize=(10, 7), dpi=650)
+        ax = plt.axes(projection=ccrs.PlateCarree())
+        ax.set_extent([-126, -69, 24, 50], crs=ccrs.PlateCarree())
 
-          // Format yymmdd and hour in 12-hour format with AM/PM
-          let yy = String(validDate.getFullYear()).slice(2);
-          let mm = String(validDate.getMonth() + 1).padStart(2, '0');
-          let dd = String(validDate.getDate()).padStart(2, '0');
-          let hour24 = validDate.getUTCHours() - 5;
-          if (hour24 < 0) {
-            hour24 += 24;
-            // If hour24 < 0, subtract a day
-            let prev = new Date(validDate.getTime() - 24 * 3600 * 1000);
-            yy = String(prev.getFullYear()).slice(2);
-            mm = String(prev.getMonth() + 1).padStart(2, '0');
-            dd = String(prev.getDate()).padStart(2, '0');
-          }
-          let ampm = hour24 >= 12 ? 'PM' : 'AM';
-          let hour12 = hour24 % 12;
-          if (hour12 === 0) hour12 = 12;
-          let hh = String(hour12).padStart(2, '0');
-          return `Forecast valid (EST): ${yy}${mm}${dd} ${hh}:00 ${ampm}`;
-        }
+        # Get lats/lons from dataset if available, else use imshow as fallback
+        if 'latitude' in ds and 'longitude' in ds:
+            lats = ds['latitude'].values
+            lons = ds['longitude'].values
+            # Convert lons from 0-360 to -180 to 180 for plotting and matching
+            lons_plot = np.where(lons > 180, lons - 360, lons)
+            mesh = ax.pcolormesh(
+                lons_plot, lats, rh_vals,
+                cmap=cmap,
+                shading='auto',
+                norm=norm,
+                transform=ccrs.PlateCarree()
+            )
+            # Plot RH values at NY_ASOS stations (after mesh, with high zorder)
+            for stn_id, stn_name, stn_lat, stn_lon in NY_ASOS_STATIONS:
+                # Convert station lon to 0-360 for matching grid
+                stn_lon_grid = stn_lon if stn_lon >= 0 else stn_lon + 360
+                if lats.ndim == 2 and lons.ndim == 2:
+                    dist = (lats - stn_lat)**2 + (lons - stn_lon_grid)**2
+                    iy, ix = np.unravel_index(np.argmin(dist), dist.shape)
+                else:
+                    iy = np.abs(lats - stn_lat).argmin()
+                    ix = np.abs(lons - stn_lon_grid).argmin()
+                rh_val = rh_vals[iy, ix]
+                txt = ax.text(
+                    stn_lon, stn_lat, f"{rh_val:.0f}",
+                    color='white', fontsize=1, fontweight='bold', fontname='DejaVu Sans',
+                    ha='center', va='center', transform=ccrs.PlateCarree(),
+                    zorder=2
+                )
+                txt.set_path_effects([
+                    matplotlib.patheffects.Stroke(linewidth=0.5, foreground='black'),
+                    matplotlib.patheffects.Normal()
+                ])
+        else:
+            # fallback to imshow if no lat/lon
+            leaflet_extent = [-125, -66.5, 24.5, 49.5]
+            mesh = ax.imshow(
+                rh_vals,
+                cmap=cmap,
+                extent=leaflet_extent,
+                origin='lower',
+                interpolation='bilinear',
+                aspect='auto',
+                norm=norm,
+                transform=ccrs.PlateCarree()
+            )
+            # Cannot plot station values without lat/lon grid
 
-      window.updateOverlay = function(idx) {
-          // Remove all overlays first
-          if (overlayRefc) { map.removeLayer(overlayRefc); overlayRefc = null; }
-          if (overlayMslp) { map.removeLayer(overlayMslp); overlayMslp = null; }
-          if (overlayTemp2m) { map.removeLayer(overlayTemp2m); overlayTemp2m = null; }
-          if (overlayLightning) { map.removeLayer(overlayLightning); overlayLightning = null; }
-          if (overlayRH) { map.removeLayer(overlayRH); overlayRH = null; }
-          if (overlayHail) { map.removeLayer(overlayHail); overlayHail = null; }
-          if (overlayCAPE) { map.removeLayer(overlayCAPE); overlayCAPE = null; }
-          if (overlayCIN) { map.removeLayer(overlayCIN); overlayCIN = null; } // Remove CIN overlay
-          if (overlayLCDC) { map.removeLayer(overlayLCDC); overlayLCDC = null; } // Remove LCDC overlay
-          if (overlayMCDC) { map.removeLayer(overlayMCDC); overlayMCDC = null; } // Remove MCDC overlay
-          if (overlayHCDC) { map.removeLayer(overlayHCDC); overlayHCDC = null; } // Remove HCDC overlay
-          if (overlayPrecip) { map.removeLayer(overlayPrecip); overlayPrecip = null; } // Remove Precip overlay
-          if (overlayWind10m) { map.removeLayer(overlayWind10m); overlayWind10m = null; } // Remove WIND10M overlay
-          if (overlayWind10mStation) { map.removeLayer(overlayWind10mStation); overlayWind10mStation = null; } // Remove WIND10M at stations overlay
-          if (overlaySRH) { map.removeLayer(overlaySRH); overlaySRH = null; }
-          if (overlayPWAT) { map.removeLayer(overlayPWAT); overlayPWAT = null; }
-          if (overlayGust) { map.removeLayer(overlayGust); overlayGust = null; }
-          if (overlayShearVector) { map.removeLayer(overlayShearVector); overlayShearVector = null; }
+        ax.set_axis_off()
+        plt.subplots_adjust(left=0, right=1, top=1, bottom=0)
+        if save_path:
+            plt.savefig(save_path, bbox_inches='tight', pad_inches=0, transparent=True)
+            print(f"✅ Plot saved to {save_path}")
+        plt.close(fig)
+    except Exception as e:
+        print(f"❌ Error: {e}")
 
-          // Defensive: If idx is out of bounds, do nothing
-          if (!pngList || idx < 0 || idx >= pngList.length) return;
+# Main process: Download and plot
+for step in range(0, 49):  # Loop through forecast steps (00 to 48 hours)
+    grib_file = download_file(hour_str, step)
+    if grib_file:
+        png_file = os.path.join(rh_dir, f"RH_{step:02d}.png")
+        plot_relative_humidity(grib_file, png_file)
+        gc.collect()         # Collect garbage after each PNG creation
+        time.sleep(3)        # Wait 3 seconds between each step
 
-          var entry = pngList[idx] || {};
-          var cacheBuster = "?t=" + Date.now();
-
-          // Each overlay is toggled independently by its checkbox, use opacity from overlayOpacity
-          if (showRefc && entry.refc) overlayRefc = L.imageOverlay(entry.refc + cacheBuster, imageBounds, {opacity: overlayOpacity.refc}).addTo(map);
-          if (showMslp && entry.mslp) overlayMslp = L.imageOverlay(entry.mslp + cacheBuster, imageBounds, {opacity: overlayOpacity.mslp}).addTo(map);
-          if (showTemp2m && entry.temp2m) overlayTemp2m = L.imageOverlay(entry.temp2m + cacheBuster, imageBounds, {opacity: overlayOpacity.temp2m}).addTo(map);
-          if (showLightning && entry.lightning) overlayLightning = L.imageOverlay(entry.lightning + cacheBuster, imageBounds, {opacity: overlayOpacity.lightning}).addTo(map);
-          if (showRH && entry.rh) overlayRH = L.imageOverlay(entry.rh + cacheBuster, imageBounds, {opacity: overlayOpacity.rh}).addTo(map);
-          if (showHail && entry.hail) overlayHail = L.imageOverlay(entry.hail + cacheBuster, imageBounds, {opacity: overlayOpacity.hail}).addTo(map);
-          if (showCAPE && entry.cape) overlayCAPE = L.imageOverlay(entry.cape + cacheBuster, imageBounds, {opacity: overlayOpacity.cape}).addTo(map);
-          if (showCIN && entry.cin) overlayCIN = L.imageOverlay(entry.cin + cacheBuster, imageBounds, {opacity: overlayOpacity.cin}).addTo(map); // Add CIN overlay
-          if (showLCDC && entry.lcdc) overlayLCDC = L.imageOverlay(entry.lcdc + cacheBuster, imageBounds, {opacity: overlayOpacity.lcdc}).addTo(map); // Add LCDC overlay
-          if (showMCDC && entry.mcdc) overlayMCDC = L.imageOverlay(entry.mcdc + cacheBuster, imageBounds, {opacity: overlayOpacity.mcdc}).addTo(map); // Add MCDC overlay
-          if (showHCDC && entry.hcdc) overlayHCDC = L.imageOverlay(entry.hcdc + cacheBuster, imageBounds, {opacity: overlayOpacity.hcdc}).addTo(map); // Add HCDC overlay
-          if (showPrecip && entry.precip) overlayPrecip = L.imageOverlay(entry.precip + cacheBuster, imageBounds, {opacity: overlayOpacity.precip}).addTo(map); // Add Precip overlay
-          if (showWind10m && entry.wind10m) overlayWind10m = L.imageOverlay(entry.wind10m + cacheBuster, imageBounds, {opacity: overlayOpacity.wind10m}).addTo(map); // Add WIND10M overlay
-          if (showWind10mStation && entry.wind10m_station) overlayWind10mStation = L.imageOverlay(entry.wind10m_station + cacheBuster, imageBounds, {opacity: overlayOpacity.wind10mStation}).addTo(map); // Add WIND10M at stations overlay
-          if (showSRH && entry.srh) overlaySRH = L.imageOverlay(entry.srh + cacheBuster, imageBounds, {opacity: overlayOpacity.srh}).addTo(map);
-          if (showPWAT && entry.pwat) overlayPWAT = L.imageOverlay(entry.pwat + cacheBuster, imageBounds, {opacity: overlayOpacity.pwat}).addTo(map); // Add PWAT overlay
-          if (showGust && entry.gust) overlayGust = L.imageOverlay(entry.gust + cacheBuster, imageBounds, {opacity: overlayOpacity.gust}).addTo(map); // Add GUST overlay
-          if (showShearVector && entry.shear_vector) overlayShearVector = L.imageOverlay(entry.shear_vector + cacheBuster, imageBounds, {opacity: overlayOpacity.shearVector}).addTo(map); // Add Shear Vector overlay
-
-          // Always show hour label and forecast time if entry exists
-          if (entry && typeof entry.hour !== "undefined") {
-            label.textContent = `Hour: ${entry.hour}`;
-            forecastTimeBox.textContent = getForecastTimeEST(entry.hour);
-          } else {
-            label.textContent = "No data";
-            forecastTimeBox.textContent = "";
-          }
-          updateColorbars(getVisibleLayers());
-      };
-
-      slider.oninput = function() {
-        updateOverlay(parseInt(slider.value));
-      };
-
-      // Add arrow key support
-      document.addEventListener('keydown', function(e) {
-        if (['ArrowRight', 'ArrowLeft'].includes(e.key)) {
-          e.preventDefault();
-          var idx = parseInt(slider.value);
-          if (e.key === 'ArrowRight' && idx < pngList.length - 1) {
-            slider.value = idx + 1;
-            slider.dispatchEvent(new Event('input'));
-          } else if (e.key === 'ArrowLeft' && idx > 0) {
-            slider.value = idx - 1;
-            slider.dispatchEvent(new Event('input'));
-          }
-        }
-      });
-
-      // Show first image if available, otherwise show empty overlays
-      if (pngList.length > 0) {
-        updateOverlay(0);
-      } else {
-        // Show slider anyway, but disable it
-        document.getElementById('left-slider-box').style.display = 'flex';
-        slider.max = 0;
-        slider.value = 0;
-        slider.disabled = true;
-        label.textContent = "No data";
-        forecastTimeBox.textContent = "";
-      }
-      });
-
-    function updateColorbars(visibleLayers) {
-      document.getElementById("colorbar-refc").style.display = visibleLayers.includes("REFC") ? "block" : "none";
-      document.getElementById("colorbar-temp").style.display = visibleLayers.includes("TEMP") ? "block" : "none";
-      document.getElementById("colorbar-lightning").style.display = visibleLayers.includes("LIGHTNING") ? "block" : "none";
-      document.getElementById("colorbar-mslp").style.display = visibleLayers.includes("MSLP") ? "block" : "none";
-      document.getElementById("colorbar-rh").style.display = visibleLayers.includes("RH") ? "block" : "none";
-      document.getElementById("colorbar-hail").style.display = visibleLayers.includes("HAIL") ? "block" : "none";
-      document.getElementById("colorbar-cape").style.display = visibleLayers.includes("CAPE") ? "block" : "none";
-      document.getElementById("colorbar-cin").style.display = visibleLayers.includes("CIN") ? "block" : "none";
-      document.getElementById("colorbar-lcdc").style.display = visibleLayers.includes("LCDC") ? "block" : "none";
-      document.getElementById("colorbar-mcdc").style.display = visibleLayers.includes("MCDC") ? "block" : "none";
-      document.getElementById("colorbar-hcdc").style.display = visibleLayers.includes("HCDC") ? "block" : "none";
-      document.getElementById("colorbar-precip").style.display = visibleLayers.includes("PRECIP") ? "block" : "none";
-      document.getElementById("colorbar-wind10m").style.display =
-        (visibleLayers.includes("WIND10M") || visibleLayers.includes("WIND10M_STATION")) ? "block" : "none";
-      document.getElementById("colorbar-srh").style.display = visibleLayers.includes("SRH") ? "block" : "none";
-      document.getElementById("colorbar-pwat").style.display = visibleLayers.includes("PWAT") ? "block" : "none";
-      document.getElementById("colorbar-gust").style.display = visibleLayers.includes("GUST") ? "block" : "none";
-      document.getElementById("colorbar-shear-vector").style.display = visibleLayers.includes("SHEAR_VECTOR") ? "block" : "none";
-    }
-
-    function getVisibleLayers() {
-      const visibleLayers = [];
-      if (showRefc) visibleLayers.push("REFC");
-      if (showTemp2m) visibleLayers.push("TEMP");
-      if (showLightning) visibleLayers.push("LIGHTNING");
-      if (showMslp) visibleLayers.push("MSLP");
-      if (showRH) visibleLayers.push("RH");
-      if (showHail) visibleLayers.push("HAIL");
-      if (showCAPE) visibleLayers.push("CAPE");
-      if (showCIN) visibleLayers.push("CIN");
-      if (showLCDC) visibleLayers.push("LCDC");
-      if (showMCDC) visibleLayers.push("MCDC");
-      if (showHCDC) visibleLayers.push("HCDC");
-      if (showPrecip) visibleLayers.push("PRECIP");
-      if (showWind10m) visibleLayers.push("WIND10M");
-      if (showWind10mStation) visibleLayers.push("WIND10M_STATION");
-      if (showSRH) visibleLayers.push("SRH");
-      if (showPWAT) visibleLayers.push("PWAT");
-      if (showGust) visibleLayers.push("GUST");
-      if (showShearVector) visibleLayers.push("SHEAR_VECTOR");
-      return visibleLayers;
-    }
-
-    // --- Current UTC time and HRRR run display (now in left panel) ---
-    function updateCurrentTimeBox() {
-      const box = document.getElementById('left-current-time-box');
-      const now = new Date();
-      // UTC time
-      const utcYear = now.getUTCFullYear();
-      const utcMonth = String(now.getUTCMonth() + 1).padStart(2, '0');
-      const utcDay = String(now.getUTCDate()).padStart(2, '0');
-      const utcHour = now.getUTCHours();
-      const utcMin = String(now.getUTCMinutes()).padStart(2, '0');
-      const utcSec = String(now.getUTCSeconds()).padStart(2, '0');
-      // HRRR run logic
-      let runHour = Math.floor(utcHour / 6) * 6;
-      if (runHour === 24) runHour = 18;
-      let dateForRun = new Date(Date.UTC(utcYear, now.getUTCMonth(), utcDay, utcHour));
-      if (utcHour < runHour) {
-        dateForRun.setUTCHours(dateForRun.getUTCHours() - 6);
-        runHour = Math.floor(dateForRun.getUTCHours() / 6) * 6;
-      }
-      const dateStr = dateForRun.getUTCFullYear().toString() +
-        String(dateForRun.getUTCMonth() + 1).padStart(2, '0') +
-        String(dateForRun.getUTCDate()).padStart(2, '0');
-      const hourStr = String(runHour).padStart(2, '0');
-      // Display
-      box.innerHTML =
-        `<b>Current UTC:</b> ${utcYear}-${utcMonth}-${utcDay} ${String(utcHour).padStart(2, '0')}:${utcMin}:${utcSec}<br>` +
-        `<b>Most Recent HRRR Run:</b> ${dateStr} ${hourStr}z`;
-    }
-    updateCurrentTimeBox();
-    setInterval(updateCurrentTimeBox, 10000);
-
-    // --- Bottom colorbar bar resize logic ---
-    (function() {
-      var bar = document.getElementById('bottom-colorbar-bar');
-      var handle = document.getElementById('colorbar-resize-handle');
-      var minHeight = 60;
-      var maxHeight = 300;
-      var startY = 0;
-      var startHeight = 0;
-      var dragging = false;
-
-      handle.addEventListener('mousedown', function(e) {
-        dragging = true;
-        startY = e.clientY;
-        startHeight = bar.offsetHeight;
-        document.body.style.userSelect = 'none';
-      });
-
-      window.addEventListener('mousemove', function(e) {
-        if (!dragging) return;
-        var dy = startY - e.clientY;
-        var newHeight = Math.min(maxHeight, Math.max(minHeight, startHeight + dy));
-        bar.style.height = newHeight + 'px';
-      });
-
-      window.addEventListener('mouseup', function() {
-        if (dragging) {
-          dragging = false;
-          document.body.style.userSelect = '';
-        }
-      });
-    })();
-
-    // --- Colorbar size slider logic ---
-    (function() {
-      var slider = document.getElementById('colorbar-size-slider');
-      var valueLabel = document.getElementById('colorbar-size-value');
-      var imgs = document.querySelectorAll('#colorbars-container img');
-      function setSize(val) {
-        imgs.forEach(function(img) {
-          img.style.maxWidth = val + 'px';
-        });
-        valueLabel.textContent = val;
-      }
-      slider.addEventListener('input', function() {
-        setSize(this.value);
-      });
-      // Set initial size
-      setSize(slider.value);
-    })();
-
-    // Store opacity for each overlay
-    var overlayOpacity = {
-      refc: 0.7, mslp: 0.7, temp2m: 0.7, rh: 0.7, precip: 0.7,
-      lightning: 0.7, hail: 0.7, cape: 0.7, cin: 0.7,
-      lcdc: 0.7, mcdc: 0.7, hcdc: 0.7, wind10m: 0.7,
-      wind10mStation: 0.7, srh: 0.7, pwat: 0.7, gust: 0.7,
-      shearVector: 0.7
-    };
-
-    // Helper to show/hide opacity sliders
-    function toggleOpacitySlider(layer, show) {
-      var slider = document.getElementById('opacity-' + layer);
-      if (slider) slider.style.display = show ? 'inline-block' : 'none';
-    }
-
-    // Add event listeners for checkboxes to show/hide sliders
-    [
-      'refc','mslp','temp2m','rh','precip',
-      'lightning','hail','cape','cin',
-      'lcdc','mcdc','hcdc','wind10m','wind10m-station','srh',
-      'pwat','gust','shear-vector'
-    ].forEach(function(layer) {
-      var cb = document.getElementById('toggle-' + layer);
-      var slider = document.getElementById('opacity-' + layer);
-      if (cb && slider) {
-        cb.addEventListener('change', function() {
-          toggleOpacitySlider(layer, cb.checked);
-        });
-        toggleOpacitySlider(layer, cb.checked);
-        slider.addEventListener('input', function() {
-          var key = layer.replace(/-([a-z])/g, function(g) { return g[1].toUpperCase(); });
-          overlayOpacity[key] = parseFloat(slider.value);
-          var overlayVar = window['overlay' + key.charAt(0).toUpperCase() + key.slice(1)];
-          if (overlayVar && map.hasLayer(overlayVar)) {
-            overlayVar.setOpacity(overlayOpacity[key]);
-          }
-        });
-      }
-    });
-
-    // --- Existing updateOverlay function ---
-    window.updateOverlay = function(idx) {
-      // Remove all overlays first
-      if (overlayRefc) { map.removeLayer(overlayRefc); overlayRefc = null; }
-      if (overlayMslp) { map.removeLayer(overlayMslp); overlayMslp = null; }
-      if (overlayTemp2m) { map.removeLayer(overlayTemp2m); overlayTemp2m = null; }
-      if (overlayLightning) { map.removeLayer(overlayLightning); overlayLightning = null; }
-      if (overlayRH) { map.removeLayer(overlayRH); overlayRH = null; }
-      if (overlayHail) { map.removeLayer(overlayHail); overlayHail = null; }
-      if (overlayCAPE) { map.removeLayer(overlayCAPE); overlayCAPE = null; }
-      if (overlayCIN) { map.removeLayer(overlayCIN); overlayCIN = null; } // Remove CIN overlay
-      if (overlayLCDC) { map.removeLayer(overlayLCDC); overlayLCDC = null; } // Remove LCDC overlay
-      if (overlayMCDC) { map.removeLayer(overlayMCDC); overlayMCDC = null; } // Remove MCDC overlay
-      if (overlayHCDC) { map.removeLayer(overlayHCDC); overlayHCDC = null; } // Remove HCDC overlay
-      if (overlayPrecip) { map.removeLayer(overlayPrecip); overlayPrecip = null; } // Remove Precip overlay
-      if (overlayWind10m) { map.removeLayer(overlayWind10m); overlayWind10m = null; } // Remove WIND10M overlay
-      if (overlayWind10mStation) { map.removeLayer(overlayWind10mStation); overlayWind10mStation = null; } // Remove WIND10M at stations overlay
-      if (overlaySRH) { map.removeLayer(overlaySRH); overlaySRH = null; }
-      if (overlayPWAT) { map.removeLayer(overlayPWAT); overlayPWAT = null; }
-      if (overlayGust) { map.removeLayer(overlayGust); overlayGust = null; }
-      if (overlayShearVector) { map.removeLayer(overlayShearVector); overlayShearVector = null; }
-
-      // Defensive: If idx is out of bounds, do nothing
-      if (!pngList || idx < 0 || idx >= pngList.length) return;
-
-      var entry = pngList[idx] || {};
-      var cacheBuster = "?t=" + Date.now();
-
-      // Each overlay is toggled independently by its checkbox, use opacity from overlayOpacity
-      if (showRefc && entry.refc) overlayRefc = L.imageOverlay(entry.refc + cacheBuster, imageBounds, {opacity: overlayOpacity.refc}).addTo(map);
-      if (showMslp && entry.mslp) overlayMslp = L.imageOverlay(entry.mslp + cacheBuster, imageBounds, {opacity: overlayOpacity.mslp}).addTo(map);
-      if (showTemp2m && entry.temp2m) overlayTemp2m = L.imageOverlay(entry.temp2m + cacheBuster, imageBounds, {opacity: overlayOpacity.temp2m}).addTo(map);
-      if (showLightning && entry.lightning) overlayLightning = L.imageOverlay(entry.lightning + cacheBuster, imageBounds, {opacity: overlayOpacity.lightning}).addTo(map);
-      if (showRH && entry.rh) overlayRH = L.imageOverlay(entry.rh + cacheBuster, imageBounds, {opacity: overlayOpacity.rh}).addTo(map);
-      if (showHail && entry.hail) overlayHail = L.imageOverlay(entry.hail + cacheBuster, imageBounds, {opacity: overlayOpacity.hail}).addTo(map);
-      if (showCAPE && entry.cape) overlayCAPE = L.imageOverlay(entry.cape + cacheBuster, imageBounds, {opacity: overlayOpacity.cape}).addTo(map);
-      if (showCIN && entry.cin) overlayCIN = L.imageOverlay(entry.cin + cacheBuster, imageBounds, {opacity: overlayOpacity.cin}).addTo(map); // Add CIN overlay
-      if (showLCDC && entry.lcdc) overlayLCDC = L.imageOverlay(entry.lcdc + cacheBuster, imageBounds, {opacity: overlayOpacity.lcdc}).addTo(map); // Add LCDC overlay
-      if (showMCDC && entry.mcdc) overlayMCDC = L.imageOverlay(entry.mcdc + cacheBuster, imageBounds, {opacity: overlayOpacity.mcdc}).addTo(map); // Add MCDC overlay
-      if (showHCDC && entry.hcdc) overlayHCDC = L.imageOverlay(entry.hcdc + cacheBuster, imageBounds, {opacity: overlayOpacity.hcdc}).addTo(map); // Add HCDC overlay
-      if (showPrecip && entry.precip) overlayPrecip = L.imageOverlay(entry.precip + cacheBuster, imageBounds, {opacity: overlayOpacity.precip}).addTo(map); // Add Precip overlay
-      if (showWind10m && entry.wind10m) overlayWind10m = L.imageOverlay(entry.wind10m + cacheBuster, imageBounds, {opacity: overlayOpacity.wind10m}).addTo(map); // Add WIND10M overlay
-      if (showWind10mStation && entry.wind10m_station) overlayWind10mStation = L.imageOverlay(entry.wind10m_station + cacheBuster, imageBounds, {opacity: overlayOpacity.wind10mStation}).addTo(map); // Add WIND10M at stations overlay
-      if (showSRH && entry.srh) overlaySRH = L.imageOverlay(entry.srh + cacheBuster, imageBounds, {opacity: overlayOpacity.srh}).addTo(map);
-      if (showPWAT && entry.pwat) overlayPWAT = L.imageOverlay(entry.pwat + cacheBuster, imageBounds, {opacity: overlayOpacity.pwat}).addTo(map); // Add PWAT overlay
-      if (showGust && entry.gust) overlayGust = L.imageOverlay(entry.gust + cacheBuster, imageBounds, {opacity: overlayOpacity.gust}).addTo(map); // Add GUST overlay
-      if (showShearVector && entry.shear_vector) overlayShearVector = L.imageOverlay(entry.shear_vector + cacheBuster, imageBounds, {opacity: overlayOpacity.shearVector}).addTo(map); // Add Shear Vector overlay
-
-      // Always show hour label and forecast time if entry exists
-      if (entry && typeof entry.hour !== "undefined") {
-        label.textContent = `Hour: ${entry.hour}`;
-        forecastTimeBox.textContent = getForecastTimeEST(entry.hour);
-      } else {
-        label.textContent = "No data";
-        forecastTimeBox.textContent = "";
-      }
-      updateColorbars(getVisibleLayers());
-  };
-
-    // --- Soundings overlay logic ---
-    var soundingMarkers = [];
-    var soundingsDelayTimer = null;
-    var soundingsDelayActive = false;
-    var soundingAutoOffTimer = null;
-
-    function addSoundingMarkers(stations) {
-      removeSoundingMarkers(); // Always clear before adding
-      // Only plot stations within [-126, -69] longitude and [24, 50] latitude
-      const minLon = -126, maxLon = -69, minLat = 24, maxLat = 50;
-      if (stations && stations.length > 0 && document.getElementById("toggle-soundings").checked) {
-        stations
-          .filter(stn =>
-            stn.lon >= minLon && stn.lon <= maxLon &&
-            stn.lat >= minLat && stn.lat <= maxLat
-          )
-          .forEach(function(stn) {
-            var marker = L.circleMarker([stn.lat + 0.9, stn.lon], { // <-- Shift north by 2 degrees
-              radius: 7,
-              color: "#1e90ff",
-              fillColor: "#1e90ff",
-              fillOpacity: 0.85,
-              weight: 1,
-              pane: "markerPane"
-            }).addTo(map);
-            marker.bindTooltip(stn.name, {permanent: false, direction: "top"});
-            marker.on('click', function() {
-              showSkewtModal(stn.name);
-            });
-            soundingMarkers.push(marker);
-          });
-      }
-      map.invalidateSize();
-    }
-    function removeSoundingMarkers() {
-      soundingMarkers.forEach(function(m) { map.removeLayer(m); });
-      soundingMarkers = [];
-      document.getElementById("skewt-modal").style.display = "none";
-      document.getElementById("skewt-img").src = "";
-      map.invalidateSize();
-    }
-    // Remove any dots on initial page load
-    removeSoundingMarkers();
-
-    function startSoundingsDelay(callback) {
-      soundingsDelayActive = true;
-      removeSoundingMarkers();
-      if (soundingsDelayTimer) clearTimeout(soundingsDelayTimer);
-      soundingsDelayTimer = setTimeout(function() {
-        soundingsDelayActive = false;
-        if (typeof callback === "function") callback();
-      }, 5000);
-    }
-
-    document.getElementById("toggle-soundings").addEventListener("change", function() {
-      document.getElementById("toggle-soundings").disabled = true;
-      // Clear any previous auto-off timer
-      if (soundingAutoOffTimer) {
-        clearTimeout(soundingAutoOffTimer);
-        soundingAutoOffTimer = null;
-      }
-      // Set a new 5-minute auto-off timer
-      if (this.checked) {
-        soundingAutoOffTimer = setTimeout(function() {
-          document.getElementById("toggle-soundings").checked = false;
-          removeSoundingMarkers();
-          document.getElementById("toggle-soundings").disabled = false;
-        }, 5 * 60 * 1000); // 5 minutes
-      }
-      startSoundingsDelay(() => {
-        if (document.getElementById("toggle-soundings").checked) {
-          fetch("/run_mainsounding", {method: "POST"})
-            .then(() => {
-              setTimeout(function() {
-                function pollReady(attempts) {
-                  fetch("/soundings_ready")
-                    .then(r => r.json())
-                    .then(function(resp) {
-                      if (resp && resp.ready) {
-                        fetch("/soundings_stations")
-                          .then(r => r.json())
-                          .then(addSoundingMarkers)
-                          .finally(() => { document.getElementById("toggle-soundings").disabled = false; });
-                      } else if (attempts < 60) {
-                        setTimeout(function() { pollReady(attempts + 1); }, 1000);
-                      } else {
-                        document.getElementById("toggle-soundings").disabled = false;
-                      }
-                    })
-                    .catch(function() {
-                      if (attempts < 60) setTimeout(function() { pollReady(attempts + 1); }, 1000);
-                      else document.getElementById("toggle-soundings").disabled = false;
-                    });
-                }
-                pollReady(0);
-              }, 45000); // 45 seconds delay
-            });
-        } else {
-          removeSoundingMarkers();
-          document.getElementById("toggle-soundings").disabled = false;
-        }
-      });
-    });
-    // Modal close logic
-    document.getElementById("skewt-close").onclick = function() {
-      document.getElementById("skewt-modal").style.display = "none";
-      document.getElementById("skewt-img").src = "";
-    };
-    document.getElementById("skewt-modal").onclick = function(e) {
-      if (e.target === this) {
-        this.style.display = "none";
-        document.getElementById("skewt-img").src = "";
-      }
-    };
-
-    // Add these variables to track current station and time index
-    var currentSkewtStation = null;
-    var currentSkewtTimes = [];
-    var currentSkewtIdx = 0;
-
-    function fetchSoundingTimes(station, callback) {
-      fetch("/soundings_times?station=" + encodeURIComponent(station))
-        .then(r => r.json())
-        .then(callback);
-    }
-
-    function showSkewtModal(station) {
-      currentSkewtStation = station;
-      // Show spinner before fetching times and image
-      document.getElementById("skewt-spinner").style.display = "flex";
-      fetchSoundingTimes(station, function(times) {
-        currentSkewtTimes = times;
-        currentSkewtIdx = 0;
-        updateSkewtImg();
-        document.getElementById("skewt-modal").style.display = "flex";
-      });
-    }
-
-    function updateSkewtImg() {
-      var img = document.getElementById("skewt-img");
-      var spinner = document.getElementById("skewt-spinner");
-      spinner.style.display = "flex";
-      img.style.visibility = "hidden";
-      img.onload = function() {
-        spinner.style.display = "none";
-        img.style.visibility = "visible";
-      };
-      img.onerror = function() {
-        spinner.style.display = "none";
-        img.style.visibility = "visible";
-      };
-      img.src =
-        "/skewt_image?station=" + encodeURIComponent(currentSkewtStation) +
-        "&time=" + currentSkewtIdx;
-    }
-
-    document.addEventListener('keydown', function(e) {
-      if (document.getElementById("skewt-modal").style.display === "flex") {
-        if (e.key === "ArrowRight" && currentSkewtIdx < currentSkewtTimes.length - 1) {
-          currentSkewtIdx++;
-          updateSkewtImg();
-        } else if (e.key === "ArrowLeft" && currentSkewtIdx > 0) {
-          currentSkewtIdx--;
-          updateSkewtImg();
-        }
-      }
-    });
-
-    // --- Play button logic for slider animation ---
-    var playBtn = document.getElementById('slider-play-btn');
-    var slider = document.getElementById('hour-slider');
-    var isPlaying = false;
-    var playInterval = null;
-    var playInternalUpdate = false; // Track if slider change is from play logic
-
-    function playSlider() {
-      if (!pngList || pngList.length === 0) return;
-      isPlaying = true;
-      playBtn.textContent = "⏸ Pause";
-      slider.disabled = true;
-      playInterval = setInterval(function() {
-
-        var idx = parseInt(slider.value);
-        if (idx < pngList.length - 1) {
-          playInternalUpdate = true;
-          slider.value = idx + 1;
-          slider.dispatchEvent(new Event('input'));
-          playInternalUpdate = false;
-        } else {
-          // Loop to first frame and keep playing
-          playInternalUpdate = true;
-          slider.value = 0;
-          slider.dispatchEvent(new Event('input'));
-          playInternalUpdate = false;
-        }
-      }, 500); // 500ms per frame, adjust as needed
-    }
-
-    function stopSlider() {
-      isPlaying = false;
-      playBtn.textContent = "▶ Play";
-      slider.disabled = false;
-      if (playInterval) clearInterval(playInterval);
-      playInterval = null;
-    }
-
-    playBtn.addEventListener('click', function() {
-      if (isPlaying) {
-        stopSlider();
-      } else {
-        playSlider();
-      }
-    });
-
-    // Stop animation if user interacts with slider manually (not during play)
-    slider.addEventListener('input', function(e) {
-      if (!playInternalUpdate && isPlaying) stopSlider();
-      // ...existing code...
-    });
-
-    // --- Existing updateOverlay function ---
-    window.updateOverlay = function(idx) {
-      // Remove all overlays first
-      if (overlayRefc) { map.removeLayer(overlayRefc); overlayRefc = null; }
-      if (overlayMslp) { map.removeLayer(overlayMslp); overlayMslp = null; }
-      if (overlayTemp2m) { map.removeLayer(overlayTemp2m); overlayTemp2m = null; }
-      if (overlayLightning) { map.removeLayer(overlayLightning); overlayLightning = null; }
-      if (overlayRH) { map.removeLayer(overlayRH); overlayRH = null; }
-      if (overlayHail) { map.removeLayer(overlayHail); overlayHail = null; }
-      if (overlayCAPE) { map.removeLayer(overlayCAPE); overlayCAPE = null; }
-      if (overlayCIN) { map.removeLayer(overlayCIN); overlayCIN = null; } // Remove CIN overlay
-      if (overlayLCDC) { map.removeLayer(overlayLCDC); overlayLCDC = null; } // Remove LCDC overlay
-      if (overlayMCDC) { map.removeLayer(overlayMCDC); overlayMCDC = null; } // Remove MCDC overlay
-      if (overlayHCDC) { map.removeLayer(overlayHCDC); overlayHCDC = null; } // Remove HCDC overlay
-      if (overlayPrecip) { map.removeLayer(overlayPrecip); overlayPrecip = null; } // Remove Precip overlay
-      if (overlayWind10m) { map.removeLayer(overlayWind10m); overlayWind10m = null; } // Remove WIND10M overlay
-      if (overlayWind10mStation) { map.removeLayer(overlayWind10mStation); overlayWind10mStation = null; } // Remove WIND10M at stations overlay
-      if (overlaySRH) { map.removeLayer(overlaySRH); overlaySRH = null; }
-      if (overlayPWAT) { map.removeLayer(overlayPWAT); overlayPWAT = null; }
-      if (overlayGust) { map.removeLayer(overlayGust); overlayGust = null; }
-      if (overlayShearVector) { map.removeLayer(overlayShearVector); overlayShearVector = null; }
-
-      // Defensive: If idx is out of bounds, do nothing
-      if (!pngList || idx < 0 || idx >= pngList.length) return;
-
-      var entry = pngList[idx] || {};
-      var cacheBuster = "?t=" + Date.now();
-
-      // Each overlay is toggled independently by its checkbox, use opacity from overlayOpacity
-      if (showRefc && entry.refc) overlayRefc = L.imageOverlay(entry.refc + cacheBuster, imageBounds, {opacity: overlayOpacity.refc}).addTo(map);
-      if (showMslp && entry.mslp) overlayMslp = L.imageOverlay(entry.mslp + cacheBuster, imageBounds, {opacity: overlayOpacity.mslp}).addTo(map);
-      if (showTemp2m && entry.temp2m) overlayTemp2m = L.imageOverlay(entry.temp2m + cacheBuster, imageBounds, {opacity: overlayOpacity.temp2m}).addTo(map);
-      if (showLightning && entry.lightning) overlayLightning = L.imageOverlay(entry.lightning + cacheBuster, imageBounds, {opacity: overlayOpacity.lightning}).addTo(map);
-      if (showRH && entry.rh) overlayRH = L.imageOverlay(entry.rh + cacheBuster, imageBounds, {opacity: overlayOpacity.rh}).addTo(map);
-      if (showHail && entry.hail) overlayHail = L.imageOverlay(entry.hail + cacheBuster, imageBounds, {opacity: overlayOpacity.hail}).addTo(map);
-      if (showCAPE && entry.cape) overlayCAPE = L.imageOverlay(entry.cape + cacheBuster, imageBounds, {opacity: overlayOpacity.cape}).addTo(map);
-      if (showCIN && entry.cin) overlayCIN = L.imageOverlay(entry.cin + cacheBuster, imageBounds, {opacity: overlayOpacity.cin}).addTo(map); // Add CIN overlay
-      if (showLCDC && entry.lcdc) overlayLCDC = L.imageOverlay(entry.lcdc + cacheBuster, imageBounds, {opacity: overlayOpacity.lcdc}).addTo(map); // Add LCDC overlay
-      if (showMCDC && entry.mcdc) overlayMCDC = L.imageOverlay(entry.mcdc + cacheBuster, imageBounds, {opacity: overlayOpacity.mcdc}).addTo(map); // Add MCDC overlay
-      if (showHCDC && entry.hcdc) overlayHCDC = L.imageOverlay(entry.hcdc + cacheBuster, imageBounds, {opacity: overlayOpacity.hcdc}).addTo(map); // Add HCDC overlay
-      if (showPrecip && entry.precip) overlayPrecip = L.imageOverlay(entry.precip + cacheBuster, imageBounds, {opacity: overlayOpacity.precip}).addTo(map); // Add Precip overlay
-      if (showWind10m && entry.wind10m) overlayWind10m = L.imageOverlay(entry.wind10m + cacheBuster, imageBounds, {opacity: overlayOpacity.wind10m}).addTo(map); // Add WIND10M overlay
-      if (showWind10mStation && entry.wind10m_station) overlayWind10mStation = L.imageOverlay(entry.wind10m_station + cacheBuster, imageBounds, {opacity: overlayOpacity.wind10mStation}).addTo(map); // Add WIND10M at stations overlay
-      if (showSRH && entry.srh) overlaySRH = L.imageOverlay(entry.srh + cacheBuster, imageBounds, {opacity: overlayOpacity.srh}).addTo(map);
-      if (showPWAT && entry.pwat) overlayPWAT = L.imageOverlay(entry.pwat + cacheBuster, imageBounds, {opacity: overlayOpacity.pwat}).addTo(map); // Add PWAT overlay
-      if (showGust && entry.gust) overlayGust = L.imageOverlay(entry.gust + cacheBuster, imageBounds, {opacity: overlayOpacity.gust}).addTo(map); // Add GUST overlay
-      if (showShearVector && entry.shear_vector) overlayShearVector = L.imageOverlay(entry.shear_vector + cacheBuster, imageBounds, {opacity: overlayOpacity.shearVector}).addTo(map); // Add Shear Vector overlay
-
-      // Always show hour label and forecast time if entry exists
-      if (entry && typeof entry.hour !== "undefined") {
-        label.textContent = `Hour: ${entry.hour}`;
-        forecastTimeBox.textContent = getForecastTimeEST(entry.hour);
-      } else {
-        label.textContent = "No data";
-        forecastTimeBox.textContent = "";
-      }
-      updateColorbars(getVisibleLayers());
-  };
-
-    // --- Soundings overlay logic ---
-    var soundingMarkers = [];
-    var soundingsDelayTimer = null;
-    var soundingsDelayActive = false;
-    var soundingAutoOffTimer = null;
-
-    function addSoundingMarkers(stations) {
-      removeSoundingMarkers(); // Always clear before adding
-      // Only plot stations within [-126, -69] longitude and [24, 50] latitude
-      const minLon = -126, maxLon = -69, minLat = 24, maxLat = 50;
-      if (stations && stations.length > 0 && document.getElementById("toggle-soundings").checked) {
-        stations
-          .filter(stn =>
-            stn.lon >= minLon && stn.lon <= maxLon &&
-            stn.lat >= minLat && stn.lat <= maxLat
-          )
-          .forEach(function(stn) {
-            var marker = L.circleMarker([stn.lat + 0.9, stn.lon], { // <-- Shift north by 2 degrees
-              radius: 7,
-              color: "#1e90ff",
-              fillColor: "#1e90ff",
-              fillOpacity: 0.85,
-              weight: 1,
-              pane: "markerPane"
-            }).addTo(map);
-            marker.bindTooltip(stn.name, {permanent: false, direction: "top"});
-            marker.on('click', function() {
-              showSkewtModal(stn.name);
-            });
-            soundingMarkers.push(marker);
-          });
-      }
-      map.invalidateSize();
-    }
-    function removeSoundingMarkers() {
-      soundingMarkers.forEach(function(m) { map.removeLayer(m); });
-      soundingMarkers = [];
-      document.getElementById("skewt-modal").style.display = "none";
-      document.getElementById("skewt-img").src = "";
-      map.invalidateSize();
-    }
-    // Remove any dots on initial page load
-    removeSoundingMarkers();
-
-    function startSoundingsDelay(callback) {
-      soundingsDelayActive = true;
-      removeSoundingMarkers();
-      if (soundingsDelayTimer) clearTimeout(soundingsDelayTimer);
-      soundingsDelayTimer = setTimeout(function() {
-        soundingsDelayActive = false;
-        if (typeof callback === "function") callback();
-      }, 5000);
-    }
-
-    document.getElementById("toggle-soundings").addEventListener("change", function() {
-      document.getElementById("toggle-soundings").disabled = true;
-      // Clear any previous auto-off timer
-      if (soundingAutoOffTimer) {
-        clearTimeout(soundingAutoOffTimer);
-        soundingAutoOffTimer = null;
-      }
-      // Set a new 5-minute auto-off timer
-      if (this.checked) {
-        soundingAutoOffTimer = setTimeout(function() {
-          document.getElementById("toggle-soundings").checked = false;
-          removeSoundingMarkers();
-          document.getElementById("toggle-soundings").disabled = false;
-        }, 5 * 60 * 1000); // 5 minutes
-      }
-      startSoundingsDelay(() => {
-        if (document.getElementById("toggle-soundings").checked) {
-          fetch("/run_mainsounding", {method: "POST"})
-            .then(() => {
-              setTimeout(function() {
-                function pollReady(attempts) {
-                  fetch("/soundings_ready")
-                    .then(r => r.json())
-                    .then(function(resp) {
-                      if (resp && resp.ready) {
-                        fetch("/soundings_stations")
-                          .then(r => r.json())
-                          .then(addSoundingMarkers)
-                          .finally(() => { document.getElementById("toggle-soundings").disabled = false; });
-                      } else if (attempts < 60) {
-                        setTimeout(function() { pollReady(attempts + 1); }, 1000);
-                      } else {
-                        document.getElementById("toggle-soundings").disabled = false;
-                      }
-                    })
-                    .catch(function() {
-                      if (attempts < 60) setTimeout(function() { pollReady(attempts + 1); }, 1000);
-                      else document.getElementById("toggle-soundings").disabled = false;
-                    });
-                }
-                pollReady(0);
-              }, 45000); // 45 seconds delay
-            });
-        } else {
-          removeSoundingMarkers();
-          document.getElementById("toggle-soundings").disabled = false;
-        }
-      });
-    });
-    // Modal close logic
-    document.getElementById("skewt-close").onclick = function() {
-      document.getElementById("skewt-modal").style.display = "none";
-      document.getElementById("skewt-img").src = "";
-    };
-    document.getElementById("skewt-modal").onclick = function(e) {
-      if (e.target === this) {
-        this.style.display = "none";
-        document.getElementById("skewt-img").src = "";
-      }
-    };
-
-    // Add these variables to track current station and time index
-    var currentSkewtStation = null;
-    var currentSkewtTimes = [];
-    var currentSkewtIdx = 0;
-
-    function fetchSoundingTimes(station, callback) {
-      fetch("/soundings_times?station=" + encodeURIComponent(station))
-        .then(r => r.json())
-        .then(callback);
-    }
-
-    function showSkewtModal(station) {
-      currentSkewtStation = station;
-      // Show spinner before fetching times and image
-      document.getElementById("skewt-spinner").style.display = "flex";
-      fetchSoundingTimes(station, function(times) {
-        currentSkewtTimes = times;
-        currentSkewtIdx = 0;
-        updateSkewtImg();
-        document.getElementById("skewt-modal").style.display = "flex";
-      });
-    }
-
-    function updateSkewtImg() {
-      var img = document.getElementById("skewt-img");
-      var spinner = document.getElementById("skewt-spinner");
-      spinner.style.display = "flex";
-      img.style.visibility = "hidden";
-      img.onload = function() {
-        spinner.style.display = "none";
-        img.style.visibility = "visible";
-      };
-      img.onerror = function() {
-        spinner.style.display = "none";
-        img.style.visibility = "visible";
-      };
-      img.src =
-        "/skewt_image?station=" + encodeURIComponent(currentSkewtStation) +
-        "&time=" + currentSkewtIdx;
-    }
-
-    document.addEventListener('keydown', function(e) {
-      if (document.getElementById("skewt-modal").style.display === "flex") {
-        if (e.key === "ArrowRight" && currentSkewtIdx < currentSkewtTimes.length - 1) {
-          currentSkewtIdx++;
-          updateSkewtImg();
-        } else if (e.key === "ArrowLeft" && currentSkewtIdx > 0) {
-          currentSkewtIdx--;
-          updateSkewtImg();
-        }
-      }
-    });
-  </script>
-</body>
-</html>
+print("All RH GRIB file download and PNG creation tasks complete!")
