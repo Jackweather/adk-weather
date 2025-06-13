@@ -29,6 +29,8 @@ COLORBAR_DIR = os.path.join(BASE_DIR, "colorbars")
 PNG_DIR_SRH = os.path.join(BASE_DIR, "HRRRUN", "Hrrr", "static", "HLCY")
 PNG_DIR_PWAT = os.path.join(BASE_DIR, "HRRRUN", "Hrrr", "static", "PWAT")
 PNG_DIR_GUST = os.path.join(BASE_DIR, "HRRRUN", "Hrrr", "static", "GUST")
+# Add VUCSH_VVCSH directory
+PNG_DIR_SHEAR_VECTOR = os.path.join(BASE_DIR, "HRRRUN", "Hrrr", "static", "VUCSH_VVCSH")
 
 @app.route("/")
 def home():
@@ -65,6 +67,8 @@ def get_pngs():
     srh_files = [f for f in safe_listdir(PNG_DIR_SRH) if re.match(r"HLCY_(\d+)\.png$", f)]  # SRH
     pwat_files = [f for f in safe_listdir(PNG_DIR_PWAT) if re.match(r"PWAT_(\d+)\.png$", f)]  # PWAT
     gust_files = [f for f in safe_listdir(PNG_DIR_GUST) if re.match(r"GUST_(\d+)\.png$", f)]  # GUST
+    # Add wind shear vector files
+    shear_vector_files = [f for f in safe_listdir(PNG_DIR_SHEAR_VECTOR) if re.match(r"ShearVectors_(\d+)\.png$", f)]
 
     # Use regex to extract hour from each filename (more robust)
     def extract_hour(pattern, filename):
@@ -88,6 +92,8 @@ def get_pngs():
     srh_dict = {extract_hour(r"HLCY_(\d+)\.png$", f): f for f in srh_files}  # SRH
     pwat_dict = {extract_hour(r"PWAT_(\d+)\.png$", f): f for f in pwat_files}  # PWAT
     gust_dict = {extract_hour(r"GUST_(\d+)\.png$", f): f for f in gust_files}  # GUST
+    # Add wind shear vector dict
+    shear_vector_dict = {extract_hour(r"ShearVectors_(\d+)\.png$", f): f for f in shear_vector_files}
 
     # Remove None keys if any file didn't match pattern
     refc_dict = {k: v for k, v in refc_dict.items() if k is not None}
@@ -107,9 +113,11 @@ def get_pngs():
     srh_dict = {k: v for k, v in srh_dict.items() if k is not None}  # SRH
     pwat_dict = {k: v for k, v in pwat_dict.items() if k is not None}  # PWAT
     gust_dict = {k: v for k, v in gust_dict.items() if k is not None}  # GUST
+    # Add wind shear vector dict cleanup
+    shear_vector_dict = {k: v for k, v in shear_vector_dict.items() if k is not None}
 
     # Union of all available hours from all overlays
-    all_hours = set(refc_dict) | set(mslp_dict) | set(temp2m_dict) | set(lightning_dict) | set(rh_dict) | set(hail_dict) | set(cape_dict) | set(cin_dict) | set(lcdc_dict) | set(mcdc_dict) | set(hcdc_dict) | set(precip_dict) | set(wind10m_dict) | set(wind10m_station_dict) | set(srh_dict) | set(pwat_dict) | set(gust_dict)
+    all_hours = set(refc_dict) | set(mslp_dict) | set(temp2m_dict) | set(lightning_dict) | set(rh_dict) | set(hail_dict) | set(cape_dict) | set(cin_dict) | set(lcdc_dict) | set(mcdc_dict) | set(hcdc_dict) | set(precip_dict) | set(wind10m_dict) | set(wind10m_station_dict) | set(srh_dict) | set(pwat_dict) | set(gust_dict) | set(shear_vector_dict)
     all_hours = sorted(all_hours)
     result = []
     for hour in all_hours:
@@ -132,6 +140,8 @@ def get_pngs():
             "srh": f"/srh_pngs/{srh_dict[hour]}" if hour in srh_dict else None,
             "pwat": f"/pwat_pngs/{pwat_dict[hour]}" if hour in pwat_dict else None,  # PWAT
             "gust": f"/gust_pngs/{gust_dict[hour]}" if hour in gust_dict else None,
+            # Add wind shear vector overlay
+            "shear_vector": f"/shear_vector_pngs/{shear_vector_dict[hour]}" if hour in shear_vector_dict else None,
         })
     response = make_response(jsonify(result))
     response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
@@ -483,6 +493,22 @@ def run_task1():
             print("STDOUT:", e.stdout)
             print("STDERR:", e.stderr)
 
+        # --- VUCSH_VVCSH ---
+        try:
+            result = subprocess.run(
+                ["python", "/opt/render/project/src/HRRRUN/VUCSH_VVCSH.py"],
+                check=True, cwd="/opt/render/project/src/HRRRUN",
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
+            )
+            print("VUCSH_VVCSH.py ran successfully!")
+            print("STDOUT:", result.stdout)
+            print("STDERR:", result.stderr)
+        except subprocess.CalledProcessError as e:
+            error_trace = traceback.format_exc()
+            print(f"Error running VUCSH_VVCSH.py:\n{error_trace}")
+            print("STDOUT:", e.stdout)
+            print("STDERR:", e.stderr)
+
     threading.Thread(target=run_all_scripts).start()
     # For synchronous debug, comment above and uncomment below:
     # run_all_scripts()
@@ -593,6 +619,10 @@ def serve_pwat_png(filename):
 @app.route("/gust_pngs/<path:filename>")
 def serve_gust_png(filename):
     return api_serve_image(PNG_DIR_GUST, filename)
+
+@app.route("/shear_vector_pngs/<path:filename>")
+def serve_shear_vector_png(filename):
+    return api_serve_image(PNG_DIR_SHEAR_VECTOR, filename)
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
