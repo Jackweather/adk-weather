@@ -66,74 +66,74 @@ custom_cmap = LinearSegmentedColormap.from_list(
 
 # NY_ASOS Network stations: (ID, Name, Latitude, Longitude)
 NY_ASOS_STATIONS = [
-    ("PGV", "Greenville", 35.6127, -77.3664),            # Greenville, NC
-    ("PIT", "Pittsburgh", 40.4406, -79.9959),            # Pittsburgh, PA
-    ("SHV", "Shreveport", 32.5252, -93.7502),            # Shreveport, LA
-    ("DSM", "Des Moines", 41.5868, -93.6250),            # Iowa
-    ("GDV", "Glendive", 47.1050, -104.7102),             # Montana
-    ("CDC", "Cedar City", 37.6775, -113.0619),           # Utah
-    ("MCI", "Kansas City", 39.0997, -94.5786),           # Missouri
-    ("UOX", "Oxford", 34.3665, -89.5342),                # Mississippi
-    ("HSV", "Huntsville", 34.7304, -86.5861),            # Alabama
-    ("CSG", "Columbus", 32.4609, -84.9877),              # Georgia
-    ("TLH", "Tallahassee", 30.4383, -84.2807),           # Florida
-    ("WMC", "Winnemucca", 40.9729, -117.7357),           # Nevada
-    ("PHX", "Phoenix", 33.4484, -112.0740),              # Arizona
-    ("ABQ", "Albuquerque", 35.0844, -106.6504),          # New Mexico
-    ("OKC", "Oklahoma City", 35.4676, -97.5164),         # Oklahoma
-    ("LSE", "La Crosse", 43.8014, -91.2396),             # Wisconsin
-    ("SLC", "Salt Lake City", 40.7608, -111.8910),       # Utah
-    ("SHV", "Shreveport", 32.5252, -93.7502),            # Louisiana
-    ("MSY", "New Orleans", 29.9511, -90.0715),           # Louisiana
-    ("ICT", "Wichita", 37.6872, -97.3301),               # Kansas
-    ("AIA", "Alliance", 42.1014, -102.8724),             # Nebraska
-    ("MSN", "Madison", 43.0731, -89.4012),               # Wisconsin
-    ("DLH", "Duluth", 46.7867, -92.1005),                # Minnesota
-    ("DTW", "Detroit", 42.3314, -83.0458),               # Michigan
-    ("TVC", "Traverse City", 44.7631, -85.6206),         # Michigan
-    ("SPI", "Springfield", 39.7817, -89.6501),           # Illinois
-    ("IND", "Indianapolis", 39.7684, -86.1581),          # Indiana
-    ("LEX", "Lexington", 38.0406, -84.5037),             # Kentucky
-    ("CGI", "Cape Girardeau", 37.3059, -89.5181),        # Missouri
-    ("CRW", "Charleston", 38.3498, -81.6326),            # West Virginia
-    ("ABE", "Allentown", 40.6084, -75.4902),             # Pennsylvania
-    ("ACY", "Atlantic City", 39.3643, -74.4229),         # New Jersey
-    ("YNG", "Youngstown", 41.0998, -80.6495),            # Ohio
-    ("RUT", "Rutland", 43.6106, -72.9726),               # Vermont
-    ("GFD", "Greenfield", 42.5876, -72.5995),            # Massachusetts
-    ("BOS", "Boston", 42.3601, -71.0589),                # Massachusetts
-    ("NPT", "Newport", 41.4901, -71.3128),               # Rhode Island
-    ("WAT", "Waterbury", 41.5582, -73.0515),             # Connecticut
-    ("GON", "New London", 41.3557, -72.0995),            # Connecticut
-    ("CON", "Concord", 43.2081, -71.5376),               # New Hampshire
-    ("AUG", "Augusta", 44.3106, -69.7795),               # Maine
-    ("CPR", "Casper", 42.8666, -106.3131),               # Wyoming
-    ("BOI", "Boise", 43.6150, -116.2023),                # Idaho
-    ("PDX", "Portland", 45.5152, -122.6784),             # Oregon
-    ("SEA", "Seattle", 47.6062, -122.3321),              # Washington
-    ("RAP", "Rapid City", 44.0805, -103.2310),           # South Dakota
-    ("LIT", "Little Rock", 34.7465, -92.2896),           # Arkansas
-    ("MEM", "Memphis", 35.1495, -90.0490),               # Tennessee
-    ("MOB", "Mobile", 30.6954, -88.0399),                # Alabama
-    ("TPA", "Tampa", 27.9506, -82.4572),                 # Florida
-    ("MIA", "Miami", 25.7617, -80.1918),                 # Florida
-    ("JAX", "Jacksonville", 30.3322, -81.6557),          # Florida
-    ("MYR", "Myrtle Beach", 33.6891, -78.8867),          # South Carolina
-    ("AVL", "Asheville", 35.5951, -82.5515),             # North Carolina
-    ("RIC", "Richmond", 37.5407, -77.4360),              # Virginia
-    ("CMH", "Columbus", 39.9612, -82.9988),              # Ohio
-    ("OMA", "Omaha", 41.2565, -95.9345),                 # Nebraska
-    ("FAR", "Fargo", 46.8772, -96.7898),                 # North Dakota
-    ("GTF", "Great Falls", 47.4942, -111.2833),          # Montana
-    ("SJC", "San Jose", 37.3541, -121.9552),             # California
-    ("LAS", "Las Vegas", 36.1699, -115.1398),            # Nevada
-    ("DFW", "Dallas", 32.7767, -96.7970),                # Texas
-    ("CRP", "Corpus Christi", 27.8006, -97.3964),        # Texas
-    ("AMA", "Amarillo", 35.2219, -101.8313),             # Texas
-    ("DENVER", "Denver", 39.7392, -104.9903),            # Colorado, not necessarily ASOS
-    ("ISP", "Islip", 40.7952, -73.1002),                 # Long Island
-    ("FOK", "Westhampton Beach", 40.8437, -72.6318),     # Long Island
-    ("HPN", "White Plains", 41.0669, -73.7076),          # Just north of NYC
+    ("PGV", "Greenville", 35.6127, -77.3664),
+    ("PIT", "Pittsburgh", 40.4406, -79.9959),
+    ("SHV", "Shreveport", 32.5252, -93.7502),
+    ("DSM", "Des Moines", 41.5868, -93.6250),
+    ("GDV", "Glendive", 47.1050, -104.7102),
+    ("CDC", "Cedar City", 37.6775, -113.0619),
+    ("MCI", "Kansas City", 39.0997, -94.5786),
+    ("UOX", "Oxford", 34.3665, -89.5342),
+    ("HSV", "Huntsville", 34.7304, -86.5861),
+    ("CSG", "Columbus", 32.4609, -84.9877),
+    ("TLH", "Tallahassee", 30.4383, -84.2807),
+    ("WMC", "Winnemucca", 40.9729, -117.7357),
+    ("PHX", "Phoenix", 33.4484, -112.0740),
+    ("ABQ", "Albuquerque", 35.0844, -106.6504),
+    ("OKC", "Oklahoma City", 35.4676, -97.5164),
+    ("LSE", "La Crosse", 43.8014, -91.2396),
+    ("SLC", "Salt Lake City", 40.7608, -111.8910),
+    ("SHV", "Shreveport", 32.5252, -93.7502),
+    ("MSY", "New Orleans", 29.9511, -90.0715),
+    ("ICT", "Wichita", 37.6872, -97.3301),
+    ("AIA", "Alliance", 42.1014, -102.8724),
+    ("MSN", "Madison", 43.0731, -89.4012),
+    ("DLH", "Duluth", 46.7867, -92.1005),
+    ("DTW", "Detroit", 42.3314, -83.0458),
+    ("TVC", "Traverse City", 44.7631, -85.6206),
+    ("SPI", "Springfield", 39.7817, -89.6501),
+    ("IND", "Indianapolis", 39.7684, -86.1581),
+    ("LEX", "Lexington", 38.0406, -84.5037),
+    ("CGI", "Cape Girardeau", 37.3059, -89.5181),
+    ("CRW", "Charleston", 38.3498, -81.6326),
+    ("ABE", "Allentown", 40.6084, -75.4902),
+    ("ACY", "Atlantic City", 39.3643, -74.4229),
+    ("YNG", "Youngstown", 41.0998, -80.6495),
+    ("RUT", "Rutland", 43.6106, -72.9726),
+    ("GFD", "Greenfield", 42.5876, -72.5995),
+    ("BOS", "Boston", 42.3601, -71.0589),
+    ("NPT", "Newport", 41.4901, -71.3128),
+    ("WAT", "Waterbury", 41.5582, -73.0515),
+    ("GON", "New London", 41.3557, -72.0995),
+    ("CON", "Concord", 43.2081, -71.5376),
+    ("AUG", "Augusta", 44.3106, -69.7795),
+    ("CPR", "Casper", 42.8666, -106.3131),
+    ("BOI", "Boise", 43.6150, -116.2023),
+    ("PDX", "Portland", 45.5152, -122.6784),
+    ("SEA", "Seattle", 47.6062, -122.3321),
+    ("RAP", "Rapid City", 44.0805, -103.2310),
+    ("LIT", "Little Rock", 34.7465, -92.2896),
+    ("MEM", "Memphis", 35.1495, -90.0490),
+    ("MOB", "Mobile", 30.6954, -88.0399),
+    ("TPA", "Tampa", 27.9506, -82.4572),
+    ("MIA", "Miami", 25.7617, -80.1918),
+    ("JAX", "Jacksonville", 30.3322, -81.6557),
+    ("MYR", "Myrtle Beach", 33.6891, -78.8867),
+    ("AVL", "Asheville", 35.5951, -82.5515),
+    ("RIC", "Richmond", 37.5407, -77.4360),
+    ("CMH", "Columbus", 39.9612, -82.9988),
+    ("OMA", "Omaha", 41.2565, -95.9345),
+    ("FAR", "Fargo", 46.8772, -96.7898),
+    ("GTF", "Great Falls", 47.4942, -111.2833),
+    ("SJC", "San Jose", 37.3541, -121.9552),
+    ("LAS", "Las Vegas", 36.1699, -115.1398),
+    ("DFW", "Dallas", 32.7767, -96.7970),
+    ("CRP", "Corpus Christi", 27.8006, -97.3964),
+    ("AMA", "Amarillo", 35.2219, -101.8313),
+    ("DENVER", "Denver", 39.7392, -104.9903),
+    ("ISP", "Islip", 40.7952, -73.1002),
+    ("FOK", "Westhampton Beach", 40.8437, -72.6318),
+    ("HPN", "White Plains", 41.0669, -73.7076),
     ("ALB", "Albany", 42.7576, -73.8036),
     ("ART", "Watertown", 43.9888, -76.0262),
     ("BGM", "Binghamton", 42.2086, -75.9797),
@@ -145,7 +145,7 @@ NY_ASOS_STATIONS = [
     ("ITH", "Ithaca", 42.491, -76.4584),
     ("JHW", "Jamestown", 42.1533, -79.2581),
     ("MSS", "Massena", 44.9358, -74.8456),
-    ("NYC", "Central Park", 40.7794, -73.9692),           # Remove if too close to LGA/JFK
+    ("NYC", "Central Park", 40.7794, -73.9692),
     ("OGS", "Ogdensburg", 44.6819, -75.4655),
     ("PEO", "Penn Yan", 42.6373, -77.0522),
     ("PBG", "Plattsburgh Intl", 44.6509, -73.4681),
@@ -154,9 +154,46 @@ NY_ASOS_STATIONS = [
     ("SLK", "Saranac Lake", 44.3853, -74.2062),
     ("SWF", "Newburgh", 41.5041, -74.1048),
     ("SYR", "Syracuse", 43.1112, -76.1063),
-    # Added Andes, NY and Old Forge, NY
     ("AND", "Andes", 42.1906, -74.7857),
     ("OLF", "Old Forge", 43.7117, -74.9732),
+    ("JNY", "Johnstown", 42.9942, -74.3735),
+    ("ONH", "Oneonta", 42.4529, -75.0638),
+    ("KNG", "Kingston", 41.9270, -73.9974),
+    ("NBN", "New Berlin", 42.6248, -75.3326),
+    ("SPC", "Speculator", 43.4967, -74.3571),
+    ("NCK", "North Creek", 43.6948, -73.9824),
+    ("PHN", "Port Henry", 44.0473, -73.4601),
+    ("STL", "Star Lake", 44.1559, -74.9327),
+     ("BEN", "Bennington", 42.8781, -73.1968),
+    ("RAN", "Randolph", 43.9242, -72.6657),
+    ( "MPL", "Montpelier", 44.2601, -72.5754),
+    ("JPK", "Jay Peak", 44.9377, -72.5146),
+    ("IPD", "Island Pond", 44.8145, -71.8826),
+     ("SPF", "Springfield", 42.1015, -72.5898),
+    ("WOR", "Worcester", 42.2626, -71.8023),
+    ("CPC", "Cape Cod", 41.6688, -70.2962),
+    ("HAV", "Haverhill", 42.7762, -71.0773),
+    ("SFD", "Sanford", 43.4390, -70.7748), 
+    ("DNM", "Denmark", 43.9492, -70.8026),
+    ("RMF", "Rumford", 44.5534, -70.5459),
+    ("BGL", "Bigelow", 45.1484, -70.2653),
+    ("KKJ", "Kokadjo", 45.7262, -69.4648),
+    ("NWD", "North Woodstock", 44.0323, -71.6868),
+    ("KEN", "Keene", 42.9337, -72.2781),
+    ("GRH", "Gorham", 44.3876, -71.1723),
+    ("LNC", "Lancaster", 44.4881, -71.5692),
+    ("ERR", "Errol", 44.7801, -71.1245),
+    ("HUD", "Hudson", 42.2529, -73.7909),
+    ("BRV", "Branchville", 41.1534, -74.6932),
+    ("NEG", "New Egypt", 40.1031, -74.4430),
+    ("SAL", "Salem", 39.5701, -75.4681),
+    ("STC", "State College", 40.7934, -77.8600),
+    ("WLB", "Wellsboro", 41.7487, -77.3019),
+    ("BED", "Bedford", 40.0148, -78.5034),
+    ("KAN", "Kane", 41.6615, -78.8054),
+    ("EDB", "Edinboro", 41.9431, -80.1289),
+    ("WCH", "West Chester", 39.9606, -75.6055),
+    ("SCR", "Scranton", 41.4089, -75.6624),
 ]
 
 # Function to download GRIB files
