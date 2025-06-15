@@ -41,6 +41,66 @@
     #top-navbar .nav-item:hover {
       color: #ffb400;
     }
+    /* Centered dropdown in navbar */
+    #navbar-center-dropdown-container {
+      flex: 1 1 auto;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      pointer-events: none; /* allow dropdown to be clickable, but not container */
+    }
+    #navbar-center-dropdown {
+      position: relative;
+      pointer-events: auto;
+      margin: 0 20px;
+    }
+    #navbar-center-dropdown-btn {
+      background: #fff;
+      color: #263159;
+      border: none;
+      border-radius: 6px;
+      padding: 7px 24px 7px 14px;
+      font-size: 1.08em;
+      font-weight: 500;
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+      transition: background 0.15s, color 0.15s;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    #navbar-center-dropdown-btn:hover {
+      background: #ffb400;
+      color: #fff;
+    }
+    #navbar-center-dropdown-list {
+      display: none;
+      position: absolute;
+      top: 110%;
+      left: 0;
+      min-width: 180px;
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.13);
+      z-index: 3000;
+      padding: 6px 0;
+      font-size: 1.05em;
+    }
+    #navbar-center-dropdown.open #navbar-center-dropdown-list {
+      display: block;
+    }
+    #navbar-center-dropdown-list a {
+      display: block;
+      color: #263159;
+      text-decoration: none;
+      padding: 8px 18px;
+      transition: background 0.13s, color 0.13s;
+      border-radius: 4px;
+    }
+    #navbar-center-dropdown-list a:hover {
+      background: #f3f4fa;
+      color: #ffb400;
+    }
     /* Center map and right panel */
     #main-content {
       display: flex;
@@ -165,7 +225,7 @@
     }
     /* Dropdown style */
     .dropdown {
-      margin: 0 18px 18px 18px;
+      margin: 0 18px 8px 18px; /* reduce bottom margin */
       border-radius: 8px;
       background: #f5f7fa;
       box-shadow: 0 1px 4px rgba(0,0,0,0.04);
@@ -173,8 +233,8 @@
       border: 1px solid #e0e0e0;
     }
     .dropdown-header {
-      padding: 16px 18px;
-      font-size: 1.13em;
+      padding: 8px 14px; /* reduce vertical padding */
+      font-size: 1.05em; /* slightly smaller font */
       font-weight: bold;
       color: #263159;
       background: #e8eaf6;
@@ -188,17 +248,9 @@
       color: #b71c1c;
       background: #ffebee;
     }
-    .dropdown-arrow {
-      font-size: 1.2em;
-      margin-left: 8px;
-      transition: transform 0.2s;
-    }
-    .dropdown.open .dropdown-arrow {
-      transform: rotate(90deg);
-    }
     .dropdown-content {
       display: none;
-      padding: 0 18px 14px 18px;
+      padding: 0 14px 6px 14px; /* reduce vertical padding */
       animation: fadeIn 0.2s;
     }
     .dropdown.open .dropdown-content {
@@ -206,8 +258,8 @@
     }
     .dropdown-content label {
       display: block;
-      margin: 10px 0 0 0;
-      font-size: 1em;
+      margin: 6px 0 0 0; /* reduce margin between labels */
+      font-size: 0.98em; /* slightly smaller font */
       color: #333;
       cursor: pointer;
     }
@@ -404,14 +456,14 @@
         min-height: 0;
       }
       .dropdown {
-        margin: 0 8px 12px 8px;
+        margin: 0 8px 6px 8px; /* reduce bottom margin for mobile */
       }
       .dropdown-header {
-        padding: 12px 10px;
-        font-size: 1em;
+        padding: 7px 8px; /* reduce padding for mobile */
+        font-size: 0.98em;
       }
       .dropdown-content {
-        padding: 0 10px 10px 10px;
+        padding: 0 8px 4px 8px; /* reduce padding for mobile */
       }
       #bottom-colorbar-bar {
         min-height: 48px;
@@ -473,6 +525,19 @@
     <a class="nav-item" href="/more.html">More</a>
     <a class="nav-item" href="/settings.html">Settings</a>
     <a class="nav-item" href="/usa_leaflet.html">Weather Model Page</a>
+    <!-- Centered dropdown -->
+    <div id="navbar-center-dropdown-container">
+      <div id="navbar-center-dropdown">
+        <button id="navbar-center-dropdown-btn" aria-haspopup="true" aria-expanded="false">
+          Select Model
+          <span style="margin-left:6px;">&#9662;</span>
+        </button>
+        <div id="navbar-center-dropdown-list" role="menu">
+          <a href="HRRR.html" role="menuitem">HRRR</a>
+          <a href="NBM.html" role="menuitem">NBM</a>
+        </div>
+      </div>
+    </div>
   </div>
   <div id="main-content">
     <!-- Left panel with UTC/time and slider -->
@@ -865,71 +930,75 @@
       .then(response => response.json())
       .then(function(images) {
         pngList = images;
-        if (pngList.length === 0) return;
         var slider = document.getElementById('hour-slider');
         var label = document.getElementById('hour-label');
         var forecastTimeBox = document.getElementById('forecast-time-est');
         document.getElementById('left-slider-box').style.display = 'flex';
-        slider.max = pngList.length - 1;
+
+        // Use backend-provided hours for slider (should be 0-48)
+        slider.min = 0;
+        slider.max = pngList.length > 0 ? pngList.length - 1 : 0;
         slider.value = 0;
+        slider.step = 1;
 
         function getForecastTimeEST(hourOffset) {
           // Get current UTC time
           const now = new Date();
-          const utcYear = now.getUTCFullYear();
-          const utcMonth = now.getUTCMonth();
-          const utcDay = now.getUTCDate();
-          const utcHour = now.getUTCHours();
+          let utcYear = now.getUTCFullYear();
+          let utcMonth = now.getUTCMonth();
+          let utcDay = now.getUTCDate();
+          let utcHour = now.getUTCHours();
 
           // Find most recent HRRR run hour (00, 06, 12, 18) <= current UTC hour
           let runHour = Math.floor(utcHour / 6) * 6;
           if (runHour === 24) runHour = 18;
-          let runDate = new Date(Date.UTC(utcYear, utcMonth, utcDay, runHour));
+          let dateForRun = new Date(Date.UTC(utcYear, utcMonth, utcDay, utcHour));
           if (utcHour < runHour) {
-            runDate.setUTCHours(runDate.getUTCHours() - 6);
-            runHour = Math.floor(runDate.getUTCHours() / 6) * 6;
+            dateForRun.setUTCHours(dateForRun.getUTCHours() - 6);
+            runHour = Math.floor(dateForRun.getUTCHours() / 6) * 6;
           }
+          let dateStr = dateForRun.getUTCFullYear().toString().padStart(4, '0') +
+                        String(dateForRun.getUTCMonth() + 1).padStart(2, '0') +
+                        String(dateForRun.getUTCDate()).padStart(2, '0');
+          let hourStr = String(runHour).padStart(2, '0');
 
-          // Map runHour to EST start hour
-          // 00z = 8pm prev day, 06z = 2am, 12z = 8am, 18z = 2pm (all EST)
-          let estStartHour;
-          if (runHour === 0) estStartHour = 20;      // 8pm previous day
-          else if (runHour === 6) estStartHour = 2;  // 2am
-          else if (runHour === 12) estStartHour = 8; // 8am
-          else if (runHour === 18) estStartHour = 14;// 2pm
+          // Map runHour to local time (EST/EDT) for display
+          // 00z -> 8:00 PM, 06z -> 2:00 AM, 12z -> 8:00 AM, 18z -> 2:00 PM
+          let displayHour = 20, displayMinute = 0, ampm = "PM";
+          if (runHour === 0) { displayHour = 20; ampm = "PM"; }
+          else if (runHour === 6) { displayHour = 2; ampm = "AM"; }
+          else if (runHour === 12) { displayHour = 8; ampm = "AM"; }
+          else if (runHour === 18) { displayHour = 2; ampm = "PM"; }
 
-          // For 00z, move to previous day for EST start
-          let estRunDate = new Date(runDate.getTime());
-          if (runHour === 0) {
-            estRunDate.setUTCDate(estRunDate.getUTCDate() - 1);
-          }
-          // Set EST run start hour
-          estRunDate.setUTCHours(estStartHour + 5, 0, 0, 0); // EST to UTC (+5)
+          // Add hourOffset to the display time
+          let displayDate = new Date(Date.UTC(
+            dateForRun.getUTCFullYear(),
+            dateForRun.getUTCMonth(),
+            dateForRun.getUTCDate(),
+            runHour
+          ));
+          // Add hourOffset in hours
+          displayDate.setUTCHours(displayDate.getUTCHours() + hourOffset);
 
-          // Forecast valid time = estRunDate + hourOffset (in hours)
-          let validDate = new Date(estRunDate.getTime() + hourOffset * 3600 * 1000);
-
-          // Format yymmdd and hour in 12-hour format with AM/PM
-          let yy = String(validDate.getFullYear()).slice(2);
-          let mm = String(validDate.getMonth() + 1).padStart(2, '0');
-          let dd = String(validDate.getDate()).padStart(2, '0');
-          let hour24 = validDate.getUTCHours() - 5;
-          if (hour24 < 0) {
-            hour24 += 24;
-            // If hour24 < 0, subtract a day
-            let prev = new Date(validDate.getTime() - 24 * 3600 * 1000);
-            yy = String(prev.getFullYear()).slice(2);
-            mm = String(prev.getMonth() + 1).padStart(2, '0');
-            dd = String(prev.getDate()).padStart(2, '0');
-          }
-          let ampm = hour24 >= 12 ? 'PM' : 'AM';
+          // Convert to America/New_York time zone for display
+          let tzDate = new Date(displayDate.toLocaleString("en-US", {timeZone: "America/New_York"}));
+          let yy = String(tzDate.getFullYear()).slice(2);
+          let mm = String(tzDate.getMonth() + 1).padStart(2, '0');
+          let dd = String(tzDate.getDate()).padStart(2, '0');
+          let hour24 = tzDate.getHours();
+          let minute = tzDate.getMinutes();
+          let ampmDisp = hour24 >= 12 ? 'PM' : 'AM';
           let hour12 = hour24 % 12;
           if (hour12 === 0) hour12 = 12;
           let hh = String(hour12).padStart(2, '0');
-          return `Forecast valid (EST): ${yy}${mm}${dd} ${hh}:00 ${ampm}`;
+
+          return `Forecast valid (EST): ${yy}${mm}${dd} ${hh}:00 ${ampmDisp}`;
         }
 
       window.updateOverlay = function(idx) {
+          // Clamp idx to available range
+          idx = Math.max(0, Math.min(idx, pngList.length - 1));
+
           // Remove all overlays first
           if (overlayRefc) { map.removeLayer(overlayRefc); overlayRefc = null; }
           if (overlayMslp) { map.removeLayer(overlayMslp); overlayMslp = null; }
@@ -985,39 +1054,29 @@
             forecastTimeBox.textContent = "";
           }
           updateColorbars(getVisibleLayers());
-      };
+        };
 
-      slider.oninput = function() {
-        updateOverlay(parseInt(slider.value));
-      };
+        slider.oninput = function() {
+          updateOverlay(parseInt(slider.value));
+        };
 
-      // Add arrow key support
-      document.addEventListener('keydown', function(e) {
-        if (['ArrowRight', 'ArrowLeft'].includes(e.key)) {
-          e.preventDefault();
-          var idx = parseInt(slider.value);
-          if (e.key === 'ArrowRight' && idx < pngList.length - 1) {
-            slider.value = idx + 1;
-            slider.dispatchEvent(new Event('input'));
-          } else if (e.key === 'ArrowLeft' && idx > 0) {
-            slider.value = idx - 1;
-            slider.dispatchEvent(new Event('input'));
+        // Add arrow key support
+        document.addEventListener('keydown', function(e) {
+          if (['ArrowRight', 'ArrowLeft'].includes(e.key)) {
+            e.preventDefault();
+            var idx = parseInt(slider.value);
+            if (e.key === 'ArrowRight' && idx < pngList.length - 1) {
+              slider.value = idx + 1;
+              slider.dispatchEvent(new Event('input'));
+            } else if (e.key === 'ArrowLeft' && idx > 0) {
+              slider.value = idx - 1;
+              slider.dispatchEvent(new Event('input'));
+            }
           }
-        }
-      });
+        });
 
-      // Show first image if available, otherwise show empty overlays
-      if (pngList.length > 0) {
+        // Always show slider for 0–48
         updateOverlay(0);
-      } else {
-        // Show slider anyway, but disable it
-        document.getElementById('left-slider-box').style.display = 'flex';
-        slider.max = 0;
-        slider.value = 0;
-        slider.disabled = true;
-        label.textContent = "No data";
-        forecastTimeBox.textContent = "";
-      }
       });
 
     function updateColorbars(visibleLayers) {
@@ -1162,11 +1221,26 @@
 
     // Add event listeners for checkboxes to show/hide sliders
     [
-      'refc','mslp','temp2m','rh','precip',
-      'lightning','hail','cape','cin',
-      'lcdc','mcdc','hcdc','wind10m','wind10m-station','srh',
-      'pwat','gust','shear-vector'
-    ].forEach(function(layer) {
+      // [layer id, overlay variable, opacity key]
+      ['refc', 'overlayRefc', 'refc'],
+      ['mslp', 'overlayMslp', 'mslp'],
+      ['temp2m', 'overlayTemp2m', 'temp2m'],
+      ['rh', 'overlayRH', 'rh'],
+      ['precip', 'overlayPrecip', 'precip'],
+      ['lightning', 'overlayLightning', 'lightning'],
+      ['hail', 'overlayHail', 'hail'],
+      ['cape', 'overlayCAPE', 'cape'],
+      ['cin', 'overlayCIN', 'cin'],
+      ['lcdc', 'overlayLCDC', 'lcdc'],
+      ['mcdc', 'overlayMCDC', 'mcdc'],
+      ['hcdc', 'overlayHCDC', 'hcdc'],
+      ['wind10m', 'overlayWind10m', 'wind10m'],
+      ['wind10m-station', 'overlayWind10mStation', 'wind10mStation'],
+      ['srh', 'overlaySRH', 'srh'],
+      ['pwat', 'overlayPWAT', 'pwat'],
+      ['gust', 'overlayGust', 'gust'],
+      ['shear-vector', 'overlayShearVector', 'shearVector']
+    ].forEach(function([layer, overlayVarName, opacityKey]) {
       var cb = document.getElementById('toggle-' + layer);
       var slider = document.getElementById('opacity-' + layer);
       if (cb && slider) {
@@ -1175,11 +1249,10 @@
         });
         toggleOpacitySlider(layer, cb.checked);
         slider.addEventListener('input', function() {
-          var key = layer.replace(/-([a-z])/g, function(g) { return g[1].toUpperCase(); });
-          overlayOpacity[key] = parseFloat(slider.value);
-          var overlayVar = window['overlay' + key.charAt(0).toUpperCase() + key.slice(1)];
+          overlayOpacity[opacityKey] = parseFloat(slider.value);
+          var overlayVar = window[overlayVarName];
           if (overlayVar && map.hasLayer(overlayVar)) {
-            overlayVar.setOpacity(overlayOpacity[key]);
+            overlayVar.setOpacity(overlayOpacity[opacityKey]);
           }
         });
       }
@@ -1235,6 +1308,7 @@
 
       // Always show hour label and forecast time if entry exists
       if (entry && typeof entry.hour !== "undefined") {
+        // Show the index as Hour: 0, 1, 2, ... (not entry.hour)
         label.textContent = `Hour: ${entry.hour}`;
         forecastTimeBox.textContent = getForecastTimeEST(entry.hour);
       } else {
@@ -1412,34 +1486,48 @@
       }
     });
 
-    // --- Play button logic for slider animation ---
-    var playBtn = document.getElementById('slider-play-btn');
-    var slider = document.getElementById('hour-slider');
-    var isPlaying = false;
-    var playInterval = null;
-    var playInternalUpdate = false; // Track if slider change is from play logic
+    // --- Navbar center dropdown logic with selected model display ---
+    (function() {
+      var dropdown = document.getElementById('navbar-center-dropdown');
+      var btn = document.getElementById('navbar-center-dropdown-btn');
+      var list = document.getElementById('navbar-center-dropdown-list');
+      // Set initial button text to current model
+      function setModelBtnText(model) {
+        btn.childNodes[0].nodeValue = model + " ";
+      }
+      // Detect current model from URL or file
+      var currentModel = "HRRR";
+      if (window.location.href.match(/NBM\.html/i)) currentModel = "NBM";
+      setModelBtnText(currentModel);
 
-    function playSlider() {
-      if (!pngList || pngList.length === 0) return;
-      isPlaying = true;
-      playBtn.textContent = "⏸ Pause";
-      slider.disabled = true;
-      playInterval = setInterval(function() {
+      btn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        var open = dropdown.classList.contains('open');
+        document.querySelectorAll('#navbar-center-dropdown.open').forEach(function(d) {
+          d.classList.remove('open');
+        });
+        if (!open) dropdown.classList.add('open');
+      });
+      document.addEventListener('click', function(e) {
+        if (!dropdown.contains(e.target)) dropdown.classList.remove('open');
+      });
 
-        var idx = parseInt(slider.value);
-        if (idx < pngList.length - 1) {
-          playInternalUpdate = true;
-          slider.value = idx + 1;
-          slider.dispatchEvent(new Event('input'));
-          playInternalUpdate = false;
-        } else {
-          // Loop to first frame and keep playing
-          playInternalUpdate = true;
-          slider.value = 0;
-          slider.dispatchEvent(new Event('input'));
-          playInternalUpdate = false;
-        }
-      }, 500); // 500ms per frame, adjust as needed
+      // Update button text on menu item click
+      list.querySelectorAll('a').forEach(function(link) {
+        link.addEventListener('click', function(e) {
+          var model = this.textContent.trim();
+          setModelBtnText(model);
+          // Let the navigation proceed
+        });
+      });
+    })();
+  </script>
+</body>
+</html>
+</html>
+</body>
+</html>
+</html>
     }
 
     function stopSlider() {
@@ -1514,8 +1602,9 @@
 
       // Always show hour label and forecast time if entry exists
       if (entry && typeof entry.hour !== "undefined") {
-        label.textContent = `Hour: ${entry.hour}`;
-        forecastTimeBox.textContent = getForecastTimeEST(entry.hour);
+        // Show the index as Hour: 0, 1, 2, ... (not entry.hour)
+        label.textContent = `Hour: ${idx}`;
+        forecastTimeBox.textContent = getForecastTimeEST(idx);
       } else {
         label.textContent = "No data";
         forecastTimeBox.textContent = "";
@@ -1690,6 +1779,45 @@
         }
       }
     });
+
+    // --- Navbar center dropdown logic with selected model display ---
+    (function() {
+      var dropdown = document.getElementById('navbar-center-dropdown');
+      var btn = document.getElementById('navbar-center-dropdown-btn');
+      var list = document.getElementById('navbar-center-dropdown-list');
+      // Set initial button text to current model
+      function setModelBtnText(model) {
+        btn.childNodes[0].nodeValue = model + " ";
+      }
+      // Detect current model from URL or file
+      var currentModel = "HRRR";
+      if (window.location.href.match(/NBM\.html/i)) currentModel = "NBM";
+      setModelBtnText(currentModel);
+
+      btn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        var open = dropdown.classList.contains('open');
+        document.querySelectorAll('#navbar-center-dropdown.open').forEach(function(d) {
+          d.classList.remove('open');
+        });
+        if (!open) dropdown.classList.add('open');
+      });
+      document.addEventListener('click', function(e) {
+        if (!dropdown.contains(e.target)) dropdown.classList.remove('open');
+      });
+
+      // Update button text on menu item click
+      list.querySelectorAll('a').forEach(function(link) {
+        link.addEventListener('click', function(e) {
+          var model = this.textContent.trim();
+          setModelBtnText(model);
+          // Let the navigation proceed
+        });
+      });
+    })();
   </script>
+</body>
+</html>
+</html>
 </body>
 </html>
