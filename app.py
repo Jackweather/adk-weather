@@ -31,10 +31,13 @@ PNG_DIR_PWAT = os.path.join(BASE_DIR, "HRRRUN", "Hrrr", "static", "PWAT")
 PNG_DIR_GUST = os.path.join(BASE_DIR, "HRRRUN", "Hrrr", "static", "GUST")
 # Add VUCSH_VVCSH directory
 PNG_DIR_SHEAR_VECTOR = os.path.join(BASE_DIR, "HRRRUN", "Hrrr", "static", "VUCSH_VVCSH")
+# Add NBM tmp_surface PNG directory
+PNG_DIR_NBM_TMP_SURFACE = os.path.join(BASE_DIR, "NBM", "NBM", "static", "tmp_surface")
 
 @app.route("/")
 def home():
-    return send_from_directory(BASE_DIR, "usa_leaflet.html")
+    # Serve HRRR.html as the default home page
+    return send_from_directory(BASE_DIR, "HRRR.html")
 
 @app.route("/reflectivity_images")
 def get_pngs():
@@ -69,6 +72,8 @@ def get_pngs():
     gust_files = [f for f in safe_listdir(PNG_DIR_GUST) if re.match(r"GUST_(\d+)\.png$", f)]  # GUST
     # Add wind shear vector files
     shear_vector_files = [f for f in safe_listdir(PNG_DIR_SHEAR_VECTOR) if re.match(r"ShearVectors_(\d+)\.png$", f)]
+    # Add NBM 2mtemp files
+    nbm_temp2m_files = [f for f in safe_listdir(PNG_DIR_NBM_TMP_SURFACE) if re.match(r"2mtemp_(\d+)\.png$", f)]
 
     # Use regex to extract hour from each filename (more robust)
     def extract_hour(pattern, filename):
@@ -94,6 +99,8 @@ def get_pngs():
     gust_dict = {extract_hour(r"GUST_(\d+)\.png$", f): f for f in gust_files}  # GUST
     # Add wind shear vector dict
     shear_vector_dict = {extract_hour(r"ShearVectors_(\d+)\.png$", f): f for f in shear_vector_files}
+    # Add NBM 2mtemp dict
+    nbm_temp2m_dict = {extract_hour(r"2mtemp_(\d+)\.png$", f): f for f in nbm_temp2m_files}
 
     # Remove None keys if any file didn't match pattern
     refc_dict = {k: v for k, v in refc_dict.items() if k is not None}
@@ -115,10 +122,28 @@ def get_pngs():
     gust_dict = {k: v for k, v in gust_dict.items() if k is not None}  # GUST
     # Add wind shear vector dict cleanup
     shear_vector_dict = {k: v for k, v in shear_vector_dict.items() if k is not None}
+    # Add NBM 2mtemp dict cleanup
+    nbm_temp2m_dict = {k: v for k, v in nbm_temp2m_dict.items() if k is not None}
 
-    # Union of all available hours from all overlays
-    all_hours = set(refc_dict) | set(mslp_dict) | set(temp2m_dict) | set(lightning_dict) | set(rh_dict) | set(hail_dict) | set(cape_dict) | set(cin_dict) | set(lcdc_dict) | set(mcdc_dict) | set(hcdc_dict) | set(precip_dict) | set(wind10m_dict) | set(wind10m_station_dict) | set(srh_dict) | set(pwat_dict) | set(gust_dict) | set(shear_vector_dict)
+    # Determine if this is an NBM or HRRR request based on Referer or User-Agent or query param
+    is_nbm = False
+    referer = request.headers.get("Referer", "")
+    if "NBM.html" in referer or "nbm.html" in referer or request.args.get("model") == "nbm":
+        is_nbm = True
+    elif "HRRR.html" in referer or "hrrr.html" in referer or request.args.get("model") == "hrrr":
+        is_nbm = False
+
+    # Union of all available hours from all overlays (add nbm_temp2m_dict)
+    all_hours = set(refc_dict) | set(mslp_dict) | set(temp2m_dict) | set(lightning_dict) | set(rh_dict) | set(hail_dict) | set(cape_dict) | set(cin_dict) | set(lcdc_dict) | set(mcdc_dict) | set(hcdc_dict) | set(precip_dict) | set(wind10m_dict) | set(wind10m_station_dict) | set(srh_dict) | set(pwat_dict) | set(gust_dict) | set(shear_vector_dict) | set(nbm_temp2m_dict)
     all_hours = sorted(all_hours)
+
+    # --- Only include hours that match the model's step ---
+    if is_nbm:
+        all_hours = [h for h in all_hours if h is not None and h % 6 == 0 and 6 <= h <= 264]
+    else:
+        # HRRR: Always return 0-48 (inclusive), even if files are missing
+        all_hours = list(range(0, 49))
+
     result = []
     for hour in all_hours:
         result.append({
@@ -138,10 +163,10 @@ def get_pngs():
             "wind10m": f"/wind10m_pngs/{wind10m_dict[hour]}" if hour in wind10m_dict else None,
             "wind10m_station": f"/wind10m_station_pngs/{wind10m_station_dict[hour]}" if hour in wind10m_station_dict else None,
             "srh": f"/srh_pngs/{srh_dict[hour]}" if hour in srh_dict else None,
-            "pwat": f"/pwat_pngs/{pwat_dict[hour]}" if hour in pwat_dict else None,  # PWAT
+            "pwat": f"/pwat_pngs/{pwat_dict[hour]}" if hour in pwat_dict else None,
             "gust": f"/gust_pngs/{gust_dict[hour]}" if hour in gust_dict else None,
-            # Add wind shear vector overlay
             "shear_vector": f"/shear_vector_pngs/{shear_vector_dict[hour]}" if hour in shear_vector_dict else None,
+            "nbm_temp2m": f"/nbm_tmp_surface_pngs/{nbm_temp2m_dict[hour]}" if hour in nbm_temp2m_dict else None,
         })
     response = make_response(jsonify(result))
     response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
@@ -294,7 +319,7 @@ def run_task1():
             error_trace = traceback.format_exc()
             print(f"Error running temp2m.py:\n{error_trace}")
             print("STDOUT:", e.stdout)
-            print("STDERR:", e.stderr)
+            print("STDERR:", result.stderr)
 
         try:
             result = subprocess.run(
@@ -515,6 +540,27 @@ def run_task1():
     # return "Ran scripts synchronously for testing"
     return "All scripts started sequentially in background!", 200
 
+@app.route("/run-task2")
+def run_task2():
+    def run_nbm_tmp_surface():
+        print("Flask is running as user:", getpass.getuser())  # Print user for debugging
+        try:
+            result = subprocess.run(
+                ["python", "/opt/render/project/src/NBM/tmp_surface.py"],
+                check=True, cwd="/opt/render/project/src/NBM",
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
+            )
+            print("tmp_surface.py ran successfully!")
+            print("STDOUT:", result.stdout)
+            print("STDERR:", result.stderr)
+        except subprocess.CalledProcessError as e:
+            error_trace = traceback.format_exc()
+            print(f"Error running tmp_surface.py:\n{error_trace}")
+            print("STDOUT:", e.stdout)
+            print("STDERR:", e.stderr)
+    threading.Thread(target=run_nbm_tmp_surface).start()
+    return "NBM tmp_surface.py started in background!", 200
+
 @app.route("/<path:filename>")
 def serve_static_file(filename):
     return send_from_directory(BASE_DIR, filename)
@@ -608,6 +654,14 @@ def soundings_ready():
     marker_path = os.path.join(bufkit_dir, ".download_complete")
     return jsonify({"ready": os.path.exists(marker_path)})
 
+@app.route("/hrrr.html")
+def serve_hrrr_html():
+    return send_from_directory(BASE_DIR, "HRRR.html")
+
+@app.route("/nbm.html")
+def serve_nbm_html():
+    return send_from_directory(BASE_DIR, "NBM.html")
+
 @app.route("/srh_pngs/<path:filename>")
 def serve_srh_png(filename):
     return api_serve_image(PNG_DIR_SRH, filename)
@@ -623,6 +677,13 @@ def serve_gust_png(filename):
 @app.route("/shear_vector_pngs/<path:filename>")
 def serve_shear_vector_png(filename):
     return api_serve_image(PNG_DIR_SHEAR_VECTOR, filename)
+
+@app.route("/nbm_tmp_surface_pngs/<path:filename>")
+def serve_nbm_tmp_surface_png(filename):
+    # Serve the HRRR temp colorbar for colorbar.png requests
+    if filename == "colorbar.png":
+        return send_from_directory(COLORBAR_DIR, "TEMP_colorbar.png")
+    return api_serve_image(PNG_DIR_NBM_TMP_SURFACE, filename)
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
