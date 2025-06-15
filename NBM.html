@@ -1,0 +1,983 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>USA Reflectivity Overlay</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background: #f7f7f7;
+      font-family: 'Segoe UI', Arial, sans-serif;
+    }
+    /* Top navigation bar */
+    #top-navbar {
+      width: 100vw;
+      background: #263159;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      padding: 0 32px;
+      height: 54px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+      position: fixed;
+      top: 0;
+      left: 0;
+      z-index: 2000;
+    }
+    #top-navbar .nav-item {
+      margin-right: 32px;
+      font-size: 1.1em;
+      font-weight: 500;
+      cursor: pointer;
+      user-select: none;
+      transition: color 0.15s;
+      color: #fff; /* Ensure white text for all nav items */
+      text-decoration: none; /* Remove underline for links */
+    }
+    #top-navbar .nav-item:hover {
+      color: #ffb400;
+    }
+    /* Centered dropdown in navbar */
+    #navbar-center-dropdown-container {
+      flex: 1 1 auto;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      pointer-events: none; /* allow dropdown to be clickable, but not container */
+    }
+    #navbar-center-dropdown {
+      position: relative;
+      pointer-events: auto;
+      margin: 0 20px;
+    }
+    #navbar-center-dropdown-btn {
+      background: #fff;
+      color: #263159;
+      border: none;
+      border-radius: 6px;
+      padding: 7px 24px 7px 14px;
+      font-size: 1.08em;
+      font-weight: 500;
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+      transition: background 0.15s, color 0.15s;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    #navbar-center-dropdown-btn:hover {
+      background: #ffb400;
+      color: #fff;
+    }
+    #navbar-center-dropdown-list {
+      display: none;
+      position: absolute;
+      top: 110%;
+      left: 0;
+      min-width: 180px;
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.13);
+      z-index: 3000;
+      padding: 6px 0;
+      font-size: 1.05em;
+    }
+    #navbar-center-dropdown.open #navbar-center-dropdown-list {
+      display: block;
+    }
+    #navbar-center-dropdown-list a {
+      display: block;
+      color: #263159;
+      text-decoration: none;
+      padding: 8px 18px;
+      transition: background 0.13s, color 0.13s;
+      border-radius: 4px;
+    }
+    #navbar-center-dropdown-list a:hover {
+      background: #f3f4fa;
+      color: #ffb400;
+    }
+    /* Center map and right panel */
+    #main-content {
+      display: flex;
+      flex-direction: row;
+      justify-content: center;
+      align-items: flex-start;
+      width: 100vw;
+      height: 100vh;
+      margin-top: 54px; /* height of navbar */
+      box-sizing: border-box;
+    }
+    /* Left panel for UTC/time and slider - cleaner look */
+    #left-panel {
+      width: 200px;
+      min-width: 120px;
+      background: #fff;
+      border-radius: 14px;
+      box-shadow: 0 2px 12px rgba(60,72,88,0.07);
+      margin-right: 28px;
+      margin-top: 32px;
+      padding: 22px 0 22px 0;
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      z-index: 1200;
+      height: fit-content;
+      border: 1px solid #e6e8ef;
+      transition: box-shadow 0.2s;
+    }
+    #left-panel .utc-box {
+      background: #fff;
+      border-radius: 10px;
+      box-shadow: none;
+      border: none;
+      padding: 14px 14px 10px 14px;
+      font-family: monospace;
+      font-size: 1.04em;
+      color: #263159;
+      min-width: 120px;
+      text-align: center;
+      margin-bottom: 18px;
+      pointer-events: none;
+      user-select: none;
+      letter-spacing: 0.01em;
+      transition: border 0.2s;
+    }
+    #left-panel .slider-box {
+      background: #f8fafc;
+      border-radius: 10px;
+      box-shadow: none;
+      border: none;
+      padding: 14px 10px 10px 10px;
+      text-align: center;
+      min-width: 120px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-bottom: 0;
+      transition: border 0.2s;
+    }
+    #left-panel #hour-slider {
+      width: 110px;
+      margin-bottom: 8px;
+      accent-color: #263159;
+      height: 2px;
+      border-radius: 2px;
+      background: #e0e3ef;
+      outline: none;
+    }
+    #left-panel #hour-label {
+      font-family: monospace;
+      font-size: 1.08em;
+      color: #263159;
+      margin-bottom: 2px;
+      letter-spacing: 0.01em;
+    }
+    #left-panel #forecast-time-est {
+      margin-top: 4px;
+      font-family: monospace;
+      color: #444;
+      font-size: 0.98em;
+      background: none;
+      border: none;
+      padding: 0;
+    }
+    /* Center map and right panel */
+    #map-container {
+      flex: 1 1 auto;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-width: 0;
+      min-height: 0;
+      height: calc(100vh - 54px);
+    }
+    #map {
+      height: 80vh;
+      width: 70vw;
+      min-width: 400px;
+      min-height: 400px;
+      max-width: 1200px;
+      max-height: 900px;
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+      margin: 0 auto;
+    }
+    /* Right panel */
+    #right-panel {
+      width: 270px;
+      background: rgba(255,255,255,0.98);
+      border-radius: 12px 0 0 12px;
+      box-shadow: -2px 2px 16px rgba(0,0,0,0.08);
+      margin-left: 24px;
+      margin-top: 24px;
+      padding: 18px 0 18px 0;
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      min-height: 320px;
+      z-index: 1200;
+    }
+    /* Dropdown style */
+    .dropdown {
+      margin: 0 18px 8px 18px; /* reduce bottom margin */
+      border-radius: 8px;
+      background: #f5f7fa;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+      overflow: hidden;
+      border: 1px solid #e0e0e0;
+    }
+    .dropdown-header {
+      padding: 8px 14px; /* reduce vertical padding */
+      font-size: 1.05em; /* slightly smaller font */
+      font-weight: bold;
+      color: #263159;
+      background: #e8eaf6;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      user-select: none;
+    }
+    .dropdown-header.severe {
+      color: #b71c1c;
+      background: #ffebee;
+    }
+    .dropdown-content {
+      display: none;
+      padding: 0 14px 6px 14px; /* reduce vertical padding */
+      animation: fadeIn 0.2s;
+    }
+    .dropdown.open .dropdown-content {
+      display: block;
+    }
+    .dropdown-content label {
+      display: block;
+      margin: 6px 0 0 0; /* reduce margin between labels */
+      font-size: 0.98em; /* slightly smaller font */
+      color: #333;
+      cursor: pointer;
+    }
+    /* Hide old fixed UTC/time and slider containers */
+    #current-time-box, #custom-slider-container, #slider-container {
+      display: none !important;
+    }
+    /* Bottom colorbar sidebar */
+    #bottom-colorbar-bar {
+      position: fixed;
+      left: 0;
+      bottom: 0;
+      width: 100vw;
+      background: rgba(255,255,255,0.98);
+      box-shadow: 0 -2px 16px rgba(0,0,0,0.08);
+      border-top: 1px solid #e6e8ef;
+      z-index: 3000;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      align-items: center;
+      padding: 0;
+      min-height: 60px;
+      height: 80px; /* Default height, can be changed by user */
+      transition: height 0.15s;
+      box-sizing: border-box;
+    }
+    #colorbar-resize-handle {
+      width: 100px;
+      height: 8px;
+      cursor: ns-resize;
+      background: #e0e3ef;
+      border-radius: 4px;
+      margin: 6px auto 0 auto;
+      position: relative;
+      top: 4px;
+      transition: background 0.2s;
+      z-index: 1;
+    }
+    #colorbar-resize-handle:hover {
+      background: #bfc6e0;
+    }
+    #colorbar-size-slider-container {
+      width: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin: 0 0 2px 0;
+      padding: 0;
+      font-size: 0.98em;
+      color: #444;
+      user-select: none;
+      gap: 10px;
+    }
+    #colorbar-size-slider {
+      width: 180px;
+      accent-color: #263159;
+      margin: 0 8px;
+    }
+    #colorbars-container {
+      display: flex;
+      flex-direction: row;
+      gap: 32px;
+      align-items: flex-end;
+      justify-content: center;
+      width: 100%;
+      margin: 0;
+      padding: 0;
+      background: none;
+      box-shadow: none;
+      padding-bottom: 8px;
+    }
+    #colorbars-container > div {
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      background: none;
+      box-shadow: none;
+      margin: 0;
+      padding: 0;
+    }
+    #colorbars-container img {
+      max-width: 260px;
+      width: 100%;
+      height: auto;
+      background: none;
+      border-radius: 6px;
+      box-shadow: 0 1px 8px rgba(0,0,0,0.04);
+      transition: max-width 0.15s;
+    }
+    /* Remove Leaflet attribution */
+    .leaflet-control-attribution {
+      display: none !important;
+    }
+    /* Spinner CSS */
+    .lds-ring {
+      display: inline-block;
+      position: relative;
+      width: 64px;
+      height: 64px;
+    }
+    .lds-ring div {
+      box-sizing: border-box;
+      display: block;
+      position: absolute;
+      width: 48px;
+      height: 48px;
+      margin: 8px;
+      border: 6px solid #1e90ff;
+      border-radius: 50%;
+      animation: lds-ring 1.1s cubic-bezier(0.5, 0, 0.5, 1) infinite;
+      border-color: #1e90ff transparent transparent transparent;
+    }
+    .lds-ring div:nth-child(1) {
+      animation-delay: -0.3s;
+    }
+    .lds-ring div:nth-child(2) {
+      animation-delay: -0.2s;
+    }
+    .lds-ring div:nth-child(3) {
+      animation-delay: -0.1s;
+    }
+    @keyframes lds-ring {
+      0% {
+        transform: rotate(0deg);
+      }
+      100% {
+        transform: rotate(360deg);
+      }
+    }
+
+    /* --- Responsive styles for mobile (iPhone/Safari) --- */
+    @media (max-width: 900px) {
+      #main-content {
+        flex-direction: column;
+        align-items: stretch;
+        margin-top: 54px;
+        height: auto;
+        min-height: 100vh;
+      }
+      #left-panel {
+        width: 100vw;
+        min-width: 0;
+        margin: 16px 0 0 0;
+        border-radius: 0;
+        box-shadow: none;
+        border: none;
+        flex-direction: row;
+        justify-content: flex-start;
+        align-items: flex-start;
+        padding: 12px 0 12px 0;
+        height: auto;
+      }
+      #left-panel .utc-box,
+      #left-panel .slider-box {
+        min-width: 0;
+        width: 100%;
+        margin-bottom: 0;
+        margin-right: 0;
+        padding: 10px 8px 8px 8px;
+        font-size: 1em;
+      }
+      #left-panel > div {
+        margin: 0 8px 0 8px;
+      }
+      #map-container {
+        width: 100vw;
+        min-width: 0;
+        margin: 0;
+        padding: 0;
+        height: 60vw;
+        min-height: 320px;
+        max-height: 60vh;
+      }
+      #map {
+        width: 98vw;
+        min-width: 0;
+        max-width: 100vw;
+        height: 60vw;
+        min-height: 320px;
+        max-height: 60vh;
+        margin: 0 auto;
+        border-radius: 0;
+      }
+      #right-panel {
+        width: 100vw;
+        min-width: 0;
+        margin: 0;
+        margin-top: 8px;
+        border-radius: 0;
+        box-shadow: none;
+        border: none;
+        padding: 8px 0 8px 0;
+        min-height: 0;
+      }
+      .dropdown {
+        margin: 0 8px 6px 8px; /* reduce bottom margin for mobile */
+      }
+      .dropdown-header {
+        padding: 7px 8px; /* reduce padding for mobile */
+        font-size: 0.98em;
+      }
+      .dropdown-content {
+        padding: 0 8px 4px 8px; /* reduce padding for mobile */
+      }
+      #bottom-colorbar-bar {
+        min-height: 48px;
+        height: 60px;
+        padding-bottom: env(safe-area-inset-bottom, 0);
+      }
+      #colorbars-container img {
+        max-width: 120px !important;
+      }
+      #colorbar-size-slider-container {
+        font-size: 0.95em;
+      }
+      #colorbar-size-slider {
+        width: 100px;
+      }
+    }
+    @media (max-width: 600px) {
+      #main-content {
+        margin-top: 54px;
+      }
+      #left-panel {
+        flex-direction: column;
+        align-items: stretch;
+        padding: 6px 0 6px 0;
+      }
+      #map-container, #map {
+        height: 50vw;
+        min-height: 200px;
+        max-height: 50vh;
+      }
+      #right-panel {
+        padding: 4px 0 4px 0;
+      }
+      #colorbars-container img {
+        max-width: 80px !important;
+      }
+    }
+    /* Make modal fit on mobile */
+    #skewt-modal > div {
+      max-width: 98vw !important;
+      max-height: 98vh !important;
+      padding: 6vw 2vw 6vw 2vw !important;
+    }
+    #skewt-img {
+      max-width: 96vw !important;
+      max-height: 70vh !important;
+    }
+    /* Prevent nav bar from overlapping content */
+    body {
+      padding-top: 54px;
+      box-sizing: border-box;
+    }
+  </style>
+</head>
+<body>
+  <!-- Top navigation bar -->
+  <div id="top-navbar">
+    <a class="nav-item" href="/home.html">Home</a>
+    <a class="nav-item" href="/more.html">More</a>
+    <a class="nav-item" href="/settings.html">Settings</a>
+    <a class="nav-item" href="/usa_leaflet.html">Weather Model Page</a>
+    <!-- Centered dropdown -->
+    <div id="navbar-center-dropdown-container">
+      <div id="navbar-center-dropdown">
+        <button id="navbar-center-dropdown-btn" aria-haspopup="true" aria-expanded="false">
+          Select Model
+          <span style="margin-left:6px;">&#9662;</span>
+        </button>
+        <div id="navbar-center-dropdown-list" role="menu">
+          <a href="HRRR.html" role="menuitem">HRRR</a>
+          <a href="NBM.html" role="menuitem">NBM</a>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div id="main-content">
+    <!-- Left panel with UTC/time and slider -->
+    <div id="left-panel">
+      <div class="utc-box" id="left-current-time-box"></div>
+      <div class="slider-box" id="left-slider-box" style="display:none;">
+        <input type="range" id="hour-slider" min="0" max="0" value="0" step="1">
+        <span id="hour-label"></span>
+        <div id="forecast-time-est"></div>
+        <div style="font-size:0.97em;color:#888;margin-top:10px;">
+          New runs 3:50am, 9:50am, 3:50pm, 9:50pm EST
+        </div>
+        <!-- Play button below the new runs info -->
+        <button id="slider-play-btn" style="margin:10px auto 0 auto;display:block;padding:6px 18px;font-size:1.05em;border-radius:6px;border:none;background:#263159;color:#fff;cursor:pointer;">
+          ▶ Play
+        </button>
+      </div>
+    </div>
+    <div id="map-container">
+      <div id="map"></div>
+    </div>
+    <!-- Right panel with dropdowns -->
+    <div id="right-panel">
+      <div class="dropdown" id="dropdown-surface">
+        <div class="dropdown-header">
+          Surface DATA
+          <span class="dropdown-arrow">&#9654;</span>
+        </div>
+        <div class="dropdown-content">
+          <label>
+            <input type="checkbox" id="nbm-temp2m-checkbox">
+             2m Temperature
+          </label>
+        </div>
+      </div>
+      <div class="dropdown" id="dropdown-severe">
+        <div class="dropdown-header severe">
+          Severe Weather
+          <span class="dropdown-arrow">&#9654;</span>
+        </div>
+        <div class="dropdown-content">
+          <!-- All checkboxes/sliders removed -->
+        </div>
+      </div>
+      <div class="dropdown" id="dropdown-diagnostics">
+        <div class="dropdown-header">
+          Diagnostics
+          <span class="dropdown-arrow">&#9654;</span>
+        </div>
+        <div class="dropdown-content">
+          <!-- All checkboxes/sliders removed -->
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- Bottom colorbar sidebar -->
+  <div id="bottom-colorbar-bar">
+    <div id="colorbar-resize-handle" title="Drag to resize"></div>
+    <div id="colorbar-size-slider-container">
+      <span style="margin-right:4px;">Colorbar size</span>
+      <input type="range" id="colorbar-size-slider" min="120" max="600" value="260">
+      <span id="colorbar-size-value">260</span>px
+    </div>
+    <div id="colorbars-container">
+      <!-- NBM 2m Temperature colorbar (initially hidden) -->
+      <img id="nbm-temp2m-colorbar" src="/nbm_tmp_surface_pngs/colorbar.png" alt="2m Temperature Colorbar" style="display:none;max-width:260px;">
+    </div>
+  </div>
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script>
+    var map = L.map('map', { attributionControl: false }).setView([37.8, -96], 4);
+    var imageBounds = [[24, -126], [50, -69]];
+    // Cartopy base always at the bottom
+    var cartopyBase = L.imageOverlay('/cartopy_base.png', imageBounds, {opacity: 1, interactive: false, zIndex: 1});
+    cartopyBase.addTo(map);
+    var pngList = [];
+    map.keyboard.disable();
+
+    // --- NBM 2m Temperature overlay logic ---
+    var nbmTemp2mOverlay = null;
+    var nbmTemp2mCheckbox = null;
+    function updateNBMTemp2mOverlay(idx) {
+      if (!pngList || idx < 0 || idx >= pngList.length) return;
+      // Use hourList for hour value
+      var hour = hourList[idx];
+      var entry = pngList[idx] || {};
+      // Remove previous overlay if present
+      if (nbmTemp2mOverlay) {
+        map.removeLayer(nbmTemp2mOverlay);
+        nbmTemp2mOverlay = null;
+      }
+      // Add overlay if checked and available
+      if (nbmTemp2mCheckbox && nbmTemp2mCheckbox.checked && entry.nbm_temp2m) {
+        nbmTemp2mOverlay = L.imageOverlay(entry.nbm_temp2m, imageBounds, {
+          opacity: 0.7, // semi-transparent so cartopy is visible underneath
+          interactive: false,
+          zIndex: 2 // above cartopy base
+        });
+        nbmTemp2mOverlay.addTo(map);
+      }
+      // Always ensure cartopyBase is present and at the bottom
+      if (!map.hasLayer(cartopyBase)) {
+        cartopyBase.addTo(map);
+      }
+      cartopyBase.setZIndex(1);
+      if (nbmTemp2mOverlay) nbmTemp2mOverlay.setZIndex(2);
+    }
+
+    // --- Slider logic (now in left panel) ---
+    // Build hourList: [6, 12, ..., 264]
+    var hourList = [];
+    for (var h = 6; h <= 264; h += 6) hourList.push(h);
+
+    fetch('/reflectivity_images')
+      .then(response => response.json())
+      .then(function(images) {
+        pngList = images;
+        // Only use as many images as hourList allows
+        var n = Math.min(pngList.length, hourList.length);
+        pngList = pngList.slice(0, n);
+        hourList = hourList.slice(0, n);
+
+        if (pngList.length === 0) return;
+        var slider = document.getElementById('hour-slider');
+        var label = document.getElementById('hour-label');
+        var forecastTimeBox = document.getElementById('forecast-time-est');
+        document.getElementById('left-slider-box').style.display = 'flex';
+        slider.min = 0;
+        slider.max = hourList.length - 1;
+        slider.value = 0;
+        slider.step = 1;
+
+        function getForecastTimeEST(hourOffset) {
+          // Get current UTC time
+          const now = new Date();
+          let utcYear = now.getUTCFullYear();
+          let utcMonth = now.getUTCMonth();
+          let utcDay = now.getUTCDate();
+          let utcHour = now.getUTCHours();
+
+          // Find most recent HRRR run hour (00, 06, 12, 18) <= current UTC hour
+          let runHour = Math.floor(utcHour / 6) * 6;
+          if (runHour === 24) runHour = 18;
+          let dateForRun = new Date(Date.UTC(utcYear, utcMonth, utcDay, utcHour));
+          if (utcHour < runHour) {
+            dateForRun.setUTCHours(dateForRun.getUTCHours() - 6);
+            runHour = Math.floor(dateForRun.getUTCHours() / 6) * 6;
+          }
+          let dateStr = dateForRun.getUTCFullYear().toString().padStart(4, '0') +
+                        String(dateForRun.getUTCMonth() + 1).padStart(2, '0') +
+                        String(dateForRun.getUTCDate()).padStart(2, '0');
+          let hourStr = String(runHour).padStart(2, '0');
+
+          // Add hourOffset to the run time
+          let displayDate = new Date(Date.UTC(
+            dateForRun.getUTCFullYear(),
+            dateForRun.getUTCMonth(),
+            dateForRun.getUTCDate(),
+            runHour
+          ));
+          displayDate.setUTCHours(displayDate.getUTCHours() + hourOffset);
+
+          // Convert to America/New_York time zone for display
+          let tzDate = new Date(displayDate.toLocaleString("en-US", {timeZone: "America/New_York"}));
+          let yy = String(tzDate.getFullYear()).slice(2);
+          let mm = String(tzDate.getMonth() + 1).padStart(2, '0');
+          let dd = String(tzDate.getDate()).padStart(2, '0');
+          let hour24 = tzDate.getHours();
+          let minute = tzDate.getMinutes();
+          let ampmDisp = hour24 >= 12 ? 'PM' : 'AM';
+          let hour12 = hour24 % 12;
+          if (hour12 === 0) hour12 = 12;
+          let hh = String(hour12).padStart(2, '0');
+
+          return `Forecast valid (EST): ${yy}${mm}${dd} ${hh}:00 ${ampmDisp}`;
+        }
+
+        window.updateOverlay = function(idx) {
+          if (!pngList || idx < 0 || idx >= pngList.length) return;
+          var entry = pngList[idx] || {};
+          var hour = hourList[idx];
+          if (entry && typeof hour !== "undefined") {
+            label.textContent = `Hour: ${hour}`;
+            forecastTimeBox.textContent = getForecastTimeEST(hour); // <-- this line ensures forecast time updates
+          } else {
+            label.textContent = "No data";
+            forecastTimeBox.textContent = "";
+          }
+          // NBM 2m Temperature overlay update
+          updateNBMTemp2mOverlay(idx);
+        };
+
+        slider.oninput = function() {
+          updateOverlay(parseInt(slider.value));
+        };
+
+        // Add arrow key support
+        document.addEventListener('keydown', function(e) {
+          if (['ArrowRight', 'ArrowLeft'].includes(e.key)) {
+            e.preventDefault();
+            var idx = parseInt(slider.value);
+            if (e.key === 'ArrowRight' && idx < pngList.length - 1) {
+              slider.value = idx + 1;
+              slider.dispatchEvent(new Event('input'));
+            } else if (e.key === 'ArrowLeft' && idx > 0) {
+              slider.value = idx - 1;
+              slider.dispatchEvent(new Event('input'));
+            }
+          }
+        });
+
+        // Show first image if available, otherwise show empty overlays
+        if (pngList.length > 0) {
+          updateOverlay(0);
+        } else {
+          // Show slider anyway, but disable it
+          document.getElementById('left-slider-box').style.display = 'flex';
+          slider.max = 0;
+          slider.value = 0;
+          slider.disabled = true;
+          label.textContent = "No data";
+          forecastTimeBox.textContent = "";
+        }
+
+        // NBM 2m Temperature checkbox logic
+        nbmTemp2mCheckbox = document.getElementById('nbm-temp2m-checkbox');
+        var nbmTemp2mColorbar = document.getElementById('nbm-temp2m-colorbar');
+        if (nbmTemp2mCheckbox) {
+          nbmTemp2mCheckbox.checked = false; // Set to off by default
+          nbmTemp2mCheckbox.addEventListener('change', function() {
+            updateNBMTemp2mOverlay(parseInt(slider.value));
+            // Show/hide colorbar
+            if (nbmTemp2mCheckbox.checked) {
+              nbmTemp2mColorbar.style.display = "";
+            } else {
+              nbmTemp2mColorbar.style.display = "none";
+            }
+          });
+        }
+
+        // Show/hide colorbar on page load (in case checkbox is pre-checked)
+        if (nbmTemp2mCheckbox && nbmTemp2mColorbar) {
+          nbmTemp2mColorbar.style.display = nbmTemp2mCheckbox.checked ? "" : "none";
+        }
+      });
+
+    // --- Current UTC time and HRRR run display (now in left panel) ---
+    function updateCurrentTimeBox() {
+      const box = document.getElementById('left-current-time-box');
+      const now = new Date();
+      // UTC time
+      const utcYear = now.getUTCFullYear();
+      const utcMonth = String(now.getUTCMonth() + 1).padStart(2, '0');
+      const utcDay = String(now.getUTCDate()).padStart(2, '0');
+      const utcHour = now.getUTCHours();
+      const utcMin = String(now.getUTCMinutes()).padStart(2, '0');
+      const utcSec = String(now.getUTCSeconds()).padStart(2, '0');
+      // HRRR run logic
+      let runHour = Math.floor(utcHour / 6) * 6;
+      if (runHour === 24) runHour = 18;
+      let dateForRun = new Date(Date.UTC(utcYear, now.getUTCMonth(), utcDay, utcHour));
+      if (utcHour < runHour) {
+        dateForRun.setUTCHours(dateForRun.getUTCHours() - 6);
+        runHour = Math.floor(dateForRun.getUTCHours() / 6) * 6;
+      }
+      const dateStr = dateForRun.getUTCFullYear().toString() +
+        String(dateForRun.getUTCMonth() + 1).padStart(2, '0') +
+        String(dateForRun.getUTCDate()).padStart(2, '0');
+      const hourStr = String(runHour).padStart(2, '0');
+      // Display
+      box.innerHTML =
+        `<b>Current UTC:</b> ${utcYear}-${utcMonth}-${utcDay} ${String(utcHour).padStart(2, '0')}:${utcMin}:${utcSec}<br>` +
+        `<b>Most Recent HRRR Run:</b> ${dateStr} ${hourStr}z`;
+    }
+    updateCurrentTimeBox();
+    setInterval(updateCurrentTimeBox, 10000);
+
+    // --- Bottom colorbar bar resize logic ---
+    (function() {
+      var bar = document.getElementById('bottom-colorbar-bar');
+      var handle = document.getElementById('colorbar-resize-handle');
+      var minHeight = 60;
+      var maxHeight = 300;
+      var startY = 0;
+      var startHeight = 0;
+      var dragging = false;
+
+      handle.addEventListener('mousedown', function(e) {
+        dragging = true;
+        startY = e.clientY;
+        startHeight = bar.offsetHeight;
+        document.body.style.userSelect = 'none';
+      });
+
+      window.addEventListener('mousemove', function(e) {
+        if (!dragging) return;
+        var dy = startY - e.clientY;
+        var newHeight = Math.min(maxHeight, Math.max(minHeight, startHeight + dy));
+        bar.style.height = newHeight + 'px';
+      });
+
+      window.addEventListener('mouseup', function() {
+        if (dragging) {
+          dragging = false;
+          document.body.style.userSelect = '';
+        }
+      });
+    })();
+
+    // --- Colorbar size slider logic ---
+    (function() {
+      var slider = document.getElementById('colorbar-size-slider');
+      var valueLabel = document.getElementById('colorbar-size-value');
+      var colorbarImg = document.getElementById('nbm-temp2m-colorbar');
+      function setSize(val) {
+        valueLabel.textContent = val;
+        if (colorbarImg) colorbarImg.style.maxWidth = val + "px";
+      }
+      slider.addEventListener('input', function() {
+        setSize(this.value);
+      });
+      setSize(slider.value);
+    })();
+
+    // --- Play button logic for slider animation ---
+    var playBtn = document.getElementById('slider-play-btn');
+    var slider = document.getElementById('hour-slider');
+    var isPlaying = false;
+    var playInterval = null;
+    var playInternalUpdate = false;
+
+    function playSlider() {
+      if (!pngList || pngList.length === 0) return;
+      isPlaying = true;
+      playBtn.textContent = "⏸ Pause";
+      slider.disabled = true;
+      playInterval = setInterval(function() {
+        var idx = parseInt(slider.value);
+        if (idx < hourList.length - 1) {
+          playInternalUpdate = true;
+          slider.value = idx + 1;
+          slider.dispatchEvent(new Event('input'));
+          playInternalUpdate = false;
+        } else {
+          playInternalUpdate = true;
+          slider.value = 0;
+          slider.dispatchEvent(new Event('input'));
+          playInternalUpdate = false;
+        }
+      }, 1200);
+    }
+
+    function stopSlider() {
+      isPlaying = false;
+      playBtn.textContent = "▶ Play";
+      slider.disabled = false;
+      if (playInterval) clearInterval(playInterval);
+      playInterval = null;
+    }
+
+    playBtn.addEventListener('click', function() {
+      if (isPlaying) {
+        stopSlider();
+      } else {
+        playSlider();
+      }
+    });
+
+    slider.addEventListener('input', function(e) {
+      if (!playInternalUpdate && isPlaying) stopSlider();
+    });
+
+    // --- Navbar center dropdown logic with selected model display ---
+    (function() {
+      var dropdown = document.getElementById('navbar-center-dropdown');
+      var btn = document.getElementById('navbar-center-dropdown-btn');
+      var list = document.getElementById('navbar-center-dropdown-list');
+      // Set initial button text to current model
+      function setModelBtnText(model) {
+        btn.childNodes[0].nodeValue = model + " ";
+      }
+      // Detect current model from URL or file
+      var currentModel = "NBM";
+      if (window.location.href.match(/HRRR\.html/i)) currentModel = "HRRR";
+      setModelBtnText(currentModel);
+
+      btn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        var open = dropdown.classList.contains('open');
+        document.querySelectorAll('#navbar-center-dropdown.open').forEach(function(d) {
+          d.classList.remove('open');
+        });
+        if (!open) dropdown.classList.add('open');
+      });
+      document.addEventListener('click', function(e) {
+        if (!dropdown.contains(e.target)) dropdown.classList.remove('open');
+      });
+
+      // Update button text on menu item click
+      list.querySelectorAll('a').forEach(function(link) {
+        link.addEventListener('click', function(e) {
+          var model = this.textContent.trim();
+          setModelBtnText(model);
+          // Let the navigation proceed
+        });
+      });
+    })();
+
+    // Dropdown open/close logic for Surface DATA
+    document.addEventListener('DOMContentLoaded', function() {
+      var surfaceDropdown = document.getElementById('dropdown-surface');
+      var surfaceHeader = surfaceDropdown.querySelector('.dropdown-header');
+      var surfaceContent = surfaceDropdown.querySelector('.dropdown-content');
+      var arrow = surfaceHeader.querySelector('.dropdown-arrow');
+      // Start closed
+      surfaceDropdown.classList.remove('open');
+      arrow.innerHTML = "&#9654;";
+      surfaceContent.style.display = "none";
+      surfaceHeader.addEventListener('click', function() {
+        var isOpen = surfaceDropdown.classList.toggle('open');
+        if (isOpen) {
+          surfaceContent.style.display = "block";
+          arrow.innerHTML = "&#9660;";
+        } else {
+          surfaceContent.style.display = "none";
+          arrow.innerHTML = "&#9654;";
+        }
+      });
+    });
+  </script>
+</body>
+</html>
+          surfaceContent.style.display = "block";
+          arrow.innerHTML = "&#9660;";
+        } else {
+          surfaceContent.style.display = "none";
+          arrow.innerHTML = "&#9654;";
+        }
+      });
+    });
+  </script>
+</body>
+</html>
