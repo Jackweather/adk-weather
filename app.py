@@ -33,6 +33,10 @@ PNG_DIR_GUST = os.path.join(BASE_DIR, "HRRRUN", "Hrrr", "static", "GUST")
 PNG_DIR_SHEAR_VECTOR = os.path.join(BASE_DIR, "HRRRUN", "Hrrr", "static", "VUCSH_VVCSH")
 # Add NBM tmp_surface PNG directory
 PNG_DIR_NBM_TMP_SURFACE = os.path.join(BASE_DIR, "NBM", "NBM", "static", "tmp_surface")
+# Add NBM total precipitation PNG directory
+PNG_DIR_NBM_TOT_PRECIP = os.path.join(BASE_DIR, "NBM", "NBM", "static", "tot_precip")
+# Add NBM MAXREF PNG directory
+PNG_DIR_NBM_MAXREF = os.path.join(BASE_DIR, "NBM", "NBM", "static", "MAXREF")
 
 @app.route("/")
 def home():
@@ -74,6 +78,10 @@ def get_pngs():
     shear_vector_files = [f for f in safe_listdir(PNG_DIR_SHEAR_VECTOR) if re.match(r"ShearVectors_(\d+)\.png$", f)]
     # Add NBM 2mtemp files
     nbm_temp2m_files = [f for f in safe_listdir(PNG_DIR_NBM_TMP_SURFACE) if re.match(r"2mtemp_(\d+)\.png$", f)]
+    # Add NBM total precipitation files
+    nbm_totprecip_files = [f for f in safe_listdir(PNG_DIR_NBM_TOT_PRECIP) if re.match(r"totprecip_(\d+)\.png$", f)]
+    # Add NBM MAXREF files
+    nbm_maxref_files = [f for f in safe_listdir(PNG_DIR_NBM_MAXREF) if re.match(r"MAXREF_(\d+)\.png$", f)]
 
     # Use regex to extract hour from each filename (more robust)
     def extract_hour(pattern, filename):
@@ -101,6 +109,10 @@ def get_pngs():
     shear_vector_dict = {extract_hour(r"ShearVectors_(\d+)\.png$", f): f for f in shear_vector_files}
     # Add NBM 2mtemp dict
     nbm_temp2m_dict = {extract_hour(r"2mtemp_(\d+)\.png$", f): f for f in nbm_temp2m_files}
+    # Add NBM total precipitation dict
+    nbm_totprecip_dict = {extract_hour(r"totprecip_(\d+)\.png$", f): f for f in nbm_totprecip_files}
+    # Add NBM MAXREF dict
+    nbm_maxref_dict = {extract_hour(r"MAXREF_(\d+)\.png$", f): f for f in nbm_maxref_files}
 
     # Remove None keys if any file didn't match pattern
     refc_dict = {k: v for k, v in refc_dict.items() if k is not None}
@@ -124,6 +136,10 @@ def get_pngs():
     shear_vector_dict = {k: v for k, v in shear_vector_dict.items() if k is not None}
     # Add NBM 2mtemp dict cleanup
     nbm_temp2m_dict = {k: v for k, v in nbm_temp2m_dict.items() if k is not None}
+    # Add NBM total precipitation dict cleanup
+    nbm_totprecip_dict = {k: v for k, v in nbm_totprecip_dict.items() if k is not None}
+    # Add NBM MAXREF dict cleanup
+    nbm_maxref_dict = {k: v for k, v in nbm_maxref_dict.items() if k is not None}
 
     # Determine if this is an NBM or HRRR request based on Referer or User-Agent or query param
     is_nbm = False
@@ -133,8 +149,8 @@ def get_pngs():
     elif "HRRR.html" in referer or "hrrr.html" in referer or request.args.get("model") == "hrrr":
         is_nbm = False
 
-    # Union of all available hours from all overlays (add nbm_temp2m_dict)
-    all_hours = set(refc_dict) | set(mslp_dict) | set(temp2m_dict) | set(lightning_dict) | set(rh_dict) | set(hail_dict) | set(cape_dict) | set(cin_dict) | set(lcdc_dict) | set(mcdc_dict) | set(hcdc_dict) | set(precip_dict) | set(wind10m_dict) | set(wind10m_station_dict) | set(srh_dict) | set(pwat_dict) | set(gust_dict) | set(shear_vector_dict) | set(nbm_temp2m_dict)
+    # Union of all available hours from all overlays (add nbm_temp2m_dict, nbm_totprecip_dict, nbm_maxref_dict)
+    all_hours = set(refc_dict) | set(mslp_dict) | set(temp2m_dict) | set(lightning_dict) | set(rh_dict) | set(hail_dict) | set(cape_dict) | set(cin_dict) | set(lcdc_dict) | set(mcdc_dict) | set(hcdc_dict) | set(precip_dict) | set(wind10m_dict) | set(wind10m_station_dict) | set(srh_dict) | set(pwat_dict) | set(gust_dict) | set(shear_vector_dict) | set(nbm_temp2m_dict) | set(nbm_totprecip_dict) | set(nbm_maxref_dict)
     all_hours = sorted(all_hours)
 
     # --- Only include hours that match the model's step ---
@@ -167,6 +183,8 @@ def get_pngs():
             "gust": f"/gust_pngs/{gust_dict[hour]}" if hour in gust_dict else None,
             "shear_vector": f"/shear_vector_pngs/{shear_vector_dict[hour]}" if hour in shear_vector_dict else None,
             "nbm_temp2m": f"/nbm_tmp_surface_pngs/{nbm_temp2m_dict[hour]}" if hour in nbm_temp2m_dict else None,
+            "nbm_totprecip": f"/nbm_totprecip_pngs/{nbm_totprecip_dict[hour]}" if hour in nbm_totprecip_dict else None,
+            "nbm_maxref": f"/nbm_maxref_pngs/{nbm_maxref_dict[hour]}" if hour in nbm_maxref_dict else None,
         })
     response = make_response(jsonify(result))
     response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
@@ -542,8 +560,9 @@ def run_task1():
 
 @app.route("/run-task2")
 def run_task2():
-    def run_nbm_tmp_surface():
+    def run_nbm_scripts():
         print("Flask is running as user:", getpass.getuser())  # Print user for debugging
+        # --- tmp_surface.py ---
         try:
             result = subprocess.run(
                 ["python", "/opt/render/project/src/NBM/tmp_surface.py"],
@@ -558,8 +577,38 @@ def run_task2():
             print(f"Error running tmp_surface.py:\n{error_trace}")
             print("STDOUT:", e.stdout)
             print("STDERR:", e.stderr)
-    threading.Thread(target=run_nbm_tmp_surface).start()
-    return "NBM tmp_surface.py started in background!", 200
+        # --- tot_precip.py ---
+        try:
+            result = subprocess.run(
+                ["python", "/opt/render/project/src/NBM/tot_precip.py"],
+                check=True, cwd="/opt/render/project/src/NBM",
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
+            )
+            print("tot_precip.py ran successfully!")
+            print("STDOUT:", result.stdout)
+            print("STDERR:", result.stderr)
+        except subprocess.CalledProcessError as e:
+            error_trace = traceback.format_exc()
+            print(f"Error running tot_precip.py:\n{error_trace}")
+            print("STDOUT:", e.stdout)
+            print("STDERR:", e.stderr)
+        # --- maxrefc.py ---
+        try:
+            result = subprocess.run(
+                ["python", "/opt/render/project/src/NBM/maxrefc.py"],
+                check=True, cwd="/opt/render/project/src/NBM",
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
+            )
+            print("maxrefc.py ran successfully!")
+            print("STDOUT:", result.stdout)
+            print("STDERR:", result.stderr)
+        except subprocess.CalledProcessError as e:
+            error_trace = traceback.format_exc()
+            print(f"Error running maxrefc.py:\n{error_trace}")
+            print("STDOUT:", e.stdout)
+            print("STDERR:", e.stderr)
+    threading.Thread(target=run_nbm_scripts).start()
+    return "NBM tmp_surface.py, tot_precip.py, and maxrefc.py started in background!", 200
 
 @app.route("/<path:filename>")
 def serve_static_file(filename):
@@ -684,6 +733,20 @@ def serve_nbm_tmp_surface_png(filename):
     if filename == "colorbar.png":
         return send_from_directory(COLORBAR_DIR, "TEMP_colorbar.png")
     return api_serve_image(PNG_DIR_NBM_TMP_SURFACE, filename)
+
+@app.route("/nbm_totprecip_pngs/<path:filename>")
+def serve_nbm_totprecip_png(filename):
+    # Serve the colorbar for colorbar.png requests
+    if filename == "colorbar.png":
+        return send_from_directory(COLORBAR_DIR, "precip_colorbar.png")
+    return api_serve_image(PNG_DIR_NBM_TOT_PRECIP, filename)
+
+@app.route("/nbm_maxref_pngs/<path:filename>")
+def serve_nbm_maxref_png(filename):
+    # Serve the colorbar for colorbar.png requests
+    if filename == "colorbar.png":
+        return send_from_directory(COLORBAR_DIR, "REFC_colorbar.png")
+    return api_serve_image(PNG_DIR_NBM_MAXREF, filename)
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
