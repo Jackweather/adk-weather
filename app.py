@@ -738,7 +738,7 @@ def serve_nbm_tmp_surface_png(filename):
 def serve_nbm_totprecip_png(filename):
     # Serve the colorbar for colorbar.png requests
     if filename == "colorbar.png":
-        return send_from_directory(COLORBAR_DIR, "precip_colorbar.png")
+        return send_from_directory(COLORBAR_DIR, "PRECIP_colorbar.png")
     return api_serve_image(PNG_DIR_NBM_TOT_PRECIP, filename)
 
 @app.route("/nbm_maxref_pngs/<path:filename>")
