@@ -571,6 +571,26 @@
             <input type="checkbox" id="nbm-temp2m-checkbox">
              2m Temperature
           </label>
+          <div id="nbm-temp2m-opacity-container" style="display:none;margin:2px 0 8px 22px;">
+            <input type="range" id="nbm-temp2m-opacity-slider" min="0" max="100" value="70" style="width:90px;vertical-align:middle;">
+            <span id="nbm-temp2m-opacity-value" style="font-size:0.97em;color:#263159;">70%</span>
+          </div>
+          <label>
+            <input type="checkbox" id="nbm-totprecip-checkbox">
+             Total Precipitation
+          </label>
+          <div id="nbm-totprecip-opacity-container" style="display:none;margin:2px 0 8px 22px;">
+            <input type="range" id="nbm-totprecip-opacity-slider" min="0" max="100" value="70" style="width:90px;vertical-align:middle;">
+            <span id="nbm-totprecip-opacity-value" style="font-size:0.97em;color:#263159;">70%</span>
+          </div>
+          <label>
+            <input type="checkbox" id="nbm-maxref-checkbox">
+             Max Reflectivity
+          </label>
+          <div id="nbm-maxref-opacity-container" style="display:none;margin:2px 0 8px 22px;">
+            <input type="range" id="nbm-maxref-opacity-slider" min="0" max="100" value="70" style="width:90px;vertical-align:middle;">
+            <span id="nbm-maxref-opacity-value" style="font-size:0.97em;color:#263159;">70%</span>
+          </div>
         </div>
       </div>
       <div class="dropdown" id="dropdown-severe">
@@ -604,6 +624,10 @@
     <div id="colorbars-container">
       <!-- NBM 2m Temperature colorbar (initially hidden) -->
       <img id="nbm-temp2m-colorbar" src="/nbm_tmp_surface_pngs/colorbar.png" alt="2m Temperature Colorbar" style="display:none;max-width:260px;">
+      <!-- NBM Total Precip colorbar (initially hidden) -->
+      <img id="nbm-totprecip-colorbar" src="/nbm_totprecip_pngs/colorbar.png" alt="Total Precipitation Colorbar" style="display:none;max-width:260px;">
+      <!-- NBM Max Reflectivity colorbar (initially hidden) -->
+      <img id="nbm-maxref-colorbar" src="/nbm_maxref_pngs/colorbar.png" alt="Max Reflectivity Colorbar" style="display:none;max-width:260px;">
     </div>
   </div>
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
@@ -616,34 +640,85 @@
     var pngList = [];
     map.keyboard.disable();
 
+    // --- Overlay opacity state ---
+    var nbmTemp2mOpacity = 0.7;
+    var nbmTotPrecipOpacity = 0.7;
+    var nbmMaxrefOpacity = 0.7;
+
     // --- NBM 2m Temperature overlay logic ---
     var nbmTemp2mOverlay = null;
     var nbmTemp2mCheckbox = null;
     function updateNBMTemp2mOverlay(idx) {
       if (!pngList || idx < 0 || idx >= pngList.length) return;
-      // Use hourList for hour value
       var hour = hourList[idx];
       var entry = pngList[idx] || {};
-      // Remove previous overlay if present
       if (nbmTemp2mOverlay) {
         map.removeLayer(nbmTemp2mOverlay);
         nbmTemp2mOverlay = null;
       }
-      // Add overlay if checked and available
       if (nbmTemp2mCheckbox && nbmTemp2mCheckbox.checked && entry.nbm_temp2m) {
         nbmTemp2mOverlay = L.imageOverlay(entry.nbm_temp2m, imageBounds, {
-          opacity: 0.7, // semi-transparent so cartopy is visible underneath
+          opacity: nbmTemp2mOpacity,
           interactive: false,
-          zIndex: 2 // above cartopy base
+          zIndex: 2
         });
         nbmTemp2mOverlay.addTo(map);
       }
-      // Always ensure cartopyBase is present and at the bottom
       if (!map.hasLayer(cartopyBase)) {
         cartopyBase.addTo(map);
       }
       cartopyBase.setZIndex(1);
       if (nbmTemp2mOverlay) nbmTemp2mOverlay.setZIndex(2);
+    }
+
+    // --- NBM Total Precipitation overlay logic ---
+    var nbmTotPrecipOverlay = null;
+    var nbmTotPrecipCheckbox = null;
+    function updateNBMTotPrecipOverlay(idx) {
+      if (!pngList || idx < 0 || idx >= pngList.length) return;
+      var entry = pngList[idx] || {};
+      if (nbmTotPrecipOverlay) {
+        map.removeLayer(nbmTotPrecipOverlay);
+        nbmTotPrecipOverlay = null;
+      }
+      if (nbmTotPrecipCheckbox && nbmTotPrecipCheckbox.checked && entry.nbm_totprecip) {
+        nbmTotPrecipOverlay = L.imageOverlay(entry.nbm_totprecip, imageBounds, {
+          opacity: nbmTotPrecipOpacity,
+          interactive: false,
+          zIndex: 2
+        });
+        nbmTotPrecipOverlay.addTo(map);
+      }
+      if (!map.hasLayer(cartopyBase)) {
+        cartopyBase.addTo(map);
+      }
+      cartopyBase.setZIndex(1);
+      if (nbmTotPrecipOverlay) nbmTotPrecipOverlay.setZIndex(2);
+    }
+
+    // --- NBM Max Reflectivity overlay logic ---
+    var nbmMaxrefOverlay = null;
+    var nbmMaxrefCheckbox = null;
+    function updateNBMMaxrefOverlay(idx) {
+      if (!pngList || idx < 0 || idx >= pngList.length) return;
+      var entry = pngList[idx] || {};
+      if (nbmMaxrefOverlay) {
+        map.removeLayer(nbmMaxrefOverlay);
+        nbmMaxrefOverlay = null;
+      }
+      if (nbmMaxrefCheckbox && nbmMaxrefCheckbox.checked && entry.nbm_maxref) {
+        nbmMaxrefOverlay = L.imageOverlay(entry.nbm_maxref, imageBounds, {
+          opacity: nbmMaxrefOpacity,
+          interactive: false,
+          zIndex: 2
+        });
+        nbmMaxrefOverlay.addTo(map);
+      }
+      if (!map.hasLayer(cartopyBase)) {
+        cartopyBase.addTo(map);
+      }
+      cartopyBase.setZIndex(1);
+      if (nbmMaxrefOverlay) nbmMaxrefOverlay.setZIndex(2);
     }
 
     // --- Slider logic (now in left panel) ---
@@ -726,8 +801,10 @@
             label.textContent = "No data";
             forecastTimeBox.textContent = "";
           }
-          // NBM 2m Temperature overlay update
+          // NBM overlays update
           updateNBMTemp2mOverlay(idx);
+          updateNBMTotPrecipOverlay(idx);
+          updateNBMMaxrefOverlay(idx);
         };
 
         slider.oninput = function() {
@@ -765,22 +842,103 @@
         // NBM 2m Temperature checkbox logic
         nbmTemp2mCheckbox = document.getElementById('nbm-temp2m-checkbox');
         var nbmTemp2mColorbar = document.getElementById('nbm-temp2m-colorbar');
+        var nbmTemp2mOpacityContainer = document.getElementById('nbm-temp2m-opacity-container');
+        var nbmTemp2mOpacitySlider = document.getElementById('nbm-temp2m-opacity-slider');
+        var nbmTemp2mOpacityValue = document.getElementById('nbm-temp2m-opacity-value');
         if (nbmTemp2mCheckbox) {
-          nbmTemp2mCheckbox.checked = false; // Set to off by default
+          nbmTemp2mCheckbox.checked = false;
           nbmTemp2mCheckbox.addEventListener('change', function() {
             updateNBMTemp2mOverlay(parseInt(slider.value));
             // Show/hide colorbar
             if (nbmTemp2mCheckbox.checked) {
               nbmTemp2mColorbar.style.display = "";
+              nbmTemp2mOpacityContainer.style.display = "block";
             } else {
               nbmTemp2mColorbar.style.display = "none";
+              nbmTemp2mOpacityContainer.style.display = "none";
             }
           });
         }
+        if (nbmTemp2mOpacitySlider && nbmTemp2mOpacityValue) {
+          nbmTemp2mOpacitySlider.value = 70;
+          nbmTemp2mOpacityValue.textContent = "70%";
+          nbmTemp2mOpacitySlider.addEventListener('input', function() {
+            nbmTemp2mOpacity = parseInt(this.value, 10) / 100;
+            nbmTemp2mOpacityValue.textContent = this.value + "%";
+            if (nbmTemp2mOverlay) nbmTemp2mOverlay.setOpacity(nbmTemp2mOpacity);
+          });
+        }
 
-        // Show/hide colorbar on page load (in case checkbox is pre-checked)
-        if (nbmTemp2mCheckbox && nbmTemp2mColorbar) {
+        // Show/hide colorbar and opacity bar on page load
+        if (nbmTemp2mCheckbox && nbmTemp2mColorbar && nbmTemp2mOpacityContainer) {
           nbmTemp2mColorbar.style.display = nbmTemp2mCheckbox.checked ? "" : "none";
+          nbmTemp2mOpacityContainer.style.display = nbmTemp2mCheckbox.checked ? "block" : "none";
+        }
+
+        // NBM Total Precipitation checkbox logic
+        nbmTotPrecipCheckbox = document.getElementById('nbm-totprecip-checkbox');
+        var nbmTotPrecipColorbar = document.getElementById('nbm-totprecip-colorbar');
+        var nbmTotPrecipOpacityContainer = document.getElementById('nbm-totprecip-opacity-container');
+        var nbmTotPrecipOpacitySlider = document.getElementById('nbm-totprecip-opacity-slider');
+        var nbmTotPrecipOpacityValue = document.getElementById('nbm-totprecip-opacity-value');
+        if (nbmTotPrecipCheckbox) {
+          nbmTotPrecipCheckbox.checked = false;
+          nbmTotPrecipCheckbox.addEventListener('change', function() {
+            updateNBMTotPrecipOverlay(parseInt(slider.value));
+            if (nbmTotPrecipCheckbox.checked) {
+              nbmTotPrecipColorbar.style.display = "";
+              nbmTotPrecipOpacityContainer.style.display = "block";
+            } else {
+              nbmTotPrecipColorbar.style.display = "none";
+              nbmTotPrecipOpacityContainer.style.display = "none";
+            }
+          });
+        }
+        if (nbmTotPrecipOpacitySlider && nbmTotPrecipOpacityValue) {
+          nbmTotPrecipOpacitySlider.value = 70;
+          nbmTotPrecipOpacityValue.textContent = "70%";
+          nbmTotPrecipOpacitySlider.addEventListener('input', function() {
+            nbmTotPrecipOpacity = parseInt(this.value, 10) / 100;
+            nbmTotPrecipOpacityValue.textContent = this.value + "%";
+            if (nbmTotPrecipOverlay) nbmTotPrecipOverlay.setOpacity(nbmTotPrecipOpacity);
+          });
+        }
+        if (nbmTotPrecipCheckbox && nbmTotPrecipColorbar && nbmTotPrecipOpacityContainer) {
+          nbmTotPrecipColorbar.style.display = nbmTotPrecipCheckbox.checked ? "" : "none";
+          nbmTotPrecipOpacityContainer.style.display = nbmTotPrecipCheckbox.checked ? "block" : "none";
+        }
+
+        // NBM Max Reflectivity checkbox logic
+        nbmMaxrefCheckbox = document.getElementById('nbm-maxref-checkbox');
+        var nbmMaxrefColorbar = document.getElementById('nbm-maxref-colorbar');
+        var nbmMaxrefOpacityContainer = document.getElementById('nbm-maxref-opacity-container');
+        var nbmMaxrefOpacitySlider = document.getElementById('nbm-maxref-opacity-slider');
+        var nbmMaxrefOpacityValue = document.getElementById('nbm-maxref-opacity-value');
+        if (nbmMaxrefCheckbox) {
+          nbmMaxrefCheckbox.checked = false;
+          nbmMaxrefCheckbox.addEventListener('change', function() {
+            updateNBMMaxrefOverlay(parseInt(slider.value));
+            if (nbmMaxrefCheckbox.checked) {
+              nbmMaxrefColorbar.style.display = "";
+              nbmMaxrefOpacityContainer.style.display = "block";
+            } else {
+              nbmMaxrefColorbar.style.display = "none";
+              nbmMaxrefOpacityContainer.style.display = "none";
+            }
+          });
+        }
+        if (nbmMaxrefOpacitySlider && nbmMaxrefOpacityValue) {
+          nbmMaxrefOpacitySlider.value = 70;
+          nbmMaxrefOpacityValue.textContent = "70%";
+          nbmMaxrefOpacitySlider.addEventListener('input', function() {
+            nbmMaxrefOpacity = parseInt(this.value, 10) / 100;
+            nbmMaxrefOpacityValue.textContent = this.value + "%";
+            if (nbmMaxrefOverlay) nbmMaxrefOverlay.setOpacity(nbmMaxrefOpacity);
+          });
+        }
+        if (nbmMaxrefCheckbox && nbmMaxrefColorbar && nbmMaxrefOpacityContainer) {
+          nbmMaxrefColorbar.style.display = nbmMaxrefCheckbox.checked ? "" : "none";
+          nbmMaxrefOpacityContainer.style.display = nbmMaxrefCheckbox.checked ? "block" : "none";
         }
       });
 
@@ -851,10 +1009,14 @@
     (function() {
       var slider = document.getElementById('colorbar-size-slider');
       var valueLabel = document.getElementById('colorbar-size-value');
-      var colorbarImg = document.getElementById('nbm-temp2m-colorbar');
+      var colorbarImgTemp = document.getElementById('nbm-temp2m-colorbar');
+      var colorbarImgPrecip = document.getElementById('nbm-totprecip-colorbar');
+      var colorbarImgMaxref = document.getElementById('nbm-maxref-colorbar');
       function setSize(val) {
         valueLabel.textContent = val;
-        if (colorbarImg) colorbarImg.style.maxWidth = val + "px";
+        if (colorbarImgTemp) colorbarImgTemp.style.maxWidth = val + "px";
+        if (colorbarImgPrecip) colorbarImgPrecip.style.maxWidth = val + "px";
+        if (colorbarImgMaxref) colorbarImgMaxref.style.maxWidth = val + "px";
       }
       slider.addEventListener('input', function() {
         setSize(this.value);
@@ -959,17 +1121,6 @@
       surfaceHeader.addEventListener('click', function() {
         var isOpen = surfaceDropdown.classList.toggle('open');
         if (isOpen) {
-          surfaceContent.style.display = "block";
-          arrow.innerHTML = "&#9660;";
-        } else {
-          surfaceContent.style.display = "none";
-          arrow.innerHTML = "&#9654;";
-        }
-      });
-    });
-  </script>
-</body>
-</html>
           surfaceContent.style.display = "block";
           arrow.innerHTML = "&#9660;";
         } else {
