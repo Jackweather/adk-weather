@@ -584,6 +584,14 @@
             <span id="nbm-totprecip-opacity-value" style="font-size:0.97em;color:#263159;">70%</span>
           </div>
           <label>
+            <input type="checkbox" id="nbm-gust-checkbox">
+             10m Gust
+          </label>
+          <div id="nbm-gust-opacity-container" style="display:none;margin:2px 0 8px 22px;">
+            <input type="range" id="nbm-gust-opacity-slider" min="0" max="100" value="70" style="width:90px;vertical-align:middle;">
+            <span id="nbm-gust-opacity-value" style="font-size:0.97em;color:#263159;">70%</span>
+          </div>
+          <label>
             <input type="checkbox" id="nbm-maxref-checkbox">
              Max Reflectivity
           </label>
@@ -599,7 +607,32 @@
           <span class="dropdown-arrow">&#9654;</span>
         </div>
         <div class="dropdown-content">
-          <!-- All checkboxes/sliders removed -->
+          <label>
+            <input type="checkbox" id="nbm-hail-checkbox">
+             Hail Probability
+          </label>
+          <div id="nbm-hail-opacity-container" style="display:none;margin:2px 0 8px 22px;">
+            <input type="range" id="nbm-hail-opacity-slider" min="0" max="100" value="70" style="width:90px;vertical-align:middle;">
+            <span id="nbm-hail-opacity-value" style="font-size:0.97em;color:#263159;">70%</span>
+          </div>
+          <!-- Tornado Probability -->
+          <label>
+            <input type="checkbox" id="nbm-tornado-checkbox">
+             Tornado Probability
+          </label>
+          <div id="nbm-tornado-opacity-container" style="display:none;margin:2px 0 8px 22px;">
+            <input type="range" id="nbm-tornado-opacity-slider" min="0" max="100" value="70" style="width:90px;vertical-align:middle;">
+            <span id="nbm-tornado-opacity-value" style="font-size:0.97em;color:#263159;">70%</span>
+          </div>
+          <!-- Thunderstorm Probability -->
+          <label>
+            <input type="checkbox" id="nbm-tstm-checkbox">
+             Thunderstorm Probability
+          </label>
+          <div id="nbm-tstm-opacity-container" style="display:none;margin:2px 0 8px 22px;">
+            <input type="range" id="nbm-tstm-opacity-slider" min="0" max="100" value="70" style="width:90px;vertical-align:middle;">
+            <span id="nbm-tstm-opacity-value" style="font-size:0.97em;color:#263159;">70%</span>
+          </div>
         </div>
       </div>
       <div class="dropdown" id="dropdown-diagnostics">
@@ -626,8 +659,16 @@
       <img id="nbm-temp2m-colorbar" src="/nbm_tmp_surface_pngs/colorbar.png" alt="2m Temperature Colorbar" style="display:none;max-width:260px;">
       <!-- NBM Total Precip colorbar (initially hidden) -->
       <img id="nbm-totprecip-colorbar" src="/nbm_totprecip_pngs/colorbar.png" alt="Total Precipitation Colorbar" style="display:none;max-width:260px;">
+      <!-- NBM Gust colorbar (initially hidden) -->
+      <img id="nbm-gust-colorbar" src="/nbm_gust_pngs/colorbar.png" alt="10m Gust Colorbar" style="display:none;max-width:260px;">
       <!-- NBM Max Reflectivity colorbar (initially hidden) -->
       <img id="nbm-maxref-colorbar" src="/nbm_maxref_pngs/colorbar.png" alt="Max Reflectivity Colorbar" style="display:none;max-width:260px;">
+      <!-- NBM Hail Probability colorbar (initially hidden) -->
+      <img id="nbm-hail-colorbar" src="/nbm_hail_pngs/colorbar.png" alt="Hail Probability Colorbar" style="display:none;max-width:260px;">
+      <!-- NBM Tornado Probability colorbar (initially hidden) -->
+      <img id="nbm-tornado-colorbar" src="/nbm_tornado_pngs/colorbar.png" alt="Tornado Probability Colorbar" style="display:none;max-width:260px;">
+      <!-- NBM Thunderstorm Probability colorbar (initially hidden) -->
+      <img id="nbm-tstm-colorbar" src="/nbm_tstm_pngs/colorbar.png" alt="Thunderstorm Probability Colorbar" style="display:none;max-width:260px;">
     </div>
   </div>
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
@@ -643,7 +684,11 @@
     // --- Overlay opacity state ---
     var nbmTemp2mOpacity = 0.7;
     var nbmTotPrecipOpacity = 0.7;
+    var nbmGustOpacity = 0.7;
     var nbmMaxrefOpacity = 0.7;
+    var nbmHailOpacity = 0.7;
+    var nbmTornadoOpacity = 0.7;
+    var nbmTstmOpacity = 0.7;
 
     // --- NBM 2m Temperature overlay logic ---
     var nbmTemp2mOverlay = null;
@@ -696,6 +741,31 @@
       if (nbmTotPrecipOverlay) nbmTotPrecipOverlay.setZIndex(2);
     }
 
+    // --- NBM Gust overlay logic ---
+    var nbmGustOverlay = null;
+    var nbmGustCheckbox = null;
+    function updateNBMGustOverlay(idx) {
+      if (!pngList || idx < 0 || idx >= pngList.length) return;
+      var entry = pngList[idx] || {};
+      if (nbmGustOverlay) {
+        map.removeLayer(nbmGustOverlay);
+        nbmGustOverlay = null;
+      }
+      if (nbmGustCheckbox && nbmGustCheckbox.checked && entry.nbm_gust) {
+        nbmGustOverlay = L.imageOverlay(entry.nbm_gust, imageBounds, {
+          opacity: nbmGustOpacity,
+          interactive: false,
+          zIndex: 2
+        });
+        nbmGustOverlay.addTo(map);
+      }
+      if (!map.hasLayer(cartopyBase)) {
+        cartopyBase.addTo(map);
+      }
+      cartopyBase.setZIndex(1);
+      if (nbmGustOverlay) nbmGustOverlay.setZIndex(2);
+    }
+
     // --- NBM Max Reflectivity overlay logic ---
     var nbmMaxrefOverlay = null;
     var nbmMaxrefCheckbox = null;
@@ -719,6 +789,81 @@
       }
       cartopyBase.setZIndex(1);
       if (nbmMaxrefOverlay) nbmMaxrefOverlay.setZIndex(2);
+    }
+
+    // --- NBM Hail overlay logic ---
+    var nbmHailOverlay = null;
+    var nbmHailCheckbox = null;
+    function updateNBMHailOverlay(idx) {
+      if (!pngList || idx < 0 || idx >= pngList.length) return;
+      var entry = pngList[idx] || {};
+      if (nbmHailOverlay) {
+        map.removeLayer(nbmHailOverlay);
+        nbmHailOverlay = null;
+      }
+      if (nbmHailCheckbox && nbmHailCheckbox.checked && entry.nbm_hail) {
+        nbmHailOverlay = L.imageOverlay(entry.nbm_hail, imageBounds, {
+          opacity: nbmHailOpacity,
+          interactive: false,
+          zIndex: 2
+        });
+        nbmHailOverlay.addTo(map);
+      }
+      if (!map.hasLayer(cartopyBase)) {
+        cartopyBase.addTo(map);
+      }
+      cartopyBase.setZIndex(1);
+      if (nbmHailOverlay) nbmHailOverlay.setZIndex(2);
+    }
+
+    // --- NBM Tornado overlay logic ---
+    var nbmTornadoOverlay = null;
+    var nbmTornadoCheckbox = null;
+    function updateNBMTornadoOverlay(idx) {
+      if (!pngList || idx < 0 || idx >= pngList.length) return;
+      var entry = pngList[idx] || {};
+      if (nbmTornadoOverlay) {
+        map.removeLayer(nbmTornadoOverlay);
+        nbmTornadoOverlay = null;
+      }
+      if (nbmTornadoCheckbox && nbmTornadoCheckbox.checked && entry.nbm_tornado) {
+        nbmTornadoOverlay = L.imageOverlay(entry.nbm_tornado, imageBounds, {
+          opacity: nbmTornadoOpacity,
+          interactive: false,
+          zIndex: 2
+        });
+        nbmTornadoOverlay.addTo(map);
+      }
+      if (!map.hasLayer(cartopyBase)) {
+        cartopyBase.addTo(map);
+      }
+      cartopyBase.setZIndex(1);
+      if (nbmTornadoOverlay) nbmTornadoOverlay.setZIndex(2);
+    }
+
+    // --- NBM Thunderstorm overlay logic ---
+    var nbmTstmOverlay = null;
+    var nbmTstmCheckbox = null;
+    function updateNBMTstmOverlay(idx) {
+      if (!pngList || idx < 0 || idx >= pngList.length) return;
+      var entry = pngList[idx] || {};
+      if (nbmTstmOverlay) {
+        map.removeLayer(nbmTstmOverlay);
+        nbmTstmOverlay = null;
+      }
+      if (nbmTstmCheckbox && nbmTstmCheckbox.checked && entry.nbm_tstm) {
+        nbmTstmOverlay = L.imageOverlay(entry.nbm_tstm, imageBounds, {
+          opacity: nbmTstmOpacity,
+          interactive: false,
+          zIndex: 2
+        });
+        nbmTstmOverlay.addTo(map);
+      }
+      if (!map.hasLayer(cartopyBase)) {
+        cartopyBase.addTo(map);
+      }
+      cartopyBase.setZIndex(1);
+      if (nbmTstmOverlay) nbmTstmOverlay.setZIndex(2);
     }
 
     // --- Slider logic (now in left panel) ---
@@ -804,7 +949,11 @@
           // NBM overlays update
           updateNBMTemp2mOverlay(idx);
           updateNBMTotPrecipOverlay(idx);
+          updateNBMGustOverlay(idx);
           updateNBMMaxrefOverlay(idx);
+          updateNBMHailOverlay(idx);
+          updateNBMTornadoOverlay(idx); // <-- add tornado overlay update
+          updateNBMTstmOverlay(idx); // <-- add thunderstorm overlay update
         };
 
         slider.oninput = function() {
@@ -908,6 +1057,39 @@
           nbmTotPrecipOpacityContainer.style.display = nbmTotPrecipCheckbox.checked ? "block" : "none";
         }
 
+        // NBM Gust checkbox logic
+        nbmGustCheckbox = document.getElementById('nbm-gust-checkbox');
+        var nbmGustColorbar = document.getElementById('nbm-gust-colorbar');
+        var nbmGustOpacityContainer = document.getElementById('nbm-gust-opacity-container');
+        var nbmGustOpacitySlider = document.getElementById('nbm-gust-opacity-slider');
+        var nbmGustOpacityValue = document.getElementById('nbm-gust-opacity-value');
+        if (nbmGustCheckbox) {
+          nbmGustCheckbox.checked = false;
+          nbmGustCheckbox.addEventListener('change', function() {
+            updateNBMGustOverlay(parseInt(slider.value));
+            if (nbmGustCheckbox.checked) {
+              nbmGustColorbar.style.display = "";
+              nbmGustOpacityContainer.style.display = "block";
+            } else {
+              nbmGustColorbar.style.display = "none";
+              nbmGustOpacityContainer.style.display = "none";
+            }
+          });
+        }
+        if (nbmGustOpacitySlider && nbmGustOpacityValue) {
+          nbmGustOpacitySlider.value = 70;
+          nbmGustOpacityValue.textContent = "70%";
+          nbmGustOpacitySlider.addEventListener('input', function() {
+            nbmGustOpacity = parseInt(this.value, 10) / 100;
+            nbmGustOpacityValue.textContent = this.value + "%";
+            if (nbmGustOverlay) nbmGustOverlay.setOpacity(nbmGustOpacity);
+          });
+        }
+        if (nbmGustCheckbox && nbmGustColorbar && nbmGustOpacityContainer) {
+          nbmGustColorbar.style.display = nbmGustCheckbox.checked ? "" : "none";
+          nbmGustOpacityContainer.style.display = nbmGustCheckbox.checked ? "block" : "none";
+        }
+
         // NBM Max Reflectivity checkbox logic
         nbmMaxrefCheckbox = document.getElementById('nbm-maxref-checkbox');
         var nbmMaxrefColorbar = document.getElementById('nbm-maxref-colorbar');
@@ -939,6 +1121,107 @@
         if (nbmMaxrefCheckbox && nbmMaxrefColorbar && nbmMaxrefOpacityContainer) {
           nbmMaxrefColorbar.style.display = nbmMaxrefCheckbox.checked ? "" : "none";
           nbmMaxrefOpacityContainer.style.display = nbmMaxrefCheckbox.checked ? "block" : "none";
+        }
+
+        // NBM Hail checkbox logic
+        nbmHailCheckbox = document.getElementById('nbm-hail-checkbox');
+        var nbmHailColorbar = document.getElementById('nbm-hail-colorbar');
+        var nbmHailOpacityContainer = document.getElementById('nbm-hail-opacity-container');
+        var nbmHailOpacitySlider = document.getElementById('nbm-hail-opacity-slider');
+        var nbmHailOpacityValue = document.getElementById('nbm-hail-opacity-value');
+        if (nbmHailCheckbox) {
+          nbmHailCheckbox.checked = false;
+          nbmHailCheckbox.addEventListener('change', function() {
+            updateNBMHailOverlay(parseInt(slider.value));
+            if (nbmHailCheckbox.checked) {
+              nbmHailColorbar.style.display = "";
+              nbmHailOpacityContainer.style.display = "block";
+            } else {
+              nbmHailColorbar.style.display = "none";
+              nbmHailOpacityContainer.style.display = "none";
+            }
+          });
+        }
+        if (nbmHailOpacitySlider && nbmHailOpacityValue) {
+          nbmHailOpacitySlider.value = 70;
+          nbmHailOpacityValue.textContent = "70%";
+          nbmHailOpacitySlider.addEventListener('input', function() {
+            nbmHailOpacity = parseInt(this.value, 10) / 100;
+            nbmHailOpacityValue.textContent = this.value + "%";
+            if (nbmHailOverlay) nbmHailOverlay.setOpacity(nbmHailOpacity);
+          });
+        }
+        if (nbmHailCheckbox && nbmHailColorbar && nbmHailOpacityContainer) {
+          nbmHailColorbar.style.display = nbmHailCheckbox.checked ? "" : "none";
+          nbmHailOpacityContainer.style.display = nbmHailCheckbox.checked ? "block" : "none";
+        }
+
+        // NBM Tornado Probability checkbox logic
+        nbmTornadoCheckbox = document.getElementById('nbm-tornado-checkbox');
+        var nbmTornadoColorbar = document.getElementById('nbm-tornado-colorbar');
+        var nbmTornadoOpacityContainer = document.getElementById('nbm-tornado-opacity-container');
+        var nbmTornadoOpacitySlider = document.getElementById('nbm-tornado-opacity-slider');
+        var nbmTornadoOpacityValue = document.getElementById('nbm-tornado-opacity-value');
+        var nbmTornadoOpacity = 0.7;
+        if (nbmTornadoCheckbox) {
+          nbmTornadoCheckbox.checked = false;
+          nbmTornadoCheckbox.addEventListener('change', function() {
+            updateNBMTornadoOverlay(parseInt(slider.value));
+            if (nbmTornadoCheckbox.checked) {
+              nbmTornadoColorbar.style.display = "";
+              nbmTornadoOpacityContainer.style.display = "block";
+            } else {
+              nbmTornadoColorbar.style.display = "none";
+              nbmTornadoOpacityContainer.style.display = "none";
+            }
+          });
+        }
+        if (nbmTornadoOpacitySlider && nbmTornadoOpacityValue) {
+          nbmTornadoOpacitySlider.value = 70;
+          nbmTornadoOpacityValue.textContent = "70%";
+          nbmTornadoOpacitySlider.addEventListener('input', function() {
+            nbmTornadoOpacity = parseInt(this.value, 10) / 100;
+            nbmTornadoOpacityValue.textContent = this.value + "%";
+            if (nbmTornadoOverlay) nbmTornadoOverlay.setOpacity(nbmTornadoOpacity);
+          });
+        }
+        if (nbmTornadoCheckbox && nbmTornadoColorbar && nbmTornadoOpacityContainer) {
+          nbmTornadoColorbar.style.display = nbmTornadoCheckbox.checked ? "" : "none";
+          nbmTornadoOpacityContainer.style.display = nbmTornadoCheckbox.checked ? "block" : "none";
+        }
+
+        // NBM Thunderstorm Probability checkbox logic
+        nbmTstmCheckbox = document.getElementById('nbm-tstm-checkbox');
+        var nbmTstmColorbar = document.getElementById('nbm-tstm-colorbar');
+        var nbmTstmOpacityContainer = document.getElementById('nbm-tstm-opacity-container');
+        var nbmTstmOpacitySlider = document.getElementById('nbm-tstm-opacity-slider');
+        var nbmTstmOpacityValue = document.getElementById('nbm-tstm-opacity-value');
+        var nbmTstmOpacity = 0.7;
+        if (nbmTstmCheckbox) {
+          nbmTstmCheckbox.checked = false;
+          nbmTstmCheckbox.addEventListener('change', function() {
+            updateNBMTstmOverlay(parseInt(slider.value));
+            if (nbmTstmCheckbox.checked) {
+              nbmTstmColorbar.style.display = "";
+              nbmTstmOpacityContainer.style.display = "block";
+            } else {
+              nbmTstmColorbar.style.display = "none";
+              nbmTstmOpacityContainer.style.display = "none";
+            }
+          });
+        }
+        if (nbmTstmOpacitySlider && nbmTstmOpacityValue) {
+          nbmTstmOpacitySlider.value = 70;
+          nbmTstmOpacityValue.textContent = "70%";
+          nbmTstmOpacitySlider.addEventListener('input', function() {
+            nbmTstmOpacity = parseInt(this.value, 10) / 100;
+            nbmTstmOpacityValue.textContent = this.value + "%";
+            if (nbmTstmOverlay) nbmTstmOverlay.setOpacity(nbmTstmOpacity);
+          });
+        }
+        if (nbmTstmCheckbox && nbmTstmColorbar && nbmTstmOpacityContainer) {
+          nbmTstmColorbar.style.display = nbmTstmCheckbox.checked ? "" : "none";
+          nbmTstmOpacityContainer.style.display = nbmTstmCheckbox.checked ? "block" : "none";
         }
       });
 
@@ -1010,13 +1293,21 @@
       var slider = document.getElementById('colorbar-size-slider');
       var valueLabel = document.getElementById('colorbar-size-value');
       var colorbarImgTemp = document.getElementById('nbm-temp2m-colorbar');
-      var colorbarImgPrecip = document.getElementById('nbm-totprecip-colorbar');
+      var colorbarImgPrecip = document.getElementById('nbm_totprecip_colorbar');
+      var colorbarImgGust = document.getElementById('nbm-gust-colorbar');
       var colorbarImgMaxref = document.getElementById('nbm-maxref-colorbar');
+      var colorbarImgHail = document.getElementById('nbm-hail-colorbar');
+      var colorbarImgTornado = document.getElementById('nbm-tornado-colorbar');
+      var colorbarImgTstm = document.getElementById('nbm-tstm-colorbar');
       function setSize(val) {
         valueLabel.textContent = val;
         if (colorbarImgTemp) colorbarImgTemp.style.maxWidth = val + "px";
         if (colorbarImgPrecip) colorbarImgPrecip.style.maxWidth = val + "px";
+        if (colorbarImgGust) colorbarImgGust.style.maxWidth = val + "px";
         if (colorbarImgMaxref) colorbarImgMaxref.style.maxWidth = val + "px";
+        if (colorbarImgHail) colorbarImgHail.style.maxWidth = val + "px";
+        if (colorbarImgTornado) colorbarImgTornado.style.maxWidth = val + "px";
+        if (colorbarImgTstm) colorbarImgTstm.style.maxWidth = val + "px";
       }
       slider.addEventListener('input', function() {
         setSize(this.value);
@@ -1126,6 +1417,25 @@
         } else {
           surfaceContent.style.display = "none";
           arrow.innerHTML = "&#9654;";
+        }
+      });
+
+      // --- Dropdown open/close logic for Severe Weather ---
+      var severeDropdown = document.getElementById('dropdown-severe');
+      var severeHeader = severeDropdown.querySelector('.dropdown-header');
+      var severeContent = severeDropdown.querySelector('.dropdown-content');
+      var severeArrow = severeHeader.querySelector('.dropdown-arrow');
+      severeDropdown.classList.remove('open');
+      severeArrow.innerHTML = "&#9654;";
+      severeContent.style.display = "none";
+      severeHeader.addEventListener('click', function() {
+        var isOpen = severeDropdown.classList.toggle('open');
+        if (isOpen) {
+          severeContent.style.display = "block";
+          severeArrow.innerHTML = "&#9660;";
+        } else {
+          severeContent.style.display = "none";
+          severeArrow.innerHTML = "&#9654;";
         }
       });
     });
