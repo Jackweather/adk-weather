@@ -37,6 +37,14 @@ PNG_DIR_NBM_TMP_SURFACE = os.path.join(BASE_DIR, "NBM", "NBM", "static", "tmp_su
 PNG_DIR_NBM_TOT_PRECIP = os.path.join(BASE_DIR, "NBM", "NBM", "static", "tot_precip")
 # Add NBM MAXREF PNG directory
 PNG_DIR_NBM_MAXREF = os.path.join(BASE_DIR, "NBM", "NBM", "static", "MAXREF")
+# Add NBM GUST PNG directory
+PNG_DIR_NBM_GUST = os.path.join(BASE_DIR, "NBM", "NBM", "static", "gust")
+# Add NBM HAIL PNG directory
+PNG_DIR_NBM_HAIL = os.path.join(BASE_DIR, "NBM", "NBM", "static", "hail")
+# Add NBM Tornado PNG directory
+PNG_DIR_NBM_TORNADO = os.path.join(BASE_DIR, "NBM", "NBM", "static", "tornado")
+# Add NBM Thunderstorm Probability PNG directory
+PNG_DIR_NBM_TSTM = os.path.join(BASE_DIR, "NBM", "NBM", "static", "tstm")
 
 @app.route("/")
 def home():
@@ -82,6 +90,14 @@ def get_pngs():
     nbm_totprecip_files = [f for f in safe_listdir(PNG_DIR_NBM_TOT_PRECIP) if re.match(r"totprecip_(\d+)\.png$", f)]
     # Add NBM MAXREF files
     nbm_maxref_files = [f for f in safe_listdir(PNG_DIR_NBM_MAXREF) if re.match(r"MAXREF_(\d+)\.png$", f)]
+    # Add NBM GUST files
+    nbm_gust_files = [f for f in safe_listdir(PNG_DIR_NBM_GUST) if re.match(r"gust_(\d+)\.png$", f)]
+    # Add NBM HAIL files
+    nbm_hail_files = [f for f in safe_listdir(PNG_DIR_NBM_HAIL) if re.match(r"hail_(\d+)\.png$", f)]
+    # Add NBM Tornado files
+    nbm_tornado_files = [f for f in safe_listdir(PNG_DIR_NBM_TORNADO) if re.match(r"tornado_(\d+)\.png$", f)]
+    # Add NBM Thunderstorm Probability files
+    nbm_tstm_files = [f for f in safe_listdir(PNG_DIR_NBM_TSTM) if re.match(r"tstm_(\d+)\.png$", f)]
 
     # Use regex to extract hour from each filename (more robust)
     def extract_hour(pattern, filename):
@@ -113,6 +129,14 @@ def get_pngs():
     nbm_totprecip_dict = {extract_hour(r"totprecip_(\d+)\.png$", f): f for f in nbm_totprecip_files}
     # Add NBM MAXREF dict
     nbm_maxref_dict = {extract_hour(r"MAXREF_(\d+)\.png$", f): f for f in nbm_maxref_files}
+    # Add NBM GUST dict
+    nbm_gust_dict = {extract_hour(r"gust_(\d+)\.png$", f): f for f in nbm_gust_files}
+    # Add NBM HAIL dict
+    nbm_hail_dict = {extract_hour(r"hail_(\d+)\.png$", f): f for f in nbm_hail_files}
+    # Add NBM Tornado dict
+    nbm_tornado_dict = {extract_hour(r"tornado_(\d+)\.png$", f): f for f in nbm_tornado_files}
+    # Add NBM Thunderstorm Probability dict
+    nbm_tstm_dict = {extract_hour(r"tstm_(\d+)\.png$", f): f for f in nbm_tstm_files}
 
     # Remove None keys if any file didn't match pattern
     refc_dict = {k: v for k, v in refc_dict.items() if k is not None}
@@ -140,6 +164,14 @@ def get_pngs():
     nbm_totprecip_dict = {k: v for k, v in nbm_totprecip_dict.items() if k is not None}
     # Add NBM MAXREF dict cleanup
     nbm_maxref_dict = {k: v for k, v in nbm_maxref_dict.items() if k is not None}
+    # Add NBM GUST dict cleanup
+    nbm_gust_dict = {k: v for k, v in nbm_gust_dict.items() if k is not None}
+    # Add NBM HAIL dict cleanup
+    nbm_hail_dict = {k: v for k, v in nbm_hail_dict.items() if k is not None}
+    # Add NBM Tornado dict cleanup
+    nbm_tornado_dict = {k: v for k, v in nbm_tornado_dict.items() if k is not None}
+    # Add NBM Thunderstorm Probability dict cleanup
+    nbm_tstm_dict = {k: v for k, v in nbm_tstm_dict.items() if k is not None}
 
     # Determine if this is an NBM or HRRR request based on Referer or User-Agent or query param
     is_nbm = False
@@ -149,8 +181,8 @@ def get_pngs():
     elif "HRRR.html" in referer or "hrrr.html" in referer or request.args.get("model") == "hrrr":
         is_nbm = False
 
-    # Union of all available hours from all overlays (add nbm_temp2m_dict, nbm_totprecip_dict, nbm_maxref_dict)
-    all_hours = set(refc_dict) | set(mslp_dict) | set(temp2m_dict) | set(lightning_dict) | set(rh_dict) | set(hail_dict) | set(cape_dict) | set(cin_dict) | set(lcdc_dict) | set(mcdc_dict) | set(hcdc_dict) | set(precip_dict) | set(wind10m_dict) | set(wind10m_station_dict) | set(srh_dict) | set(pwat_dict) | set(gust_dict) | set(shear_vector_dict) | set(nbm_temp2m_dict) | set(nbm_totprecip_dict) | set(nbm_maxref_dict)
+    # Union of all available hours from all overlays (add nbm_temp2m_dict, nbm_totprecip_dict, nbm_maxref_dict, nbm_hail_dict, nbm_tornado_dict)
+    all_hours = set(refc_dict) | set(mslp_dict) | set(temp2m_dict) | set(lightning_dict) | set(rh_dict) | set(hail_dict) | set(cape_dict) | set(cin_dict) | set(lcdc_dict) | set(mcdc_dict) | set(hcdc_dict) | set(precip_dict) | set(wind10m_dict) | set(wind10m_station_dict) | set(srh_dict) | set(pwat_dict) | set(gust_dict) | set(shear_vector_dict) | set(nbm_temp2m_dict) | set(nbm_totprecip_dict) | set(nbm_gust_dict) | set(nbm_maxref_dict) | set(nbm_hail_dict) | set(nbm_tornado_dict) | set(nbm_tstm_dict)
     all_hours = sorted(all_hours)
 
     # --- Only include hours that match the model's step ---
@@ -184,7 +216,11 @@ def get_pngs():
             "shear_vector": f"/shear_vector_pngs/{shear_vector_dict[hour]}" if hour in shear_vector_dict else None,
             "nbm_temp2m": f"/nbm_tmp_surface_pngs/{nbm_temp2m_dict[hour]}" if hour in nbm_temp2m_dict else None,
             "nbm_totprecip": f"/nbm_totprecip_pngs/{nbm_totprecip_dict[hour]}" if hour in nbm_totprecip_dict else None,
+            "nbm_gust": f"/nbm_gust_pngs/{nbm_gust_dict[hour]}" if hour in nbm_gust_dict else None,
             "nbm_maxref": f"/nbm_maxref_pngs/{nbm_maxref_dict[hour]}" if hour in nbm_maxref_dict else None,
+            "nbm_hail": f"/nbm_hail_pngs/{nbm_hail_dict[hour]}" if hour in nbm_hail_dict else None,
+            "nbm_tornado": f"/nbm_tornado_pngs/{nbm_tornado_dict[hour]}" if hour in nbm_tornado_dict else None,
+            "nbm_tstm": f"/nbm_tstm_pngs/{nbm_tstm_dict[hour]}" if hour in nbm_tstm_dict else None,
         })
     response = make_response(jsonify(result))
     response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
@@ -607,8 +643,68 @@ def run_task2():
             print(f"Error running maxrefc.py:\n{error_trace}")
             print("STDOUT:", e.stdout)
             print("STDERR:", e.stderr)
+        # --- NBM_GUST.py ---
+        try:
+            result = subprocess.run(
+                ["python", "/opt/render/project/src/NBM/NBM_GUST.py"],
+                check=True, cwd="/opt/render/project/src/NBM",
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
+            )
+            print("NBM_GUST.py ran successfully!")
+            print("STDOUT:", result.stdout)
+            print("STDERR:", result.stderr)
+        except subprocess.CalledProcessError as e:
+            error_trace = traceback.format_exc()
+            print(f"Error running NBM_GUST.py:\n{error_trace}")
+            print("STDOUT:", e.stdout)
+            print("STDERR:", e.stderr)
+        # --- NBM_HAIL.py ---
+        try:
+            result = subprocess.run(
+                ["python", "/opt/render/project/src/NBM/NBM_HAIL.py"],
+                check=True, cwd="/opt/render/project/src/NBM",
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
+            )
+            print("NBM_HAIL.py ran successfully!")
+            print("STDOUT:", result.stdout)
+            print("STDERR:", result.stderr)
+        except subprocess.CalledProcessError as e:
+            error_trace = traceback.format_exc()
+            print(f"Error running NBM_HAIL.py:\n{error_trace}")
+            print("STDOUT:", e.stdout)
+            print("STDERR:", e.stderr)
+        # --- NBM_TORNADO.py ---
+        try:
+            result = subprocess.run(
+                ["python", "/opt/render/project/src/NBM/NBM_TORNADO.py"],
+                check=True, cwd="/opt/render/project/src/NBM",
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
+            )
+            print("NBM_TORNADO.py ran successfully!")
+            print("STDOUT:", result.stdout)
+            print("STDERR:", result.stderr)
+        except subprocess.CalledProcessError as e:
+            error_trace = traceback.format_exc()
+            print(f"Error running NBM_TORNADO.py:\n{error_trace}")
+            print("STDOUT:", e.stdout)
+            print("STDERR:", e.stderr)
+        # --- NBM_TSTM.py ---
+        try:
+            result = subprocess.run(
+                ["python", "/opt/render/project/src/NBM/NBM_TSTM.py"],
+                check=True, cwd="/opt/render/project/src/NBM",
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
+            )
+            print("NBM_TSTM.py ran successfully!")
+            print("STDOUT:", result.stdout)
+            print("STDERR:", result.stderr)
+        except subprocess.CalledProcessError as e:
+            error_trace = traceback.format_exc()
+            print(f"Error running NBM_TSTM.py:\n{error_trace}")
+            print("STDOUT:", e.stdout)
+            print("STDERR:", e.stderr)
     threading.Thread(target=run_nbm_scripts).start()
-    return "NBM tmp_surface.py, tot_precip.py, and maxrefc.py started in background!", 200
+    return "NBM tmp_surface.py, tot_precip.py, maxrefc.py, NBM_GUST.py, NBM_HAIL.py, NBM_TORNADO.py, and NBM_TSTM.py started in background!", 200
 
 @app.route("/<path:filename>")
 def serve_static_file(filename):
@@ -747,6 +843,34 @@ def serve_nbm_maxref_png(filename):
     if filename == "colorbar.png":
         return send_from_directory(COLORBAR_DIR, "REFC_colorbar.png")
     return api_serve_image(PNG_DIR_NBM_MAXREF, filename)
+
+@app.route("/nbm_gust_pngs/<path:filename>")
+def serve_nbm_gust_png(filename):
+    # Serve the colorbar for colorbar.png requests
+    if filename == "colorbar.png":
+        return send_from_directory(COLORBAR_DIR, "GUST_colorbar.png")
+    return api_serve_image(PNG_DIR_NBM_GUST, filename)
+
+@app.route("/nbm_hail_pngs/<path:filename>")
+def serve_nbm_hail_png(filename):
+    # Serve the colorbar for colorbar.png requests
+    if filename == "colorbar.png":
+        return send_from_directory(os.path.join(BASE_DIR, "colorbars"), "HailProbability.png")
+    return api_serve_image(PNG_DIR_NBM_HAIL, filename)
+
+@app.route("/nbm_tornado_pngs/<path:filename>")
+def serve_nbm_tornado_png(filename):
+    # Serve the colorbar for colorbar.png requests
+    if filename == "colorbar.png":
+        return send_from_directory(os.path.join(BASE_DIR, "colorbars"), "tornado_colorbar.png")
+    return api_serve_image(PNG_DIR_NBM_TORNADO, filename)
+
+@app.route("/nbm_tstm_pngs/<path:filename>")
+def serve_nbm_tstm_png(filename):
+    # Serve the colorbar for colorbar.png requests
+    if filename == "colorbar.png":
+        return send_from_directory(os.path.join(BASE_DIR, "colorbars"), "Thunderstormcolorbar.png")
+    return api_serve_image(PNG_DIR_NBM_TSTM, filename)
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
