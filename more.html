@@ -276,6 +276,12 @@
   <div class="main-content">
     <h2>Satellite Imagery Overlay</h2>
     <div class="satellite-controls">
+      <!-- Add toggle buttons for VIS/IR/RADAR -->
+      <div id="satellite-type-toggle" style="display:flex;gap:8px;margin-right:18px;">
+        <button id="vis-btn" class="satellite-btn" style="background:#ffb400;color:#263159;">VIS</button>
+        <button id="ir-btn" class="satellite-btn">IR</button>
+        <button id="radar-btn" class="satellite-btn">RADAR</button>
+      </div>
       <button id="prev-png" class="satellite-btn">Previous</button>
       <span id="current-png-label"></span>
       <button id="next-png" class="satellite-btn">Next</button>
@@ -319,6 +325,7 @@
       let imageOverlay = null;
       let pngFiles = [];
       let currentPngIdx = -1;
+      let satelliteType = "vis"; // "vis", "ir", or "radar"
       const slider = document.getElementById('png-slider');
 
       // Approximate bounds for CONUS at zoom 4 (adjust as needed)
@@ -352,10 +359,11 @@
         }
         const file = pngFiles[idx];
         document.getElementById('current-png-label').textContent = file;
-        imageOverlay = L.imageOverlay('/satellite_images/' + file, conusBounds, {opacity: 0.85}).addTo(map);
-        // Enable "Previous" unless at oldest (idx 0)
+        let overlayPath = '/satellite_images/';
+        if (satelliteType === "ir") overlayPath = '/ir_images/';
+        else if (satelliteType === "radar") overlayPath = '/radar_images/';
+        imageOverlay = L.imageOverlay(overlayPath + file, conusBounds, {opacity: 0.85}).addTo(map);
         document.getElementById('prev-png').disabled = (idx <= 0);
-        // Enable "Next" unless at newest (idx >= pngFiles.length - 1)
         document.getElementById('next-png').disabled = (idx >= pngFiles.length - 1);
         slider.value = idx;
         slider.disabled = false;
@@ -363,20 +371,25 @@
       }
 
       function loadPngListAndInit() {
-        fetch('/satellite_images')
+        let listUrl = '/satellite_images';
+        if (satelliteType === "ir") listUrl = '/ir_images';
+        else if (satelliteType === "radar") listUrl = '/radar_images';
+        fetch(listUrl)
           .then(response => response.json())
           .then(files => {
-            // Reverse so index 0 = oldest, last = newest
-            pngFiles = files.slice().reverse();
-            // Preload all PNGs
+            pngFiles = files; // Do NOT reverse, backend is sorted oldest->newest
             pngFiles.forEach(function(file) {
+              let prefix = '/satellite_images/';
+              if (satelliteType === "ir") prefix = '/ir_images/';
+              else if (satelliteType === "radar") prefix = '/radar_images/';
               const img = new window.Image();
-              img.src = '/satellite_images/' + file;
+              img.src = prefix + file;
             });
             if (pngFiles.length > 0) {
               slider.max = pngFiles.length - 1;
               slider.min = 0;
-              slider.value = pngFiles.length - 1; // rightmost = newest
+              // Always show the newest (last) PNG
+              slider.value = pngFiles.length - 1;
               slider.disabled = false;
               currentPngIdx = pngFiles.length - 1;
               setPngOverlayByIndex(currentPngIdx);
@@ -482,6 +495,47 @@
           e.preventDefault();
         }
       });
+
+      // Satellite type toggle logic
+      document.getElementById('vis-btn').onclick = function() {
+        if (satelliteType !== "vis") {
+          satelliteType = "vis";
+          this.style.background = "#ffb400";
+          this.style.color = "#263159";
+          document.getElementById('ir-btn').style.background = "#263159";
+          document.getElementById('ir-btn').style.color = "#fff";
+          document.getElementById('radar-btn').style.background = "#263159";
+          document.getElementById('radar-btn').style.color = "#fff";
+          stopPngLoop();
+          loadPngListAndInit();
+        }
+      };
+      document.getElementById('ir-btn').onclick = function() {
+        if (satelliteType !== "ir") {
+          satelliteType = "ir";
+          this.style.background = "#ffb400";
+          this.style.color = "#263159";
+          document.getElementById('vis-btn').style.background = "#263159";
+          document.getElementById('vis-btn').style.color = "#fff";
+          document.getElementById('radar-btn').style.background = "#263159";
+          document.getElementById('radar-btn').style.color = "#fff";
+          stopPngLoop();
+          loadPngListAndInit();
+        }
+      };
+      document.getElementById('radar-btn').onclick = function() {
+        if (satelliteType !== "radar") {
+          satelliteType = "radar";
+          this.style.background = "#ffb400";
+          this.style.color = "#263159";
+          document.getElementById('vis-btn').style.background = "#263159";
+          document.getElementById('vis-btn').style.color = "#fff";
+          document.getElementById('ir-btn').style.background = "#263159";
+          document.getElementById('ir-btn').style.color = "#fff";
+          stopPngLoop();
+          loadPngListAndInit();
+        }
+      };
 
       // Initial load
       loadPngListAndInit();
