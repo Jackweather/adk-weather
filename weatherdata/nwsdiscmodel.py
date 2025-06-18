@@ -2,6 +2,7 @@ import requests
 from bs4 import BeautifulSoup
 from transformers import pipeline, BartTokenizer
 import sys
+import gc  # Add garbage collector
 
 # Set up the summarizer and tokenizer
 summarizer = pipeline("summarization", model="facebook/bart-large-cnn")
@@ -71,6 +72,11 @@ def summarize_chunks(chunks):
             do_sample=False
         )[0]['summary_text']
         summaries.append(summary)
+
+        # Free memory after each chunk
+        del chunk
+        gc.collect()
+
     return summaries
 
 def summarize_afd(site="OKX"):
@@ -82,8 +88,12 @@ def summarize_afd(site="OKX"):
     chunks = chunk_text(afd_text, max_tokens=500)
     chunk_summaries = summarize_chunks(chunks)
 
+    # Free memory after chunk summaries
+    del chunks
+    gc.collect()
+
     if len(chunk_summaries) == 1:
-        return chunk_summaries[0]
+        result = chunk_summaries[0]
     else:
         print("[INFO] Putting together the final summary...")
         final_summary = summarizer(
@@ -92,7 +102,13 @@ def summarize_afd(site="OKX"):
             min_length=120,
             do_sample=False
         )[0]['summary_text']
-        return final_summary
+        result = final_summary
+        del final_summary
+        gc.collect()
+
+    del chunk_summaries
+    gc.collect()
+    return result
 
 if __name__ == "__main__":
     site = sys.argv[1].upper() if len(sys.argv) > 1 else "ALY"
@@ -110,4 +126,8 @@ if __name__ == "__main__":
     with open(output_file, "w") as f:
         f.write(summary)
     print(f"\n[INFO] Saved summary to: {output_file}")
+
+    # Final memory cleanup
+    del summary
+    gc.collect()
 
