@@ -2,7 +2,9 @@ import requests
 from bs4 import BeautifulSoup
 from transformers import pipeline, BartTokenizer
 import sys
-import gc  # Add garbage collector
+import gc
+import time
+import os
 
 # Set up the summarizer and tokenizer
 summarizer = pipeline("summarization", model="facebook/bart-large-cnn")
@@ -51,33 +53,31 @@ def chunk_text(text, max_tokens=1024):
 
     return chunks
 
-def summarize_chunks(chunks):
+def summarize_chunks(chunks, temp_file_path="chunk_summaries.tmp"):
     """
-    Summarize each chunk of text separately, using dynamic max_length to avoid warnings.
+    Summarize each chunk of text separately, write to temp file, and slow memory use.
     """
-    summaries = []
-    for i, chunk in enumerate(chunks):
-        print(f"[INFO] Summarizing part {i + 1} of {len(chunks)}...")
+    with open(temp_file_path, "w") as temp_file:
+        for i, chunk in enumerate(chunks):
+            print(f"[INFO] Summarizing part {i + 1} of {len(chunks)}...")
 
-        # Get token count of input chunk
-        input_tokens = tokenizer(chunk, return_tensors="pt", truncation=True).input_ids.shape[1]
+            # Get token count of input chunk
+            input_tokens = tokenizer(chunk, return_tensors="pt", truncation=True).input_ids.shape[1]
 
-        # Set max_length to ~80% of input length, capped at 450 tokens
-        dynamic_max_length = min(450, int(input_tokens * 0.8))
+            # Set max_length to ~80% of input length, capped at 450 tokens
+            dynamic_max_length = min(450, int(input_tokens * 0.8))
 
-        summary = summarizer(
-            chunk,
-            max_length=dynamic_max_length,
-            min_length=60,
-            do_sample=False
-        )[0]['summary_text']
-        summaries.append(summary)
-
-        # Free memory after each chunk
-        del chunk
-        gc.collect()
-
-    return summaries
+            summary = summarizer(
+                chunk,
+                max_length=dynamic_max_length,
+                min_length=60,
+                do_sample=False
+            )[0]['summary_text']
+            temp_file.write(summary + "\n")
+            # Free memory after each chunk
+            del chunk, summary
+            gc.collect()
+            time.sleep(0.5)  # Slow down processing to allow memory cleanup
 
 def summarize_afd(site="OKX"):
     """
@@ -86,11 +86,18 @@ def summarize_afd(site="OKX"):
     print(f"[INFO] Getting the forecast discussion for site {site}...")
     afd_text = fetch_afd(site)
     chunks = chunk_text(afd_text, max_tokens=500)
-    chunk_summaries = summarize_chunks(chunks)
+    temp_file_path = "chunk_summaries.tmp"
+    summarize_chunks(chunks, temp_file_path=temp_file_path)
 
-    # Free memory after chunk summaries
     del chunks
     gc.collect()
+
+    # Read chunk summaries from temp file
+    with open(temp_file_path, "r") as temp_file:
+        chunk_summaries = [line.strip() for line in temp_file if line.strip()]
+
+    # Remove temp file
+    os.remove(temp_file_path)
 
     if len(chunk_summaries) == 1:
         result = chunk_summaries[0]
