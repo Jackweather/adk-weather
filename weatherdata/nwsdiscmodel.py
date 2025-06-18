@@ -1,13 +1,13 @@
 import requests
 from bs4 import BeautifulSoup
-from transformers import pipeline, BartTokenizer
+from transformers import pipeline, AutoTokenizer
 import sys
 import gc  # Add garbage collector
 import psutil  # For memory tracking
 
 # Set up the summarizer and tokenizer
-summarizer = pipeline("summarization", model="facebook/bart-large-cnn")
-tokenizer = BartTokenizer.from_pretrained("facebook/bart-large-cnn")
+summarizer = pipeline("summarization", model="t5-small")
+tokenizer = AutoTokenizer.from_pretrained("t5-small")
 
 def print_memory_usage(note=""):
     process = psutil.Process()
