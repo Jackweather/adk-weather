@@ -45,6 +45,7 @@ PNG_DIR_NBM_HAIL = os.path.join(BASE_DIR, "NBM", "NBM", "static", "hail")
 PNG_DIR_NBM_TORNADO = os.path.join(BASE_DIR, "NBM", "NBM", "static", "tornado")
 # Add NBM Thunderstorm Probability PNG directory
 PNG_DIR_NBM_TSTM = os.path.join(BASE_DIR, "NBM", "NBM", "static", "tstm")
+SATELLITE_DIR = os.path.join(BASE_DIR, "weatherdata", "satellite")
 
 @app.route("/")
 def home():
@@ -706,6 +707,54 @@ def run_task2():
     threading.Thread(target=run_nbm_scripts).start()
     return "NBM tmp_surface.py, tot_precip.py, maxrefc.py, NBM_GUST.py, NBM_HAIL.py, NBM_TORNADO.py, and NBM_TSTM.py started in background!", 200
 
+@app.route("/run-task3")
+def run_task3():
+    def run_satellite_script():
+        print("Flask is running as user:", getpass.getuser())  # Print user for debugging
+        try:
+            result = subprocess.run(
+                ["python", "/opt/render/project/src/weatherdata/satellite.py"],
+                check=True,
+                cwd="/opt/render/project/src/weatherdata",
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True
+            )
+            print("satellite.py ran successfully!")
+            print("STDOUT:", result.stdout)
+            print("STDERR:", result.stderr)
+        except subprocess.CalledProcessError as e:
+            error_trace = traceback.format_exc()
+            print(f"Error running satellite.py:\n{error_trace}")
+            print("STDOUT:", e.stdout)
+            print("STDERR:", e.stderr)
+    threading.Thread(target=run_satellite_script).start()
+    return "weatherdata/satellite.py started in background!", 200
+
+@app.route("/run-task4")
+def run_task4():
+    def run_nwsdiscmodel_script():
+        print("Flask is running as user:", getpass.getuser())  # Print user for debugging
+        try:
+            result = subprocess.run(
+                ["python", "/opt/render/project/src/weatherdata/nwsdiscmodel.py"],
+                check=True,
+                cwd="/opt/render/project/src/weatherdata",
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True
+            )
+            print("nwsdiscmodel.py ran successfully!")
+            print("STDOUT:", result.stdout)
+            print("STDERR:", result.stderr)
+        except subprocess.CalledProcessError as e:
+            error_trace = traceback.format_exc()
+            print(f"Error running nwsdiscmodel.py:\n{error_trace}")
+            print("STDOUT:", e.stdout)
+            print("STDERR:", e.stderr)
+    threading.Thread(target=run_nwsdiscmodel_script).start()
+    return "weatherdata/nwsdiscmodel.py started in background!", 200
+
 @app.route("/<path:filename>")
 def serve_static_file(filename):
     return send_from_directory(BASE_DIR, filename)
@@ -872,5 +921,21 @@ def serve_nbm_tstm_png(filename):
         return send_from_directory(os.path.join(BASE_DIR, "colorbars"), "Thunderstormcolorbar.png")
     return api_serve_image(PNG_DIR_NBM_TSTM, filename)
 
+@app.route("/satellite_images")
+def list_satellite_images():
+    try:
+        files = sorted(
+            [f for f in os.listdir(SATELLITE_DIR) if f.lower().endswith(".png")],
+            reverse=True
+        )
+        return jsonify(files)
+    except Exception as e:
+        return jsonify([])
+
+@app.route("/satellite_images/<path:filename>")
+def serve_satellite_image(filename):
+    return send_from_directory(SATELLITE_DIR, filename)
+
 if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=5000)
     app.run(host="0.0.0.0", port=5000)
