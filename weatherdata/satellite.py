@@ -16,13 +16,12 @@ os.makedirs(IMG_DIR, exist_ok=True)
 SW_LAT, SW_LON = 24.396308, -125.0
 NE_LAT, NE_LON = 49.384358, -66.93457
 
-# Output PNG size (pixels)
-OUT_WIDTH = 3072   # 4x original width (was 768, then 1536)
-OUT_HEIGHT = 2048  # 4x original height (was 512, then 1024)
+OUT_WIDTH = 12288   # Increased for higher detail
+OUT_HEIGHT = 8192
 
 # Tile settings
 TILE_SIZE = 256
-ZOOM = 4  # Use zoom 4 for reasonable detail
+ZOOM = 6  # Use zoom 4 for reasonable detail
 
 def latlon_to_tilexy(lat, lon, zoom):
     """Convert lat/lon to tile x/y at a given zoom (Web Mercator)"""
