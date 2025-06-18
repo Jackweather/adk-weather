@@ -4,6 +4,7 @@ from transformers import pipeline, AutoTokenizer
 import sys
 import gc  # Add garbage collector
 import psutil  # For memory tracking
+import os
 
 # Set up the summarizer and tokenizer
 summarizer = pipeline("summarization", model="t5-small")
@@ -123,7 +124,9 @@ def summarize_afd(site="OKX"):
 
 if __name__ == "__main__":
     site = sys.argv[1].upper() if len(sys.argv) > 1 else "ALY"
-    output_file = f"afd_summary_{site}.txt"
+    # Always write to weatherdata folder
+    WEATHERDATA_DIR = os.path.dirname(os.path.abspath(__file__))
+    output_file = os.path.join(WEATHERDATA_DIR, f"afd_summary_{site}.txt")
 
     # Clear/truncate the file before generating the summary
     with open(output_file, "w") as f:
