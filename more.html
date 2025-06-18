@@ -353,9 +353,10 @@
         const file = pngFiles[idx];
         document.getElementById('current-png-label').textContent = file;
         imageOverlay = L.imageOverlay('/satellite_images/' + file, conusBounds, {opacity: 0.85}).addTo(map);
-        document.getElementById('prev-png').disabled = (idx >= pngFiles.length - 1);
-        document.getElementById('next-png').disabled = (idx <= 0);
-        // Sync slider (value 0 = left = oldest, max = right = newest)
+        // Enable "Previous" unless at oldest (idx 0)
+        document.getElementById('prev-png').disabled = (idx <= 0);
+        // Enable "Next" unless at newest (idx >= pngFiles.length - 1)
+        document.getElementById('next-png').disabled = (idx >= pngFiles.length - 1);
         slider.value = idx;
         slider.disabled = false;
         updateSliderFill();
@@ -367,6 +368,11 @@
           .then(files => {
             // Reverse so index 0 = oldest, last = newest
             pngFiles = files.slice().reverse();
+            // Preload all PNGs
+            pngFiles.forEach(function(file) {
+              const img = new window.Image();
+              img.src = '/satellite_images/' + file;
+            });
             if (pngFiles.length > 0) {
               slider.max = pngFiles.length - 1;
               slider.min = 0;
