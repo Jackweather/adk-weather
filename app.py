@@ -938,7 +938,7 @@ def serve_satellite_image(filename):
 
 @app.route("/afd_summary_ALY.txt")
 def serve_afd_summary_aly():
-    afd_path = os.path.join(BASE_DIR, "afd_summary_ALY.txt")
+    afd_path = os.path.join(BASE_DIR, "weatherdata", "afd_summary_ALY.txt")
     if not os.path.isfile(afd_path):
         return "Summary not found.", 404
     return send_file(afd_path, mimetype="text/plain")
