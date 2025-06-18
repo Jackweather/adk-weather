@@ -21,3 +21,4 @@ transformers
 torch
 tensorflow
 tf-keras
+psutil
