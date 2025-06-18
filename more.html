@@ -179,6 +179,76 @@
       text-align: center;
       margin-top: 8px;
     }
+    input[type="range"]#png-slider {
+      width: 60%;
+      height: 4px;
+      margin: 0 0 0 0;
+      background: #bfc6e0;
+      border-radius: 4px;
+      outline: none;
+      appearance: none;
+      -webkit-appearance: none;
+      transition: background 0.2s;
+    }
+    input[type="range"]#png-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #263159;
+      border: 2px solid #ffb400;
+      cursor: pointer;
+      box-shadow: 0 2px 6px rgba(38,49,89,0.13);
+      transition: background 0.2s;
+    }
+    input[type="range"]#png-slider:focus::-webkit-slider-thumb {
+      outline: 2px solid #ffb400;
+    }
+    input[type="range"]#png-slider::-moz-range-thumb {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #263159;
+      border: 2px solid #ffb400;
+      cursor: pointer;
+      box-shadow: 0 2px 6px rgba(38,49,89,0.13);
+      transition: background 0.2s;
+    }
+    input[type="range"]#png-slider::-ms-thumb {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #263159;
+      border: 2px solid #ffb400;
+      cursor: pointer;
+      box-shadow: 0 2px 6px rgba(38,49,89,0.13);
+      transition: background 0.2s;
+    }
+    input[type="range"]#png-slider::-webkit-slider-runnable-track {
+      height: 4px;
+      border-radius: 4px;
+      background: linear-gradient(to right, #bfc6e0 0%, #bfc6e0 var(--slider-fill, 100%), #ffb400 var(--slider-fill, 100%), #ffb400 100%);
+      transition: background 0.2s;
+    }
+    input[type="range"]#png-slider::-ms-fill-lower {
+      background: #bfc6e0;
+      border-radius: 4px;
+    }
+    input[type="range"]#png-slider::-ms-fill-upper {
+      background: #ffb400;
+      border-radius: 4px;
+    }
+    input[type="range"]#png-slider:focus {
+      outline: none;
+    }
+    input[type="range"]#png-slider::-moz-range-track {
+      height: 4px;
+      border-radius: 4px;
+      background: linear-gradient(to right, #bfc6e0 0%, #bfc6e0 var(--slider-fill, 100%), #ffb400 var(--slider-fill, 100%), #ffb400 100%);
+      transition: background 0.2s;
+    }
+    input[type="range"]#png-slider::-ms-tooltip { display: none; }
   </style>
 </head>
 <body>
@@ -211,6 +281,9 @@
       <button id="next-png" class="satellite-btn">Next</button>
       <button id="play-png" class="satellite-btn" style="margin-left:12px;">Play</button>
       <button id="stop-png" class="satellite-btn" style="margin-left:4px;display:none;">Stop</button>
+    </div>
+    <div style="display:flex;justify-content:center;margin-bottom:10px;">
+      <input type="range" id="png-slider" min="0" max="0" value="0" step="1"/>
     </div>
     <div id="map"></div>
     <h2>Latest NWS AFD Summary</h2>
@@ -246,12 +319,24 @@
       let imageOverlay = null;
       let pngFiles = [];
       let currentPngIdx = -1;
+      const slider = document.getElementById('png-slider');
 
       // Approximate bounds for CONUS at zoom 4 (adjust as needed)
       const conusBounds = [
         [24.396308, -125.0], // Southwest lat, lon
         [49.384358, -66.93457] // Northeast lat, lon
       ];
+
+      // Helper to update slider fill (CSS variable)
+      function updateSliderFill() {
+        if (!slider.max || slider.max == 0) {
+          slider.style.setProperty('--slider-fill', '100%');
+          return;
+        }
+        // Fill is full (100%) when at max (right, newest), 0% when at min (left, oldest)
+        const percent = (slider.value / slider.max) * 100;
+        slider.style.setProperty('--slider-fill', percent + '%');
+      }
 
       function setPngOverlayByIndex(idx) {
         if (imageOverlay) {
@@ -262,29 +347,41 @@
           document.getElementById('current-png-label').textContent = '';
           document.getElementById('prev-png').disabled = true;
           document.getElementById('next-png').disabled = true;
+          slider.disabled = true;
           return;
         }
         const file = pngFiles[idx];
         document.getElementById('current-png-label').textContent = file;
         imageOverlay = L.imageOverlay('/satellite_images/' + file, conusBounds, {opacity: 0.85}).addTo(map);
-        // Enable/disable buttons based on position
         document.getElementById('prev-png').disabled = (idx >= pngFiles.length - 1);
         document.getElementById('next-png').disabled = (idx <= 0);
+        // Sync slider (value 0 = left = oldest, max = right = newest)
+        slider.value = idx;
+        slider.disabled = false;
+        updateSliderFill();
       }
 
       function loadPngListAndInit() {
         fetch('/satellite_images')
           .then(response => response.json())
           .then(files => {
-            pngFiles = files;
+            // Reverse so index 0 = oldest, last = newest
+            pngFiles = files.slice().reverse();
             if (pngFiles.length > 0) {
-              // Show the newest PNG (first in sorted list) on load
-              currentPngIdx = 0;
+              slider.max = pngFiles.length - 1;
+              slider.min = 0;
+              slider.value = pngFiles.length - 1; // rightmost = newest
+              slider.disabled = false;
+              currentPngIdx = pngFiles.length - 1;
               setPngOverlayByIndex(currentPngIdx);
             } else {
+              slider.max = 0;
+              slider.value = 0;
+              slider.disabled = true;
               currentPngIdx = -1;
               setPngOverlayByIndex(-1);
             }
+            updateSliderFill();
           });
       }
 
@@ -296,20 +393,19 @@
         isPlaying = true;
         document.getElementById('play-png').style.display = 'none';
         document.getElementById('stop-png').style.display = '';
-        // Start with the oldest PNG (last in sorted list)
-        currentPngIdx = pngFiles.length - 1;
+        // Start with the oldest PNG (leftmost, index 0)
+        currentPngIdx = 0;
         setPngOverlayByIndex(currentPngIdx);
-        // 1.7 seconds for each frame
         let frameDelay = 1100;
         playInterval = setInterval(function() {
           if (pngFiles.length === 0) return;
-          // Move to next (newer) PNG, loop to oldest if at start
-          if (currentPngIdx > 0) {
-            currentPngIdx--;
+          // Move to next (newer) PNG, stop at newest (idx = max)
+          if (currentPngIdx < pngFiles.length - 1) {
+            currentPngIdx++;
+            setPngOverlayByIndex(currentPngIdx);
           } else {
-            currentPngIdx = pngFiles.length - 1;
+            stopPngLoop();
           }
-          setPngOverlayByIndex(currentPngIdx);
         }, frameDelay);
       }
 
@@ -327,18 +423,28 @@
       // Add button navigation for PNGs
       document.getElementById('prev-png').onclick = function() {
         stopPngLoop();
-        if (currentPngIdx < pngFiles.length - 1) {
-          currentPngIdx++;
-          setPngOverlayByIndex(currentPngIdx);
-        }
-      };
-      document.getElementById('next-png').onclick = function() {
-        stopPngLoop();
+        // Move to older (lower index)
         if (currentPngIdx > 0) {
           currentPngIdx--;
           setPngOverlayByIndex(currentPngIdx);
         }
       };
+      document.getElementById('next-png').onclick = function() {
+        stopPngLoop();
+        // Move to newer (higher index)
+        if (currentPngIdx < pngFiles.length - 1) {
+          currentPngIdx++;
+          setPngOverlayByIndex(currentPngIdx);
+        }
+      };
+
+      // Slider navigation (value 0 = left = oldest, max = right = newest)
+      slider.addEventListener('input', function() {
+        stopPngLoop();
+        currentPngIdx = parseInt(slider.value, 10);
+        setPngOverlayByIndex(currentPngIdx);
+        updateSliderFill();
+      });
 
       // Add arrow key navigation for PNGs
       let lastArrowKeyTime = 0;
@@ -355,13 +461,15 @@
           }
           lastArrowKeyTime = now;
           if (e.key === 'ArrowLeft') {
-            if (currentPngIdx < pngFiles.length - 1) {
-              currentPngIdx++;
+            // Move to older (lower index)
+            if (currentPngIdx > 0) {
+              currentPngIdx--;
               setPngOverlayByIndex(currentPngIdx);
             }
           } else if (e.key === 'ArrowRight') {
-            if (currentPngIdx > 0) {
-              currentPngIdx--;
+            // Move to newer (higher index)
+            if (currentPngIdx < pngFiles.length - 1) {
+              currentPngIdx++;
               setPngOverlayByIndex(currentPngIdx);
             }
           }
