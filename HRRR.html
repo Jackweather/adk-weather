@@ -248,6 +248,11 @@
       color: #b71c1c;
       background: #ffebee;
     }
+    /* Add green style for Other dropdown */
+    .dropdown-header.other {
+      color: #1b5e20;
+      background: #e8f5e9;
+    }
     .dropdown-content {
       display: none;
       padding: 0 14px 6px 14px; /* reduce vertical padding */
@@ -679,6 +684,27 @@
           </label>
         </div>
       </div>
+      <!-- Other dropdown below Diagnostics -->
+      <div class="dropdown" id="dropdown-other">
+        <div class="dropdown-header other">
+          Other
+          <span class="dropdown-arrow">&#9654;</span>
+        </div>
+        <div class="dropdown-content">
+          <label>
+            <input type="checkbox" id="spc-day1-cat-checkbox">
+            SPC Day 1 Outlook (CAT)
+          </label>
+          <label>
+            <input type="checkbox" id="spc-day2-cat-checkbox">
+            SPC Day 2 Outlook (CAT)
+          </label>
+          <label>
+            <input type="checkbox" id="spc-day3-cat-checkbox">
+            SPC Day 3 Outlook (CAT)
+          </label>
+        </div>
+      </div>
     </div>
   </div>
   <!-- Bottom colorbar sidebar -->
@@ -741,6 +767,9 @@
       <div id="colorbar-shear-vector" style="display:none;">
         <img src="/colorbar/SHEAR_VECTOR_colorbar.png" alt="Wind Shear Direction Color Bar">
       </div>
+      <img id="spc-day1-cat-colorbar" src="/colorbars/spc_cat_colorbar.png" alt="SPC Day 1 Outlook CAT Colorbar" style="display:none;max-width:260px;">
+      <img id="spc-day2-cat-colorbar" src="/colorbars/spc_cat_colorbar.png" alt="SPC Day 2 Outlook CAT Colorbar" style="display:none;max-width:260px;">
+      <img id="spc-day3-cat-colorbar" src="/colorbars/spc_cat_colorbar.png" alt="SPC Day 3 Outlook CAT Colorbar" style="display:none;max-width:260px;">
     </div>
   </div>
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
@@ -1186,6 +1215,157 @@
       });
     })();
 
+    // --- SPC Day 1/2/3 Outlook CAT overlay logic ---
+    var spcDay1CatLayer = null;
+    var spcDay2CatLayer = null;
+    var spcDay3CatLayer = null;
+    var spcDay1CatCheckbox = null;
+    var spcDay2CatCheckbox = null;
+    var spcDay3CatCheckbox = null;
+    var spcDay1CatColorbar = null;
+    var spcDay2CatColorbar = null;
+    var spcDay3CatColorbar = null;
+
+    document.addEventListener('DOMContentLoaded', function() {
+      // ...existing code...
+      spcDay1CatCheckbox = document.getElementById('spc-day1-cat-checkbox');
+      spcDay1CatColorbar = document.getElementById('spc-day1-cat-colorbar');
+      if (spcDay1CatCheckbox) {
+        spcDay1CatCheckbox.checked = false;
+        spcDay1CatCheckbox.addEventListener('change', function() {
+          if (spcDay1CatCheckbox.checked) {
+            addSpcCatLayer('day1');
+            if (spcDay1CatColorbar) spcDay1CatColorbar.style.display = "";
+          } else {
+            removeSpcCatLayer('day1');
+            if (spcDay1CatColorbar) spcDay1CatColorbar.style.display = "none";
+          }
+        });
+        if (spcDay1CatColorbar) spcDay1CatColorbar.style.display = "none";
+      }
+      spcDay2CatCheckbox = document.getElementById('spc-day2-cat-checkbox');
+      spcDay2CatColorbar = document.getElementById('spc-day2-cat-colorbar');
+      if (spcDay2CatCheckbox) {
+        spcDay2CatCheckbox.checked = false;
+        spcDay2CatCheckbox.addEventListener('change', function() {
+          if (spcDay2CatCheckbox.checked) {
+            addSpcCatLayer('day2');
+            if (spcDay2CatColorbar) spcDay2CatColorbar.style.display = "";
+          } else {
+            removeSpcCatLayer('day2');
+            if (spcDay2CatColorbar) spcDay2CatColorbar.style.display = "none";
+          }
+        });
+        if (spcDay2CatColorbar) spcDay2CatColorbar.style.display = "none";
+      }
+      spcDay3CatCheckbox = document.getElementById('spc-day3-cat-checkbox');
+      spcDay3CatColorbar = document.getElementById('spc-day3-cat-colorbar');
+      if (spcDay3CatCheckbox) {
+        spcDay3CatCheckbox.checked = false;
+        spcDay3CatCheckbox.addEventListener('change', function() {
+          if (spcDay3CatCheckbox.checked) {
+            addSpcCatLayer('day3');
+            if (spcDay3CatColorbar) spcDay3CatColorbar.style.display = "";
+          } else {
+            removeSpcCatLayer('day3');
+            if (spcDay3CatColorbar) spcDay3CatColorbar.style.display = "none";
+          }
+        });
+        if (spcDay3CatColorbar) spcDay3CatColorbar.style.display = "none";
+      }
+    });
+
+    function getSpcCatColor(cat) {
+      cat = (cat || "").toLowerCase();
+      if (cat.includes("tstm")) return "#55BB55";
+      if (cat.includes("mrgl")) return "#005500";
+      if (cat.includes("slgt")) return "#DDAA00";
+      if (cat.includes("enh"))  return "#FF6600";
+      if (cat.includes("mdt"))  return "#CC0000";
+      if (cat.includes("high")) return "#CC00CC";
+      return "#888";
+    }
+    function getSpcCatFill(cat) {
+      cat = (cat || "").toLowerCase();
+      if (cat.includes("tstm")) return "#C1E9C1";
+      if (cat.includes("mrgl")) return "#66A366";
+      if (cat.includes("slgt")) return "#FFE066";
+      if (cat.includes("enh"))  return "#FFA366";
+      if (cat.includes("mdt"))  return "#E06666";
+      if (cat.includes("high")) return "#EE99EE";
+      return "#ccc";
+    }
+    function styleSpcCatFeature(feature) {
+      var cat = feature && feature.properties && feature.properties.label ? feature.properties.label : "";
+      var color = feature && feature.properties && feature.properties.color ? feature.properties.color : getSpcCatColor(cat);
+      var fillColor = feature && feature.properties && feature.properties.fill ? feature.properties.fill : getSpcCatFill(cat);
+      return {
+        color: color,
+        weight: 2,
+        fillColor: fillColor,
+        fillOpacity: 0.32,
+        opacity: 1
+      };
+    }
+    function addSpcCatLayer(day) {
+      var url;
+      if (day === 'day1') {
+        if (spcDay1CatLayer) {
+          map.addLayer(spcDay1CatLayer);
+          return;
+        }
+        url = 'https://www.spc.noaa.gov/products/outlook/day1otlk_cat.nolyr.geojson';
+      } else if (day === 'day2') {
+        if (spcDay2CatLayer) {
+          map.addLayer(spcDay2CatLayer);
+          return;
+        }
+        url = 'https://www.spc.noaa.gov/products/outlook/day2otlk_cat.nolyr.geojson';
+      } else if (day === 'day3') {
+        if (spcDay3CatLayer) {
+          map.addLayer(spcDay3CatLayer);
+          return;
+        }
+        url = 'https://www.spc.noaa.gov/products/outlook/day3otlk_cat.nolyr.geojson';
+      } else {
+        return;
+      }
+      fetch(url)
+        .then(r => r.json())
+        .then(function(geojson) {
+          var deltaLat = 0.85;
+          function shiftCoords(coords) {
+            if (typeof coords[0] === "number") {
+              return [coords[0], coords[1] + deltaLat];
+            }
+            return coords.map(shiftCoords);
+          }
+          geojson.features.forEach(function(feature) {
+            if (feature.geometry && feature.geometry.coordinates) {
+              feature.geometry.coordinates = shiftCoords(feature.geometry.coordinates);
+            }
+          });
+          var layer = L.geoJSON(geojson, {
+            style: styleSpcCatFeature
+          });
+          layer.addTo(map);
+          if (day === 'day1') spcDay1CatLayer = layer;
+          if (day === 'day2') spcDay2CatLayer = layer;
+          if (day === 'day3') spcDay3CatLayer = layer;
+        });
+    }
+    function removeSpcCatLayer(day) {
+      if (day === 'day1' && spcDay1CatLayer) {
+        map.removeLayer(spcDay1CatLayer);
+      }
+      if (day === 'day2' && spcDay2CatLayer) {
+        map.removeLayer(spcDay2CatLayer);
+      }
+      if (day === 'day3' && spcDay3CatLayer) {
+        map.removeLayer(spcDay3CatLayer);
+      }
+    }
+
     // --- Colorbar size slider logic ---
     (function() {
       var slider = document.getElementById('colorbar-size-slider');
@@ -1200,7 +1380,6 @@
       slider.addEventListener('input', function() {
         setSize(this.value);
       });
-      // Set initial size
       setSize(slider.value);
     })();
 
