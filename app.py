@@ -936,6 +936,13 @@ def list_satellite_images():
 def serve_satellite_image(filename):
     return send_from_directory(SATELLITE_DIR, filename)
 
+@app.route("/afd_summary_ALY.txt")
+def serve_afd_summary_aly():
+    afd_path = os.path.join(BASE_DIR, "afd_summary_ALY.txt")
+    if not os.path.isfile(afd_path):
+        return "Summary not found.", 404
+    return send_file(afd_path, mimetype="text/plain")
+
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
     app.run(host="0.0.0.0", port=5000)
