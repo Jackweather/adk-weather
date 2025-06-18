@@ -46,6 +46,8 @@ PNG_DIR_NBM_TORNADO = os.path.join(BASE_DIR, "NBM", "NBM", "static", "tornado")
 # Add NBM Thunderstorm Probability PNG directory
 PNG_DIR_NBM_TSTM = os.path.join(BASE_DIR, "NBM", "NBM", "static", "tstm")
 SATELLITE_DIR = os.path.join(BASE_DIR, "weatherdata", "satellite")
+IR_DIR = os.path.join(BASE_DIR, "weatherdata", "Ir")
+RADAR_DIR = os.path.join(BASE_DIR, "weatherdata", "radar")
 
 @app.route("/")
 def home():
@@ -728,8 +730,51 @@ def run_task3():
             print(f"Error running satellite.py:\n{error_trace}")
             print("STDOUT:", e.stdout)
             print("STDERR:", e.stderr)
+
+    def run_ir_script():
+        print("Flask is running as user:", getpass.getuser())
+        try:
+            result = subprocess.run(
+                ["python", "/opt/render/project/src/weatherdata/ir.py"],
+                check=True,
+                cwd="/opt/render/project/src/weatherdata",
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True
+            )
+            print("ir.py ran successfully!")
+            print("STDOUT:", result.stdout)
+            print("STDERR:", result.stderr)
+        except subprocess.CalledProcessError as e:
+            error_trace = traceback.format_exc()
+            print(f"Error running ir.py:\n{error_trace}")
+            print("STDOUT:", e.stdout)
+            print("STDERR:", e.stderr)
+
+    def run_radar_script():
+        print("Flask is running as user:", getpass.getuser())
+        try:
+            result = subprocess.run(
+                ["python", "/opt/render/project/src/weatherdata/radar.py"],
+                check=True,
+                cwd="/opt/render/project/src/weatherdata",
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True
+            )
+            print("radar.py ran successfully!")
+            print("STDOUT:", result.stdout)
+            print("STDERR:", result.stderr)
+        except subprocess.CalledProcessError as e:
+            error_trace = traceback.format_exc()
+            print(f"Error running radar.py:\n{error_trace}")
+            print("STDOUT:", e.stdout)
+            print("STDERR:", e.stderr)
+
     threading.Thread(target=run_satellite_script).start()
-    return "weatherdata/satellite.py started in background!", 200
+    threading.Thread(target=run_ir_script).start()
+    threading.Thread(target=run_radar_script).start()
+    return "weatherdata/satellite.py, ir.py, and radar.py started in background!", 200
 
 @app.route("/run-task4")
 def run_task4():
@@ -921,13 +966,25 @@ def serve_nbm_tstm_png(filename):
         return send_from_directory(os.path.join(BASE_DIR, "colorbars"), "Thunderstormcolorbar.png")
     return api_serve_image(PNG_DIR_NBM_TSTM, filename)
 
+import re
+
+def extract_png_time(filename):
+    # Try to extract a numeric timestamp or sequence from the filename
+    # Example: sat_20240612_1200.png or 20240612_1200.png or sat_001.png
+    m = re.search(r'(\d{8}_\d{4})', filename)  # e.g. 20240612_1200
+    if m:
+        # Convert to integer for sorting (YYYYMMDDHHMM)
+        return int(m.group(1).replace('_', ''))
+    m2 = re.search(r'(\d+)', filename)
+    if m2:
+        return int(m2.group(1))
+    return 0
+
 @app.route("/satellite_images")
 def list_satellite_images():
     try:
-        files = sorted(
-            [f for f in os.listdir(SATELLITE_DIR) if f.lower().endswith(".png")],
-            reverse=True
-        )
+        files = [f for f in os.listdir(SATELLITE_DIR) if f.lower().endswith(".png")]
+        files.sort(key=extract_png_time)
         return jsonify(files)
     except Exception as e:
         return jsonify([])
@@ -935,6 +992,33 @@ def list_satellite_images():
 @app.route("/satellite_images/<path:filename>")
 def serve_satellite_image(filename):
     return send_from_directory(SATELLITE_DIR, filename)
+
+@app.route("/ir_images")
+def list_ir_images():
+    try:
+        files = [f for f in os.listdir(IR_DIR) if f.lower().endswith(".png")]
+        files.sort(key=extract_png_time)
+        return jsonify(files)
+    except Exception as e:
+        return jsonify([])
+
+@app.route("/ir_images/<path:filename>")
+def serve_ir_image(filename):
+    return send_from_directory(IR_DIR, filename)
+
+# --- Add radar endpoints below ---
+@app.route("/radar_images")
+def list_radar_images():
+    try:
+        files = [f for f in os.listdir(RADAR_DIR) if f.lower().endswith(".png")]
+        files.sort(key=extract_png_time)
+        return jsonify(files)
+    except Exception as e:
+        return jsonify([])
+
+@app.route("/radar_images/<path:filename>")
+def serve_radar_image(filename):
+    return send_from_directory(RADAR_DIR, filename)
 
 @app.route("/afd_summary_ALY.txt")
 def serve_afd_summary_aly():
