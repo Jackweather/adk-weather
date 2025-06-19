@@ -41,27 +41,30 @@
     #top-navbar .nav-item:hover {
       color: #ffb400;
     }
-    /* Centered dropdown in navbar */
-    #navbar-center-dropdown-container {
-      flex: 1 1 auto;
+    /* --- Model selector placement --- */
+    #model-selector-container {
+      width: 100vw;
       display: flex;
       justify-content: center;
       align-items: center;
-      pointer-events: none; /* allow dropdown to be clickable, but not container */
-    }
-    #navbar-center-dropdown {
-      position: relative;
-      pointer-events: auto;
-      margin: 0 20px;
-    }
-    #navbar-center-dropdown-btn {
       background: #fff;
-      color: #263159;
+      padding: 10px 0 0 0;
+      z-index: 2100;
+      position: relative;
+    }
+    #model-selector {
+      position: relative;
+      margin: 0 auto;
+      z-index: 2200;
+    }
+    #model-selector-btn {
+      background: #263159;
+      color: #fff;
       border: none;
-      border-radius: 6px;
-      padding: 7px 24px 7px 14px;
-      font-size: 1.08em;
-      font-weight: 500;
+      border-radius: 8px;
+      padding: 9px 28px 9px 16px;
+      font-size: 1.13em;
+      font-weight: 600;
       cursor: pointer;
       box-shadow: 0 2px 8px rgba(0,0,0,0.06);
       transition: background 0.15s, color 0.15s;
@@ -69,11 +72,11 @@
       align-items: center;
       gap: 10px;
     }
-    #navbar-center-dropdown-btn:hover {
+    #model-selector-btn:hover {
       background: #ffb400;
       color: #fff;
     }
-    #navbar-center-dropdown-list {
+    #model-selector-list {
       display: none;
       position: absolute;
       top: 110%;
@@ -86,10 +89,10 @@
       padding: 6px 0;
       font-size: 1.05em;
     }
-    #navbar-center-dropdown.open #navbar-center-dropdown-list {
+    #model-selector.open #model-selector-list {
       display: block;
     }
-    #navbar-center-dropdown-list a {
+    #model-selector-list a {
       display: block;
       color: #263159;
       text-decoration: none;
@@ -97,7 +100,7 @@
       transition: background 0.13s, color 0.13s;
       border-radius: 4px;
     }
-    #navbar-center-dropdown-list a:hover {
+    #model-selector-list a:hover {
       background: #f3f4fa;
       color: #ffb400;
     }
@@ -521,6 +524,46 @@
       padding-top: 54px;
       box-sizing: border-box;
     }
+
+    /* --- Responsive main content order for mobile --- */
+    @media (max-width: 600px) {
+      #main-content {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 0 !important;
+        padding: 0 !important;
+        margin-top: 54px !important;
+        min-height: 0 !important;
+      }
+      #right-panel {
+        order: 1 !important;
+      }
+      #map-container {
+        order: 2 !important;
+      }
+      #left-panel {
+        order: 3 !important;
+      }
+      #model-selector-container {
+        order: 0 !important;
+        padding-bottom: 0 !important;
+      }
+    }
+    /* On desktop, keep normal order */
+    @media (min-width: 601px) {
+      #model-selector-container {
+        order: 0;
+      }
+      #left-panel {
+        order: 1;
+      }
+      #map-container {
+        order: 2;
+      }
+      #right-panel {
+        order: 3;
+      }
+    }
   </style>
 </head>
 <body>
@@ -529,42 +572,24 @@
     <a class="nav-item" href="/home.html">Home</a>
     <a class="nav-item" href="/more.html">More</a>
     <a class="nav-item" href="/settings.html">Settings</a>
-    <a class="nav-item" href="/usa_leaflet.html">Weather Model Page</a>
-    <!-- Centered dropdown -->
-    <div id="navbar-center-dropdown-container">
-      <div id="navbar-center-dropdown">
-        <button id="navbar-center-dropdown-btn" aria-haspopup="true" aria-expanded="false">
-          Select Model
-          <span style="margin-left:6px;">&#9662;</span>
-        </button>
-        <div id="navbar-center-dropdown-list" role="menu">
-          <a href="HRRR.html" role="menuitem">HRRR</a>
-          <a href="NBM.html" role="menuitem">NBM</a>
-        </div>
+    <a class="nav-item" href="/usa_leaflet.html">Weather Model </a>
+    <!-- Remove the old center dropdown from navbar -->
+  </div>
+  <!-- Model selector moved here -->
+  <div id="model-selector-container">
+    <div id="model-selector">
+      <button id="model-selector-btn" aria-haspopup="true" aria-expanded="false">
+        Select Model
+        <span style="margin-left:6px;">&#9662;</span>
+      </button>
+      <div id="model-selector-list" role="menu">
+        <a href="HRRR.html" role="menuitem">HRRR</a>
+        <a href="NBM.html" role="menuitem">NBM</a>
       </div>
     </div>
   </div>
   <div id="main-content">
-    <!-- Left panel (modern card) -->
-    <div id="left-panel">
-      <div class="utc-box" id="left-current-time-box"></div>
-      <div class="slider-box" id="left-slider-box" style="display:none;">
-        <input type="range" id="hour-slider" min="0" max="0" value="0" step="1">
-        <span id="hour-label"></span>
-        <div id="forecast-time-est"></div>
-        <div style="font-size:0.97em;color:#888;margin-top:10px;">
-          New runs 3:50am, 9:50am, 3:50pm, 9:50pm EST
-        </div>
-        <button id="slider-play-btn">
-          ▶ Play
-        </button>
-      </div>
-    </div>
-    <!-- Map card -->
-    <div id="map-container">
-      <div id="map"></div>
-    </div>
-    <!-- Right panel (modern card) -->
+    <!-- Right panel (Surface/Severe/Other) first on mobile -->
     <div id="right-panel">
       <div class="dropdown" id="dropdown-surface">
         <div class="dropdown-header">
@@ -669,6 +694,25 @@
             SPC Day 3 Outlook (CAT)
           </label>
         </div>
+      </div>
+    </div>
+    <!-- Map card -->
+    <div id="map-container">
+      <div id="map"></div>
+    </div>
+    <!-- Left panel (slider/current time) last on mobile -->
+    <div id="left-panel">
+      <div class="utc-box" id="left-current-time-box"></div>
+      <div class="slider-box" id="left-slider-box" style="display:none;">
+        <input type="range" id="hour-slider" min="0" max="0" value="0" step="1">
+        <span id="hour-label"></span>
+        <div id="forecast-time-est"></div>
+        <div style="font-size:0.97em;color:#888;margin-top:10px;">
+          New runs 3:50am, 9:50am, 3:50pm, 9:50pm EST
+        </div>
+        <button id="slider-play-btn">
+          ▶ Play
+        </button>
       </div>
     </div>
   </div>
@@ -1399,11 +1443,11 @@
       if (!playInternalUpdate && isPlaying) stopSlider();
     });
 
-    // --- Navbar center dropdown logic with selected model display ---
+    // --- Model selector dropdown logic (replaces navbar dropdown) ---
     (function() {
-      var dropdown = document.getElementById('navbar-center-dropdown');
-      var btn = document.getElementById('navbar-center-dropdown-btn');
-      var list = document.getElementById('navbar-center-dropdown-list');
+      var dropdown = document.getElementById('model-selector');
+      var btn = document.getElementById('model-selector-btn');
+      var list = document.getElementById('model-selector-list');
       // Set initial button text to current model
       function setModelBtnText(model) {
         btn.childNodes[0].nodeValue = model + " ";
@@ -1416,7 +1460,7 @@
       btn.addEventListener('click', function(e) {
         e.stopPropagation();
         var open = dropdown.classList.contains('open');
-        document.querySelectorAll('#navbar-center-dropdown.open').forEach(function(d) {
+        document.querySelectorAll('#model-selector.open').forEach(function(d) {
           d.classList.remove('open');
         });
         if (!open) dropdown.classList.add('open');
@@ -1433,251 +1477,6 @@
           // Let the navigation proceed
         });
       });
-    })();
-
-    // Dropdown open/close logic for Surface DATA
-    document.addEventListener('DOMContentLoaded', function() {
-      var surfaceDropdown = document.getElementById('dropdown-surface');
-      var surfaceHeader = surfaceDropdown.querySelector('.dropdown-header');
-      var surfaceContent = surfaceDropdown.querySelector('.dropdown-content');
-      var arrow = surfaceHeader.querySelector('.dropdown-arrow');
-      // Start closed
-      surfaceDropdown.classList.remove('open');
-      arrow.innerHTML = "&#9654;";
-      surfaceContent.style.display = "none";
-      surfaceHeader.addEventListener('click', function() {
-        var isOpen = surfaceDropdown.classList.toggle('open');
-        if (isOpen) {
-          surfaceContent.style.display = "block";
-          arrow.innerHTML = "&#9660;";
-        } else {
-          surfaceContent.style.display = "none";
-          arrow.innerHTML = "&#9654;";
-        }
-      });
-
-      // --- Dropdown open/close logic for Severe Weather ---
-      var severeDropdown = document.getElementById('dropdown-severe');
-      var severeHeader = severeDropdown.querySelector('.dropdown-header');
-      var severeContent = severeDropdown.querySelector('.dropdown-content');
-      var severeArrow = severeHeader.querySelector('.dropdown-arrow');
-      severeDropdown.classList.remove('open');
-      severeArrow.innerHTML = "&#9654;";
-      severeContent.style.display = "none";
-      severeHeader.addEventListener('click', function() {
-        var isOpen = severeDropdown.classList.toggle('open');
-        if (isOpen) {
-          severeContent.style.display = "block";
-          severeArrow.innerHTML = "&#9660;";
-        } else {
-          severeContent.style.display = "none";
-          severeArrow.innerHTML = "&#9654;";
-        }
-      });
-
-      // --- Dropdown open/close logic for Other ---
-      var otherDropdown = document.getElementById('dropdown-other');
-      var otherHeader = otherDropdown.querySelector('.dropdown-header');
-      var otherContent = otherDropdown.querySelector('.dropdown-content');
-      var otherArrow = otherHeader.querySelector('.dropdown-arrow');
-      otherDropdown.classList.remove('open');
-      otherArrow.innerHTML = "&#9654;";
-      otherContent.style.display = "none";
-      otherHeader.addEventListener('click', function() {
-        var isOpen = otherDropdown.classList.toggle('open');
-        if (isOpen) {
-          otherContent.style.display = "block";
-          otherArrow.innerHTML = "&#9660;";
-        } else {
-          otherContent.style.display = "none";
-          otherArrow.innerHTML = "&#9654;";
-        }
-      });
-
-      // --- SPC Day 1 CAT checkbox logic ---
-      spcDay1CatCheckbox = document.getElementById('spc-day1-cat-checkbox');
-      spcDay1CatColorbar = document.getElementById('spc-day1-cat-colorbar');
-      if (spcDay1CatCheckbox) {
-        spcDay1CatCheckbox.checked = false;
-        spcDay1CatCheckbox.addEventListener('change', function() {
-          if (spcDay1CatCheckbox.checked) {
-            addSpcCatLayer('day1');
-            if (spcDay1CatColorbar) spcDay1CatColorbar.style.display = "";
-          } else {
-            removeSpcCatLayer('day1');
-            if (spcDay1CatColorbar) spcDay1CatColorbar.style.display = "none";
-          }
-        });
-        if (spcDay1CatColorbar) spcDay1CatColorbar.style.display = "none";
-      }
-      spcDay2CatCheckbox = document.getElementById('spc-day2-cat-checkbox');
-      spcDay2CatColorbar = document.getElementById('spc-day2-cat-colorbar');
-      if (spcDay2CatCheckbox) {
-        spcDay2CatCheckbox.checked = false;
-        spcDay2CatCheckbox.addEventListener('change', function() {
-          if (spcDay2CatCheckbox.checked) {
-            addSpcCatLayer('day2');
-            if (spcDay2CatColorbar) spcDay2CatColorbar.style.display = "";
-          } else {
-            removeSpcCatLayer('day2');
-            if (spcDay2CatColorbar) spcDay2CatColorbar.style.display = "none";
-          }
-        });
-        if (spcDay2CatColorbar) spcDay2CatColorbar.style.display = "none";
-      }
-      spcDay3CatCheckbox = document.getElementById('spc-day3-cat-checkbox');
-      spcDay3CatColorbar = document.getElementById('spc-day3-cat-colorbar');
-      if (spcDay3CatCheckbox) {
-        spcDay3CatCheckbox.checked = false;
-        spcDay3CatCheckbox.addEventListener('change', function() {
-          if (spcDay3CatCheckbox.checked) {
-            addSpcCatLayer('day3');
-            if (spcDay3CatColorbar) spcDay3CatColorbar.style.display = "";
-          } else {
-            removeSpcCatLayer('day3');
-            if (spcDay3CatColorbar) spcDay3CatColorbar.style.display = "none";
-          }
-        });
-        if (spcDay3CatColorbar) spcDay3CatColorbar.style.display = "none";
-      }
-    });
-
-    var spcDay1CatLayer = null;
-    var spcDay2CatLayer = null;
-    var spcDay3CatLayer = null;
-    var spcDay1CatCheckbox = null;
-    var spcDay2CatCheckbox = null;
-    var spcDay3CatCheckbox = null;
-    var spcDay1CatColorbar = null;
-    var spcDay2CatColorbar = null;
-    var spcDay3CatColorbar = null;
-
-    function getSpcCatColor(cat) {
-      cat = (cat || "").toLowerCase();
-      if (cat.includes("tstm")) return "#55BB55"; // General Thunderstorms Risk outline
-      if (cat.includes("mrgl")) return "#005500"; // Marginal Risk outline
-      if (cat.includes("slgt")) return "#DDAA00"; // Slight Risk outline
-      if (cat.includes("enh"))  return "#FF6600"; // Enhanced Risk outline
-      if (cat.includes("mdt"))  return "#CC0000"; // Moderate Risk outline
-      if (cat.includes("high")) return "#CC00CC"; // High Risk outline
-      return "#888";
-    }
-    function getSpcCatFill(cat) {
-      cat = (cat || "").toLowerCase();
-      if (cat.includes("tstm")) return "#C1E9C1"; // General Thunderstorms Risk fill
-      if (cat.includes("mrgl")) return "#66A366"; // Marginal Risk fill
-      if (cat.includes("slgt")) return "#FFE066"; // Slight Risk fill
-      if (cat.includes("enh"))  return "#FFA366"; // Enhanced Risk fill
-      if (cat.includes("mdt"))  return "#E06666"; // Moderate Risk fill
-      if (cat.includes("high")) return "#EE99EE"; // High Risk fill
-      return "#ccc";
-    }
-
-    function styleSpcCatFeature(feature) {
-      // Try to use feature.properties.color and feature.properties.fill if present
-      var cat = feature && feature.properties && feature.properties.label ? feature.properties.label : "";
-      var color = feature && feature.properties && feature.properties.color ? feature.properties.color : getSpcCatColor(cat);
-      var fillColor = feature && feature.properties && feature.properties.fill ? feature.properties.fill : getSpcCatFill(cat);
-      return {
-        color: color,         // outline color
-        weight: 2,
-        fillColor: fillColor, // fill color
-        fillOpacity: 0.32,
-        opacity: 1
-      };
-    }
-
-    function addSpcCatLayer(day) {
-      var url;
-      if (day === 'day1') {
-        if (spcDay1CatLayer) {
-          map.addLayer(spcDay1CatLayer);
-          return;
-        }
-        url = 'https://www.spc.noaa.gov/products/outlook/day1otlk_cat.nolyr.geojson';
-      } else if (day === 'day2') {
-        if (spcDay2CatLayer) {
-          map.addLayer(spcDay2CatLayer);
-          return;
-        }
-        url = 'https://www.spc.noaa.gov/products/outlook/day2otlk_cat.nolyr.geojson';
-      } else if (day === 'day3') {
-        if (spcDay3CatLayer) {
-          map.addLayer(spcDay3CatLayer);
-          return;
-        }
-        url = 'https://www.spc.noaa.gov/products/outlook/day3otlk_cat.nolyr.geojson';
-      } else {
-        return;
-      }
-      fetch(url)
-        .then(r => r.json())
-        .then(function(geojson) {
-          var deltaLat = 0.85;
-          function shiftCoords(coords) {
-            if (typeof coords[0] === "number") {
-              return [coords[0], coords[1] + deltaLat];
-            }
-            return coords.map(shiftCoords);
-          }
-          geojson.features.forEach(function(feature) {
-            if (feature.geometry && feature.geometry.coordinates) {
-              feature.geometry.coordinates = shiftCoords(feature.geometry.coordinates);
-            }
-          });
-          var layer = L.geoJSON(geojson, {
-            style: styleSpcCatFeature
-          });
-          layer.addTo(map);
-          if (day === 'day1') spcDay1CatLayer = layer;
-          if (day === 'day2') spcDay2CatLayer = layer;
-          if (day === 'day3') spcDay3CatLayer = layer;
-        });
-    }
-
-    function removeSpcCatLayer(day) {
-      if (day === 'day1' && spcDay1CatLayer) {
-        map.removeLayer(spcDay1CatLayer);
-      }
-      if (day === 'day2' && spcDay2CatLayer) {
-        map.removeLayer(spcDay2CatLayer);
-      }
-      if (day === 'day3' && spcDay3CatLayer) {
-        map.removeLayer(spcDay3CatLayer);
-      }
-    }
-
-    // --- Colorbar size slider logic ---
-    (function() {
-      var slider = document.getElementById('colorbar-size-slider');
-      var valueLabel = document.getElementById('colorbar-size-value');
-      var colorbarImgTemp = document.getElementById('nbm-temp2m-colorbar');
-      var colorbarImgPrecip = document.getElementById('nbm_totprecip_colorbar');
-      var colorbarImgGust = document.getElementById('nbm-gust-colorbar');
-      var colorbarImgMaxref = document.getElementById('nbm-maxref-colorbar');
-      var colorbarImgHail = document.getElementById('nbm-hail-colorbar');
-      var colorbarImgTornado = document.getElementById('nbm-tornado-colorbar');
-      var colorbarImgTstm = document.getElementById('nbm-tstm-colorbar');
-      var colorbarImgSpcCat1 = document.getElementById('spc-day1-cat-colorbar');
-      var colorbarImgSpcCat2 = document.getElementById('spc-day2-cat-colorbar');
-      var colorbarImgSpcCat3 = document.getElementById('spc-day3-cat-colorbar');
-      function setSize(val) {
-        valueLabel.textContent = val;
-        if (colorbarImgTemp) colorbarImgTemp.style.maxWidth = val + "px";
-        if (colorbarImgPrecip) colorbarImgPrecip.style.maxWidth = val + "px";
-        if (colorbarImgGust) colorbarImgGust.style.maxWidth = val + "px";
-        if (colorbarImgMaxref) colorbarImgMaxref.style.maxWidth = val + "px";
-        if (colorbarImgHail) colorbarImgHail.style.maxWidth = val + "px";
-        if (colorbarImgTornado) colorbarImgTornado.style.maxWidth = val + "px";
-        if (colorbarImgTstm) colorbarImgTstm.style.maxWidth = val + "px";
-        if (colorbarImgSpcCat1) colorbarImgSpcCat1.style.maxWidth = val + "px";
-        if (colorbarImgSpcCat2) colorbarImgSpcCat2.style.maxWidth = val + "px";
-        if (colorbarImgSpcCat3) colorbarImgSpcCat3.style.maxWidth = val + "px";
-      }
-      slider.addEventListener('input', function() {
-        setSize(this.value);
-      });
-      setSize(slider.value);
     })();
   </script>
 </body>
