@@ -421,7 +421,15 @@
           .then(files => {
             // Sort files by filename date/time for all satellite types
             pngFiles = sortPngFilesByName(files);
-            // Remove the loop that preloads all images
+            // --- Preload all images into browser cache ---
+            let overlayPath = '/satellite_images/';
+            if (satelliteType === "ir") overlayPath = '/ir_images/';
+            else if (satelliteType === "radar") overlayPath = '/radar_images/';
+            pngFiles.forEach(function(file) {
+              const img = new window.Image();
+              img.src = overlayPath + file;
+            });
+            // --- End preload ---
             if (pngFiles.length > 0) {
               slider.max = pngFiles.length - 1;
               slider.min = 0;
@@ -580,4 +588,4 @@
   </div>
 </body>
 </html>
-      
+
