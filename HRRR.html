@@ -41,27 +41,29 @@
     #top-navbar .nav-item:hover {
       color: #ffb400;
     }
-    /* Centered dropdown in navbar */
-    #navbar-center-dropdown-container {
-      flex: 1 1 auto;
+    /* Model selector placement (copied from NBM.html) */
+    #model-selector-container {
+      width: 100vw;
       display: flex;
       justify-content: center;
       align-items: center;
-      pointer-events: none; /* allow dropdown to be clickable, but not container */
+      padding: 10px 0 0 0;
+      z-index: 10;
+      margin-bottom: 6px;
     }
-    #navbar-center-dropdown {
+    #model-selector {
       position: relative;
-      pointer-events: auto;
-      margin: 0 20px;
+      margin: 0 auto;
+      z-index: 20;
     }
-    #navbar-center-dropdown-btn {
-      background: #fff;
-      color: #263159;
+    #model-selector-btn {
+      background: #263159;
+      color: #fff;
       border: none;
-      border-radius: 6px;
-      padding: 7px 24px 7px 14px;
-      font-size: 1.08em;
-      font-weight: 500;
+      border-radius: 8px;
+      padding: 9px 28px 9px 16px;
+      font-size: 1.13em;
+      font-weight: 600;
       cursor: pointer;
       box-shadow: 0 2px 8px rgba(0,0,0,0.06);
       transition: background 0.15s, color 0.15s;
@@ -69,11 +71,11 @@
       align-items: center;
       gap: 10px;
     }
-    #navbar-center-dropdown-btn:hover {
+    #model-selector-btn:hover {
       background: #ffb400;
       color: #fff;
     }
-    #navbar-center-dropdown-list {
+    #model-selector-list {
       display: none;
       position: absolute;
       top: 110%;
@@ -86,10 +88,10 @@
       padding: 6px 0;
       font-size: 1.05em;
     }
-    #navbar-center-dropdown.open #navbar-center-dropdown-list {
+    #model-selector.open #model-selector-list {
       display: block;
     }
-    #navbar-center-dropdown-list a {
+    #model-selector-list a {
       display: block;
       color: #263159;
       text-decoration: none;
@@ -97,7 +99,7 @@
       transition: background 0.13s, color 0.13s;
       border-radius: 4px;
     }
-    #navbar-center-dropdown-list a:hover {
+    #model-selector-list a:hover {
       background: #f3f4fa;
       color: #ffb400;
     }
@@ -108,20 +110,20 @@
       justify-content: center;
       align-items: flex-start;
       width: 100vw;
-      height: 100vh;
-      margin-top: 54px; /* height of navbar */
+      min-height: calc(100vh - 54px);
+      margin-top: 54px;
       box-sizing: border-box;
+      gap: 32px;
+      padding: 32px 0 0 0;
     }
     /* Left panel for UTC/time and slider - cleaner look */
     #left-panel {
-      width: 200px;
+      width: 220px;
       min-width: 120px;
       background: #fff;
-      border-radius: 14px;
-      box-shadow: 0 2px 12px rgba(60,72,88,0.07);
-      margin-right: 28px;
-      margin-top: 32px;
-      padding: 22px 0 22px 0;
+      border-radius: 16px;
+      box-shadow: 0 2px 16px rgba(60,72,88,0.10);
+      padding: 24px 18px 24px 18px;
       display: flex;
       flex-direction: column;
       align-items: stretch;
@@ -129,42 +131,41 @@
       height: fit-content;
       border: 1px solid #e6e8ef;
       transition: box-shadow 0.2s;
+      gap: 18px;
     }
     #left-panel .utc-box {
-      background: #fff;
+      background: #f8fafc;
       border-radius: 10px;
       box-shadow: none;
       border: none;
-      padding: 14px 14px 10px 14px;
+      padding: 16px 10px 12px 10px;
       font-family: monospace;
-      font-size: 1.04em;
+      font-size: 1.08em;
       color: #263159;
-      min-width: 120px;
       text-align: center;
-      margin-bottom: 18px;
+      margin-bottom: 0;
       pointer-events: none;
       user-select: none;
       letter-spacing: 0.01em;
-      transition: border 0.2s;
+      border: 1px solid #e6e8ef;
     }
     #left-panel .slider-box {
       background: #f8fafc;
       border-radius: 10px;
       box-shadow: none;
       border: none;
-      padding: 14px 10px 10px 10px;
+      padding: 16px 10px 12px 10px;
       text-align: center;
-      min-width: 120px;
       display: flex;
       flex-direction: column;
       align-items: center;
-      margin-bottom: 0;
-      transition: border 0.2s;
+      border: 1px solid #e6e8ef;
+      gap: 8px;
     }
     #left-panel #hour-slider {
-      width: 110px;
-      margin-bottom: 8px;
+      width: 120px;
       accent-color: #263159;
+      margin-bottom: 6px;
       height: 2px;
       border-radius: 2px;
       background: #e0e3ef;
@@ -178,13 +179,29 @@
       letter-spacing: 0.01em;
     }
     #left-panel #forecast-time-est {
-      margin-top: 4px;
+      margin-top: 2px;
       font-family: monospace;
       color: #444;
       font-size: 0.98em;
       background: none;
       border: none;
       padding: 0;
+    }
+    #slider-play-btn {
+      margin: 10px auto 0 auto;
+      display: block;
+      padding: 7px 22px;
+      font-size: 1.08em;
+      border-radius: 8px;
+      border: none;
+      background: #263159;
+      color: #fff;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    #slider-play-btn:hover {
+      background: #ffb400;
+      color: #fff;
     }
     /* Center map and right panel */
     #map-container {
@@ -194,47 +211,48 @@
       align-items: center;
       min-width: 0;
       min-height: 0;
-      height: calc(100vh - 54px);
+      height: 100%;
     }
     #map {
-      height: 80vh;
-      width: 70vw;
-      min-width: 400px;
-      min-height: 400px;
-      max-width: 1200px;
-      max-height: 900px;
+      height: 78vh;
+      width: 64vw;
+      min-width: 340px;
+      min-height: 340px;
+      max-width: 1100px;
+      max-height: 800px;
       background: #fff;
-      border-radius: 12px;
-      box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+      border-radius: 18px;
+      box-shadow: 0 4px 32px rgba(0,0,0,0.10);
       margin: 0 auto;
+      border: 1px solid #e6e8ef;
     }
     /* Right panel */
     #right-panel {
       width: 270px;
-      background: rgba(255,255,255,0.98);
-      border-radius: 12px 0 0 12px;
-      box-shadow: -2px 2px 16px rgba(0,0,0,0.08);
-      margin-left: 24px;
-      margin-top: 24px;
-      padding: 18px 0 18px 0;
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 2px 16px rgba(60,72,88,0.10);
+      padding: 22px 0 22px 0;
       display: flex;
       flex-direction: column;
       align-items: stretch;
       min-height: 320px;
       z-index: 1200;
+      border: 1px solid #e6e8ef;
+      gap: 12px;
     }
     /* Dropdown style */
     .dropdown {
-      margin: 0 18px 8px 18px; /* reduce bottom margin */
-      border-radius: 8px;
+      margin: 0 18px 10px 18px;
+      border-radius: 10px;
       background: #f5f7fa;
-      box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+      box-shadow: 0 1px 6px rgba(0,0,0,0.06);
       overflow: hidden;
       border: 1px solid #e0e0e0;
     }
     .dropdown-header {
-      padding: 8px 14px; /* reduce vertical padding */
-      font-size: 1.05em; /* slightly smaller font */
+      padding: 10px 16px;
+      font-size: 1.08em;
       font-weight: bold;
       color: #263159;
       background: #e8eaf6;
@@ -243,6 +261,7 @@
       align-items: center;
       justify-content: space-between;
       user-select: none;
+      border-bottom: 1px solid #e0e0e0;
     }
     .dropdown-header.severe {
       color: #b71c1c;
@@ -255,7 +274,7 @@
     }
     .dropdown-content {
       display: none;
-      padding: 0 14px 6px 14px; /* reduce vertical padding */
+      padding: 0 16px 10px 16px;
       animation: fadeIn 0.2s;
     }
     .dropdown.open .dropdown-content {
@@ -263,16 +282,19 @@
     }
     .dropdown-content label {
       display: block;
-      margin: 6px 0 0 0; /* reduce margin between labels */
-      font-size: 0.98em; /* slightly smaller font */
+      margin: 8px 0 0 0;
+      font-size: 1em;
       color: #333;
       cursor: pointer;
     }
-    /* Hide old fixed UTC/time and slider containers */
-    #current-time-box, #custom-slider-container, #slider-container {
-      display: none !important;
+    /* Opacity slider containers for HRRR overlays */
+    [id^="opacity-"] {
+      width: 100px;
+      accent-color: #263159;
+      vertical-align: middle;
+      display: none;
     }
-    /* Bottom colorbar sidebar */
+    /* Bottom colorbar bar (copied from NBM.html) */
     #bottom-colorbar-bar {
       position: fixed;
       left: 0;
@@ -288,7 +310,7 @@
       align-items: center;
       padding: 0;
       min-height: 60px;
-      height: 80px; /* Default height, can be changed by user */
+      height: 80px;
       transition: height 0.15s;
       box-sizing: border-box;
     }
@@ -314,7 +336,7 @@
       align-items: center;
       margin: 0 0 2px 0;
       padding: 0;
-      font-size: 0.98em;
+      font-size: 1em;
       color: #444;
       user-select: none;
       gap: 10px;
@@ -337,21 +359,12 @@
       box-shadow: none;
       padding-bottom: 8px;
     }
-    #colorbars-container > div {
-      display: flex;
-      align-items: flex-end;
-      justify-content: center;
-      background: none;
-      box-shadow: none;
-      margin: 0;
-      padding: 0;
-    }
     #colorbars-container img {
       max-width: 260px;
       width: 100%;
       height: auto;
       background: none;
-      border-radius: 6px;
+      border-radius: 8px;
       box-shadow: 0 1px 8px rgba(0,0,0,0.04);
       transition: max-width 0.15s;
     }
@@ -565,6 +578,45 @@
     input[type="checkbox"], button, label {
       touch-action: manipulation;
     }
+
+    /* Responsive main content order for mobile: left, map, right */
+    @media (max-width: 600px) {
+      #main-content {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 0 !important;
+        padding: 0 !important;
+        margin-top: 54px !important;
+        min-height: 0 !important;
+      }
+      #left-panel {
+        order: 1 !important;
+      }
+      #map-container {
+        order: 2 !important;
+      }
+      #right-panel {
+        order: 3 !important;
+      }
+      #model-selector-container {
+        order: 0 !important;
+        padding-bottom: 0 !important;
+      }
+    }
+    @media (min-width: 601px) {
+      #model-selector-container {
+        order: 0;
+      }
+      #left-panel {
+        order: 1;
+      }
+      #map-container {
+        order: 2;
+      }
+      #right-panel {
+        order: 3;
+      }
+    }
   </style>
 </head>
 <body>
@@ -574,22 +626,23 @@
     <a class="nav-item" href="/more.html">More</a>
     <a class="nav-item" href="/settings.html">Settings</a>
     <a class="nav-item" href="/usa_leaflet.html">Weather Model Page</a>
-    <!-- Centered dropdown -->
-    <div id="navbar-center-dropdown-container">
-      <div id="navbar-center-dropdown">
-        <button id="navbar-center-dropdown-btn" aria-haspopup="true" aria-expanded="false">
-          Select Model
-          <span style="margin-left:6px;">&#9662;</span>
-        </button>
-        <div id="navbar-center-dropdown-list" role="menu">
-          <a href="HRRR.html" role="menuitem">HRRR</a>
-          <a href="NBM.html" role="menuitem">NBM</a>
-        </div>
+    <!-- Remove the old center dropdown from navbar -->
+  </div>
+  <!-- Model selector moved here (copied from NBM.html) -->
+  <div id="model-selector-container">
+    <div id="model-selector">
+      <button id="model-selector-btn" aria-haspopup="true" aria-expanded="false">
+        Select Model
+        <span style="margin-left:6px;">&#9662;</span>
+      </button>
+      <div id="model-selector-list" role="menu">
+        <a href="HRRR.html" role="menuitem">HRRR</a>
+        <a href="NBM.html" role="menuitem">NBM</a>
       </div>
     </div>
   </div>
   <div id="main-content">
-    <!-- Left panel with UTC/time and slider -->
+    <!-- Left panel (slider/current time) first -->
     <div id="left-panel">
       <div class="utc-box" id="left-current-time-box"></div>
       <div style="padding: 0 18px 10px 18px;">
@@ -614,9 +667,10 @@
         </button>
       </div>
     </div>
+    <!-- Map card -->
     <div id="map-container">
       <div id="map"></div>
-      <!-- Modal for Skew-T -->
+      <!-- Modal for Skew-T (if needed, keep as before) -->
       <div id="skewt-modal" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.5);z-index:5000;align-items:center;justify-content:center;">
         <div style="background:#fff;padding:16px;border-radius:10px;box-shadow:0 4px 24px rgba(0,0,0,0.18);max-width:95vw;max-height:95vh;overflow:auto;position:relative;">
           <span id="skewt-close" style="position:absolute;top:8px;right:16px;font-size:2em;cursor:pointer;">&times;</span>
@@ -630,7 +684,7 @@
         </div>
       </div>
     </div>
-    <!-- Right panel with dropdowns -->
+    <!-- Right panel (Surface/Severe/Other) last -->
     <div id="right-panel">
       <div class="dropdown" id="dropdown-surface">
         <div class="dropdown-header">
@@ -972,30 +1026,58 @@
     document.getElementById('toggle-gust').checked = false;
     document.getElementById('toggle-shear-vector').checked = false;
 
-    // --- Dropdown logic for right panel ---
-    function closeAllDropdowns() {
-      document.querySelectorAll('.dropdown').forEach(function(drop) {
-        drop.classList.remove('open');
-      });
-    }
-    // Close all dropdowns on load
-    closeAllDropdowns();
-    // Toggle dropdown open/close on header click
-    document.querySelectorAll('.dropdown').forEach(function(drop) {
-      var header = drop.querySelector('.dropdown-header');
-      header.addEventListener('click', function(e) {
-        // Only toggle if not clicking a checkbox
-        if (e.target.tagName === 'INPUT') return;
-        var isOpen = drop.classList.contains('open');
-        closeAllDropdowns();
-        if (!isOpen) drop.classList.add('open');
-      });
-    });
-    // Optional: close dropdowns if clicking outside
-    document.addEventListener('click', function(e) {
-      if (!e.target.closest('.dropdown')) {
-        closeAllDropdowns();
+    // --- Model selector dropdown logic (copied from NBM.html) ---
+    (function() {
+      var dropdown = document.getElementById('model-selector');
+      var btn = document.getElementById('model-selector-btn');
+      var list = document.getElementById('model-selector-list');
+      // Set initial button text to current model
+      function setModelBtnText(model) {
+        btn.childNodes[0].nodeValue = model + " ";
       }
+      // Detect current model from URL or file
+      var currentModel = "HRRR";
+      if (window.location.href.match(/NBM\.html/i)) currentModel = "NBM";
+      setModelBtnText(currentModel);
+
+      btn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        var open = dropdown.classList.contains('open');
+        document.querySelectorAll('#model-selector.open').forEach(function(d) {
+          d.classList.remove('open');
+        });
+        if (!open) dropdown.classList.add('open');
+      });
+      document.addEventListener('click', function(e) {
+        if (!dropdown.contains(e.target)) dropdown.classList.remove('open');
+      });
+
+      // Update button text on menu item click
+      list.querySelectorAll('a').forEach(function(link) {
+        link.addEventListener('click', function(e) {
+          var model = this.textContent.trim();
+          setModelBtnText(model);
+          // Let the navigation proceed
+        });
+      });
+    })();
+
+    // --- Dropdown open/close logic for all dropdowns (copied from NBM.html) ---
+    document.addEventListener('DOMContentLoaded', function() {
+      document.querySelectorAll('.dropdown').forEach(function(dropdown) {
+        var header = dropdown.querySelector('.dropdown-header');
+        var content = dropdown.querySelector('.dropdown-content');
+        var arrow = header.querySelector('.dropdown-arrow');
+        // Start closed
+        dropdown.classList.remove('open');
+        if (arrow) arrow.innerHTML = "&#9654;";
+        if (content) content.style.display = "none";
+        header.addEventListener('click', function() {
+          var isOpen = dropdown.classList.toggle('open');
+          if (content) content.style.display = isOpen ? "block" : "none";
+          if (arrow) arrow.innerHTML = isOpen ? "&#9660;" : "&#9654;";
+        });
+      });
     });
 
     // --- Slider logic (now in left panel) ---
@@ -1708,46 +1790,6 @@
         }
       }
     });
-
-    // --- Navbar center dropdown logic with selected model display ---
-    (function() {
-      var dropdown = document.getElementById('navbar-center-dropdown');
-      var btn = document.getElementById('navbar-center-dropdown-btn');
-      var list = document.getElementById('navbar-center-dropdown-list');
-      // Set initial button text to current model
-      function setModelBtnText(model) {
-        btn.childNodes[0].nodeValue = model + " ";
-      }
-      // Detect current model from URL or file
-      var currentModel = "HRRR";
-      if (window.location.href.match(/NBM\.html/i)) currentModel = "NBM";
-      setModelBtnText(currentModel);
-
-      btn.addEventListener('click', function(e) {
-        e.stopPropagation();
-        var open = dropdown.classList.contains('open');
-        document.querySelectorAll('#navbar-center-dropdown.open').forEach(function(d) {
-          d.classList.remove('open');
-        });
-        if (!open) dropdown.classList.add('open');
-      });
-      document.addEventListener('click', function(e) {
-        if (!dropdown.contains(e.target)) dropdown.classList.remove('open');
-      });
-
-      // Update button text on menu item click
-      list.querySelectorAll('a').forEach(function(link) {
-        link.addEventListener('click', function(e) {
-          var model = this.textContent.trim();
-          setModelBtnText(model);
-          // Let the navigation proceed
-        });
-      });
-    })();
   </script>
 </body>
 </html>
-</html>
-</body>
-</html>
-
