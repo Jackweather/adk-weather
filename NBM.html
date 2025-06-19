@@ -628,6 +628,14 @@
             <input type="range" id="nbm-maxref-opacity-slider" min="0" max="100" value="70" style="width:90px;vertical-align:middle;">
             <span id="nbm-maxref-opacity-value" style="font-size:0.97em;color:#263159;">70%</span>
           </div>
+          <label>
+            <input type="checkbox" id="nbm-wind-checkbox">
+             10m Wind
+          </label>
+          <div id="nbm-wind-opacity-container" style="display:none;margin:2px 0 8px 22px;">
+            <input type="range" id="nbm-wind-opacity-slider" min="0" max="100" value="70" style="width:90px;vertical-align:middle;">
+            <span id="nbm-wind-opacity-value" style="font-size:0.97em;color:#263159;">70%</span>
+          </div>
         </div>
       </div>
       <div class="dropdown" id="dropdown-severe">
@@ -661,6 +669,15 @@
           <div id="nbm-tstm-opacity-container" style="display:none;margin:2px 0 8px 22px;">
             <input type="range" id="nbm-tstm-opacity-slider" min="0" max="100" value="70" style="width:90px;vertical-align:middle;">
             <span id="nbm-tstm-opacity-value" style="font-size:0.97em;color:#263159;">70%</span>
+          </div>
+          <!-- CAPE -->
+          <label>
+            <input type="checkbox" id="nbm-cape-checkbox">
+             CAPE
+          </label>
+          <div id="nbm-cape-opacity-container" style="display:none;margin:2px 0 8px 22px;">
+            <input type="range" id="nbm-cape-opacity-slider" min="0" max="100" value="70" style="width:90px;vertical-align:middle;">
+            <span id="nbm-cape-opacity-value" style="font-size:0.97em;color:#263159;">70%</span>
           </div>
         </div>
       </div>
@@ -738,10 +755,14 @@
       <img id="nbm-tornado-colorbar" src="/nbm_tornado_pngs/colorbar.png" alt="Tornado Probability Colorbar" style="display:none;max-width:260px;">
       <!-- NBM Thunderstorm Probability colorbar (initially hidden) -->
       <img id="nbm-tstm-colorbar" src="/nbm_tstm_pngs/colorbar.png" alt="Thunderstorm Probability Colorbar" style="display:none;max-width:260px;">
+      <!-- NBM CAPE colorbar (initially hidden) -->
+      <img id="nbm-cape-colorbar" src="/nbm_cape_pngs/colorbar.png" alt="CAPE Colorbar" style="display:none;max-width:260px;">
       <!-- SPC Day 1 Outlook CAT colorbar (initially hidden) -->
       <img id="spc-day1-cat-colorbar" src="/colorbars/spc_cat_colorbar.png" alt="SPC Day 1 Outlook CAT Colorbar" style="display:none;max-width:260px;">
       <img id="spc-day2-cat-colorbar" src="/colorbars/spc_cat_colorbar.png" alt="SPC Day 2 Outlook CAT Colorbar" style="display:none;max-width:260px;">
       <img id="spc-day3-cat-colorbar" src="/colorbars/spc_cat_colorbar.png" alt="SPC Day 3 Outlook CAT Colorbar" style="display:none;max-width:260px;">
+      <!-- Add the wind colorbar image (make sure it's present) -->
+      <img id="nbm-wind-colorbar" src="/nbm_wind_pngs/colorbar.png" alt="10m Wind Colorbar" style="display:none;max-width:260px;">
     </div>
   </div>
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
@@ -762,6 +783,8 @@
     var nbmHailOpacity = 0.7;
     var nbmTornadoOpacity = 0.7;
     var nbmTstmOpacity = 0.7;
+    var nbmCapeOpacity = 0.7;
+    var nbmWindOpacity = 0.7;
 
     // --- NBM 2m Temperature overlay logic ---
     var nbmTemp2mOverlay = null;
@@ -939,6 +962,57 @@
       if (nbmTstmOverlay) nbmTstmOverlay.setZIndex(2);
     }
 
+    // --- NBM CAPE overlay logic ---
+    var nbmCapeOverlay = null;
+    var nbmCapeCheckbox = null;
+    var nbmCapeOpacity = 0.7;
+    function updateNBMCapeOverlay(idx) {
+      if (!pngList || idx < 0 || idx >= pngList.length) return;
+      var entry = pngList[idx] || {};
+      if (nbmCapeOverlay) {
+        map.removeLayer(nbmCapeOverlay);
+        nbmCapeOverlay = null;
+      }
+      if (nbmCapeCheckbox && nbmCapeCheckbox.checked && entry.nbm_cape) {
+        nbmCapeOverlay = L.imageOverlay(entry.nbm_cape, imageBounds, {
+          opacity: nbmCapeOpacity,
+          interactive: false,
+          zIndex: 2
+        });
+        nbmCapeOverlay.addTo(map);
+      }
+      if (!map.hasLayer(cartopyBase)) {
+        cartopyBase.addTo(map);
+      }
+      cartopyBase.setZIndex(1);
+      if (nbmCapeOverlay) nbmCapeOverlay.setZIndex(2);
+    }
+
+    // --- NBM Wind overlay logic ---
+    var nbmWindOverlay = null;
+    var nbmWindCheckbox = null;
+    function updateNBMWindOverlay(idx) {
+      if (!pngList || idx < 0 || idx >= pngList.length) return;
+      var entry = pngList[idx] || {};
+      if (nbmWindOverlay) {
+        map.removeLayer(nbmWindOverlay);
+        nbmWindOverlay = null;
+      }
+      if (nbmWindCheckbox && nbmWindCheckbox.checked && entry.nbm_wind) {
+        nbmWindOverlay = L.imageOverlay(entry.nbm_wind, imageBounds, {
+          opacity: nbmWindOpacity,
+          interactive: false,
+          zIndex: 2
+        });
+        nbmWindOverlay.addTo(map);
+      }
+      if (!map.hasLayer(cartopyBase)) {
+        cartopyBase.addTo(map);
+      }
+      cartopyBase.setZIndex(1);
+      if (nbmWindOverlay) nbmWindOverlay.setZIndex(2);
+    }
+
     // --- Slider logic (now in left panel) ---
     // Build hourList: [6, 12, ..., 264]
     var hourList = [];
@@ -1025,8 +1099,10 @@
           updateNBMGustOverlay(idx);
           updateNBMMaxrefOverlay(idx);
           updateNBMHailOverlay(idx);
-          updateNBMTornadoOverlay(idx); // <-- add tornado overlay update
-          updateNBMTstmOverlay(idx); // <-- add thunderstorm overlay update
+          updateNBMTornadoOverlay(idx);
+          updateNBMTstmOverlay(idx);
+          updateNBMCapeOverlay(idx);
+          updateNBMWindOverlay(idx); // <-- add wind overlay update
         };
 
         slider.oninput = function() {
@@ -1296,6 +1372,74 @@
           nbmTstmColorbar.style.display = nbmTstmCheckbox.checked ? "" : "none";
           nbmTstmOpacityContainer.style.display = nbmTstmCheckbox.checked ? "block" : "none";
         }
+
+        // NBM CAPE checkbox logic
+        nbmCapeCheckbox = document.getElementById('nbm-cape-checkbox');
+        var nbmCapeColorbar = document.getElementById('nbm-cape-colorbar');
+        var nbmCapeOpacityContainer = document.getElementById('nbm-cape-opacity-container');
+        var nbmCapeOpacitySlider = document.getElementById('nbm-cape-opacity-slider');
+        var nbmCapeOpacityValue = document.getElementById('nbm-cape-opacity-value');
+        if (nbmCapeCheckbox) {
+          nbmCapeCheckbox.checked = false;
+          nbmCapeCheckbox.addEventListener('change', function() {
+            updateNBMCapeOverlay(parseInt(slider.value));
+            if (nbmCapeCheckbox.checked) {
+              nbmCapeColorbar.style.display = "";
+              nbmCapeOpacityContainer.style.display = "block";
+            } else {
+              nbmCapeColorbar.style.display = "none";
+              nbmCapeOpacityContainer.style.display = "none";
+            }
+          });
+        }
+        if (nbmCapeOpacitySlider && nbmCapeOpacityValue) {
+          nbmCapeOpacitySlider.value = 70;
+          nbmCapeOpacityValue.textContent = "70%";
+          nbmCapeOpacitySlider.addEventListener('input', function() {
+            nbmCapeOpacity = parseInt(this.value, 10) / 100;
+            nbmCapeOpacityValue.textContent = this.value + "%";
+            if (nbmCapeOverlay) nbmCapeOverlay.setOpacity(nbmCapeOpacity);
+          });
+        }
+        if (nbmCapeCheckbox && nbmCapeColorbar && nbmCapeOpacityContainer) {
+          nbmCapeColorbar.style.display = nbmCapeCheckbox.checked ? "" : "none";
+          nbmCapeOpacityContainer.style.display = nbmCapeCheckbox.checked ? "block" : "none";
+        }
+
+        // NBM Wind checkbox logic
+        nbmWindCheckbox = document.getElementById('nbm-wind-checkbox');
+        var nbmWindColorbar = document.getElementById('nbm-wind-colorbar');
+        var nbmWindOpacityContainer = document.getElementById('nbm-wind-opacity-container');
+        var nbmWindOpacitySlider = document.getElementById('nbm-wind-opacity-slider');
+        var nbmWindOpacityValue = document.getElementById('nbm-wind-opacity-value');
+        if (nbmWindCheckbox) {
+          nbmWindCheckbox.checked = false;
+          nbmWindCheckbox.addEventListener('change', function() {
+            updateNBMWindOverlay(parseInt(slider.value));
+            // Show/hide colorbar
+            if (nbmWindCheckbox.checked) {
+              nbmWindColorbar.style.display = "";
+              nbmWindOpacityContainer.style.display = "block";
+            } else {
+              nbmWindColorbar.style.display = "none";
+              nbmWindOpacityContainer.style.display = "none";
+            }
+          });
+        }
+        if (nbmWindOpacitySlider && nbmWindOpacityValue) {
+          nbmWindOpacitySlider.value = 70;
+          nbmWindOpacityValue.textContent = "70%";
+          nbmWindOpacitySlider.addEventListener('input', function() {
+            nbmWindOpacity = parseInt(this.value, 10) / 100;
+            nbmWindOpacityValue.textContent = this.value + "%";
+            if (nbmWindOverlay) nbmWindOverlay.setOpacity(nbmWindOpacity);
+          });
+        }
+        // On page load, hide colorbar if not checked
+        if (nbmWindCheckbox && nbmWindColorbar && nbmWindOpacityContainer) {
+          nbmWindColorbar.style.display = nbmWindCheckbox.checked ? "" : "none";
+          nbmWindOpacityContainer.style.display = nbmWindCheckbox.checked ? "block" : "none";
+        }
       });
 
     // --- Current UTC time and HRRR run display (now in left panel) ---
@@ -1372,9 +1516,7 @@
       var colorbarImgHail = document.getElementById('nbm-hail-colorbar');
       var colorbarImgTornado = document.getElementById('nbm-tornado-colorbar');
       var colorbarImgTstm = document.getElementById('nbm-tstm-colorbar');
-      var colorbarImgSpcCat1 = document.getElementById('spc-day1-cat-colorbar');
-      var colorbarImgSpcCat2 = document.getElementById('spc-day2-cat-colorbar');
-      var colorbarImgSpcCat3 = document.getElementById('spc-day3-cat-colorbar');
+      var colorbarImgCape = document.getElementById('nbm-cape-colorbar');
       function setSize(val) {
         valueLabel.textContent = val;
         if (colorbarImgTemp) colorbarImgTemp.style.maxWidth = val + "px";
@@ -1384,9 +1526,9 @@
         if (colorbarImgHail) colorbarImgHail.style.maxWidth = val + "px";
         if (colorbarImgTornado) colorbarImgTornado.style.maxWidth = val + "px";
         if (colorbarImgTstm) colorbarImgTstm.style.maxWidth = val + "px";
-        if (colorbarImgSpcCat1) colorbarImgSpcCat1.style.maxWidth = val + "px";
-        if (colorbarImgSpcCat2) colorbarImgSpcCat2.style.maxWidth = val + "px";
-        if (colorbarImgSpcCat3) colorbarImgSpcCat3.style.maxWidth = val + "px";
+        if (colorbarImgCape) colorbarImgCape.style.maxWidth = val + "px";
+        var colorbarImgWind = document.getElementById('nbm-wind-colorbar');
+        if (colorbarImgWind) colorbarImgWind.style.maxWidth = val + "px";
       }
       slider.addEventListener('input', function() {
         setSize(this.value);
