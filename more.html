@@ -328,6 +328,20 @@
       let satelliteType = "vis"; // "vis", "ir", or "radar"
       const slider = document.getElementById('png-slider');
 
+      // --- Preload/caching helpers ---
+      // Use a Set to avoid preloading the same image multiple times
+      const preloadedImages = new Set();
+      function preloadImages(files, overlayPath) {
+        files.forEach(function(file) {
+          const url = overlayPath + file;
+          if (!preloadedImages.has(url)) {
+            const img = new window.Image();
+            img.src = url;
+            preloadedImages.add(url);
+          }
+        });
+      }
+
       // Approximate bounds for CONUS at zoom 4 (adjust as needed)
       const conusBounds = [
         [24.396308, -125.0], // Southwest lat, lon
@@ -412,7 +426,7 @@
         });
       }
 
-      function loadPngListAndInit() {
+      function loadPngListAndInit(keepCurrentIdx = false) {
         let listUrl = '/satellite_images';
         if (satelliteType === "ir") listUrl = '/ir_images';
         else if (satelliteType === "radar") listUrl = '/radar_images';
@@ -420,23 +434,25 @@
           .then(response => response.json())
           .then(files => {
             // Sort files by filename date/time for all satellite types
-            pngFiles = sortPngFilesByName(files);
-            // --- Preload all images into browser cache ---
+            const sortedFiles = sortPngFilesByName(files);
+            pngFiles = sortedFiles;
+            // Preload all images into browser cache (always, even after refresh)
             let overlayPath = '/satellite_images/';
             if (satelliteType === "ir") overlayPath = '/ir_images/';
             else if (satelliteType === "radar") overlayPath = '/radar_images/';
-            pngFiles.forEach(function(file) {
-              const img = new window.Image();
-              img.src = overlayPath + file;
-            });
+            preloadImages(pngFiles, overlayPath);
             // --- End preload ---
             if (pngFiles.length > 0) {
               slider.max = pngFiles.length - 1;
               slider.min = 0;
-              // Always show the newest (last, highest date) PNG
-              slider.value = pngFiles.length - 1;
+              // Always show the newest (last, highest date) PNG unless keeping current index
+              if (keepCurrentIdx && currentPngIdx >= 0 && currentPngIdx < pngFiles.length) {
+                slider.value = currentPngIdx;
+              } else {
+                slider.value = pngFiles.length - 1;
+                currentPngIdx = pngFiles.length - 1;
+              }
               slider.disabled = false;
-              currentPngIdx = pngFiles.length - 1;
               setPngOverlayByIndex(currentPngIdx);
             } else {
               slider.max = 0;
@@ -448,6 +464,14 @@
             updateSliderFill();
           });
       }
+
+      // --- Background refresh logic ---
+      function backgroundRefreshPngList() {
+        // Save current index to keep user position
+        loadPngListAndInit(true);
+      }
+      // Refresh every 10 minutes (600,000 ms)
+      setInterval(backgroundRefreshPngList, 600000);
 
       let playInterval = null;
       let isPlaying = false;
