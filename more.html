@@ -368,6 +368,48 @@
         slider.value = idx;
         slider.disabled = false;
         updateSliderFill();
+
+        // Preload only previous and next images (not all)
+        [idx - 1, idx + 1].forEach(i => {
+          if (i >= 0 && i < pngFiles.length) {
+            let prePath = '/satellite_images/';
+            if (satelliteType === "ir") prePath = '/ir_images/';
+            else if (satelliteType === "radar") prePath = '/radar_images/';
+            const img = new window.Image();
+            img.src = prePath + pngFiles[i];
+          }
+        });
+      }
+
+      // Helper to parse PNG filename like 250617_0803PM_EST for sorting
+      function parsePngFilename(filename) {
+        // Example: 250617_0803PM_EST
+        // 25 = year, 06 = month, 17 = day, 0803PM = time, EST = tz
+        // Returns a Date object (local time, EST assumed)
+        const match = filename.match(/^(\d{2})(\d{2})(\d{2})_(\d{4})(AM|PM)_([A-Z]+)\.png$/i);
+        if (!match) return null;
+        let [_, yy, mm, dd, hhmm, ampm, tz] = match;
+        let year = 2000 + parseInt(yy, 10);
+        let month = parseInt(mm, 10) - 1;
+        let day = parseInt(dd, 10);
+        let hour = parseInt(hhmm.slice(0, 2), 10);
+        let min = parseInt(hhmm.slice(2, 4), 10);
+        if (ampm.toUpperCase() === "PM" && hour !== 12) hour += 12;
+        if (ampm.toUpperCase() === "AM" && hour === 12) hour = 0;
+        // Ignore timezone for sorting, treat as local
+        return new Date(year, month, day, hour, min);
+      }
+
+      function sortPngFilesByName(files) {
+        // Sort ascending by date/time
+        return files.slice().sort(function(a, b) {
+          let da = parsePngFilename(a);
+          let db = parsePngFilename(b);
+          if (!da && !db) return 0;
+          if (!da) return -1;
+          if (!db) return 1;
+          return da - db;
+        });
       }
 
       function loadPngListAndInit() {
@@ -377,18 +419,13 @@
         fetch(listUrl)
           .then(response => response.json())
           .then(files => {
-            pngFiles = files; // Do NOT reverse, backend is sorted oldest->newest
-            pngFiles.forEach(function(file) {
-              let prefix = '/satellite_images/';
-              if (satelliteType === "ir") prefix = '/ir_images/';
-              else if (satelliteType === "radar") prefix = '/radar_images/';
-              const img = new window.Image();
-              img.src = prefix + file;
-            });
+            // Sort files by filename date/time for all satellite types
+            pngFiles = sortPngFilesByName(files);
+            // Remove the loop that preloads all images
             if (pngFiles.length > 0) {
               slider.max = pngFiles.length - 1;
               slider.min = 0;
-              // Always show the newest (last) PNG
+              // Always show the newest (last, highest date) PNG
               slider.value = pngFiles.length - 1;
               slider.disabled = false;
               currentPngIdx = pngFiles.length - 1;
@@ -537,6 +574,12 @@
         }
       };
 
+      // Initial load
+      loadPngListAndInit();
+    </script>
+  </div>
+</body>
+</html>
       // Initial load
       loadPngListAndInit();
     </script>
