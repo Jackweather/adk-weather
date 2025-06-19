@@ -47,15 +47,14 @@
       display: flex;
       justify-content: center;
       align-items: center;
-      background: #fff;
       padding: 10px 0 0 0;
-      z-index: 2100;
-      position: relative;
+      z-index: 10; /* Lower z-index */
+      margin-bottom: 6px; /* Add spacing below selector */
     }
     #model-selector {
       position: relative;
       margin: 0 auto;
-      z-index: 2200;
+      z-index: 20; /* Lower z-index */
     }
     #model-selector-btn {
       background: #263159;
@@ -1478,6 +1477,24 @@
         });
       });
     })();
+
+    // --- Dropdown open/close logic for all dropdowns ---
+    document.addEventListener('DOMContentLoaded', function() {
+      document.querySelectorAll('.dropdown').forEach(function(dropdown) {
+        var header = dropdown.querySelector('.dropdown-header');
+        var content = dropdown.querySelector('.dropdown-content');
+        var arrow = header.querySelector('.dropdown-arrow');
+        // Start closed
+        dropdown.classList.remove('open');
+        if (arrow) arrow.innerHTML = "&#9654;";
+        if (content) content.style.display = "none";
+        header.addEventListener('click', function() {
+          var isOpen = dropdown.classList.toggle('open');
+          if (content) content.style.display = isOpen ? "block" : "none";
+          if (arrow) arrow.innerHTML = isOpen ? "&#9660;" : "&#9654;";
+        });
+      });
+    });
   </script>
 </body>
 </html>
