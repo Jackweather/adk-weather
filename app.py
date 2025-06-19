@@ -45,6 +45,10 @@ PNG_DIR_NBM_HAIL = os.path.join(BASE_DIR, "NBM", "NBM", "static", "hail")
 PNG_DIR_NBM_TORNADO = os.path.join(BASE_DIR, "NBM", "NBM", "static", "tornado")
 # Add NBM Thunderstorm Probability PNG directory
 PNG_DIR_NBM_TSTM = os.path.join(BASE_DIR, "NBM", "NBM", "static", "tstm")
+# Add NBM CAPE PNG directory
+PNG_DIR_NBM_CAPE = os.path.join(BASE_DIR, "NBM", "NBM", "static", "cape")
+# Add NBM Wind PNG directory
+PNG_DIR_NBM_WIND = os.path.join(BASE_DIR, "NBM", "NBM", "static", "wind")
 SATELLITE_DIR = os.path.join(BASE_DIR, "weatherdata", "satellite")
 IR_DIR = os.path.join(BASE_DIR, "weatherdata", "Ir")
 RADAR_DIR = os.path.join(BASE_DIR, "weatherdata", "radar")
@@ -101,6 +105,10 @@ def get_pngs():
     nbm_tornado_files = [f for f in safe_listdir(PNG_DIR_NBM_TORNADO) if re.match(r"tornado_(\d+)\.png$", f)]
     # Add NBM Thunderstorm Probability files
     nbm_tstm_files = [f for f in safe_listdir(PNG_DIR_NBM_TSTM) if re.match(r"tstm_(\d+)\.png$", f)]
+    # Add NBM CAPE files
+    nbm_cape_files = [f for f in safe_listdir(PNG_DIR_NBM_CAPE) if re.match(r"cape_(\d+)\.png$", f)]  # CAPE
+    # Add NBM Wind files
+    nbm_wind_files = [f for f in safe_listdir(PNG_DIR_NBM_WIND) if re.match(r"wind_(\d+)\.png$", f)]
 
     # Use regex to extract hour from each filename (more robust)
     def extract_hour(pattern, filename):
@@ -140,6 +148,10 @@ def get_pngs():
     nbm_tornado_dict = {extract_hour(r"tornado_(\d+)\.png$", f): f for f in nbm_tornado_files}
     # Add NBM Thunderstorm Probability dict
     nbm_tstm_dict = {extract_hour(r"tstm_(\d+)\.png$", f): f for f in nbm_tstm_files}
+    # Add NBM CAPE dict
+    nbm_cape_dict = {extract_hour(r"cape_(\d+)\.png$", f): f for f in nbm_cape_files}
+    # Add NBM Wind dict
+    nbm_wind_dict = {extract_hour(r"wind_(\d+)\.png$", f): f for f in nbm_wind_files}
 
     # Remove None keys if any file didn't match pattern
     refc_dict = {k: v for k, v in refc_dict.items() if k is not None}
@@ -175,6 +187,10 @@ def get_pngs():
     nbm_tornado_dict = {k: v for k, v in nbm_tornado_dict.items() if k is not None}
     # Add NBM Thunderstorm Probability dict cleanup
     nbm_tstm_dict = {k: v for k, v in nbm_tstm_dict.items() if k is not None}
+    # Add NBM CAPE dict cleanup
+    nbm_cape_dict = {k: v for k, v in nbm_cape_dict.items() if k is not None}
+    # Add NBM Wind dict cleanup
+    nbm_wind_dict = {k: v for k, v in nbm_wind_dict.items() if k is not None}
 
     # Determine if this is an NBM or HRRR request based on Referer or User-Agent or query param
     is_nbm = False
@@ -185,7 +201,7 @@ def get_pngs():
         is_nbm = False
 
     # Union of all available hours from all overlays (add nbm_temp2m_dict, nbm_totprecip_dict, nbm_maxref_dict, nbm_hail_dict, nbm_tornado_dict)
-    all_hours = set(refc_dict) | set(mslp_dict) | set(temp2m_dict) | set(lightning_dict) | set(rh_dict) | set(hail_dict) | set(cape_dict) | set(cin_dict) | set(lcdc_dict) | set(mcdc_dict) | set(hcdc_dict) | set(precip_dict) | set(wind10m_dict) | set(wind10m_station_dict) | set(srh_dict) | set(pwat_dict) | set(gust_dict) | set(shear_vector_dict) | set(nbm_temp2m_dict) | set(nbm_totprecip_dict) | set(nbm_gust_dict) | set(nbm_maxref_dict) | set(nbm_hail_dict) | set(nbm_tornado_dict) | set(nbm_tstm_dict)
+    all_hours = set(refc_dict) | set(mslp_dict) | set(temp2m_dict) | set(lightning_dict) | set(rh_dict) | set(hail_dict) | set(cape_dict) | set(cin_dict) | set(lcdc_dict) | set(mcdc_dict) | set(hcdc_dict) | set(precip_dict) | set(wind10m_dict) | set(wind10m_station_dict) | set(srh_dict) | set(pwat_dict) | set(gust_dict) | set(shear_vector_dict) | set(nbm_temp2m_dict) | set(nbm_totprecip_dict) | set(nbm_gust_dict) | set(nbm_maxref_dict) | set(nbm_hail_dict) | set(nbm_tornado_dict) | set(nbm_tstm_dict) | set(nbm_cape_dict) | set(nbm_wind_dict)
     all_hours = sorted(all_hours)
 
     # --- Only include hours that match the model's step ---
@@ -224,6 +240,8 @@ def get_pngs():
             "nbm_hail": f"/nbm_hail_pngs/{nbm_hail_dict[hour]}" if hour in nbm_hail_dict else None,
             "nbm_tornado": f"/nbm_tornado_pngs/{nbm_tornado_dict[hour]}" if hour in nbm_tornado_dict else None,
             "nbm_tstm": f"/nbm_tstm_pngs/{nbm_tstm_dict[hour]}" if hour in nbm_tstm_dict else None,
+            "nbm_cape": f"/nbm_cape_pngs/{nbm_cape_dict[hour]}" if hour in nbm_cape_dict else None,
+            "nbm_wind": f"/nbm_wind_pngs/{nbm_wind_dict[hour]}" if hour in nbm_wind_dict else None,
         })
     response = make_response(jsonify(result))
     response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
@@ -711,70 +729,8 @@ def run_task2():
 
 @app.route("/run-task3")
 def run_task3():
-    def run_satellite_script():
-        print("Flask is running as user:", getpass.getuser())  # Print user for debugging
-        try:
-            result = subprocess.run(
-                ["python", "/opt/render/project/src/weatherdata/satellite.py"],
-                check=True,
-                cwd="/opt/render/project/src/weatherdata",
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                text=True
-            )
-            print("satellite.py ran successfully!")
-            print("STDOUT:", result.stdout)
-            print("STDERR:", result.stderr)
-        except subprocess.CalledProcessError as e:
-            error_trace = traceback.format_exc()
-            print(f"Error running satellite.py:\n{error_trace}")
-            print("STDOUT:", e.stdout)
-            print("STDERR:", e.stderr)
-
-    def run_ir_script():
-        print("Flask is running as user:", getpass.getuser())
-        try:
-            result = subprocess.run(
-                ["python", "/opt/render/project/src/weatherdata/ir.py"],
-                check=True,
-                cwd="/opt/render/project/src/weatherdata",
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                text=True
-            )
-            print("ir.py ran successfully!")
-            print("STDOUT:", result.stdout)
-            print("STDERR:", result.stderr)
-        except subprocess.CalledProcessError as e:
-            error_trace = traceback.format_exc()
-            print(f"Error running ir.py:\n{error_trace}")
-            print("STDOUT:", e.stdout)
-            print("STDERR:", e.stderr)
-
-    def run_radar_script():
-        print("Flask is running as user:", getpass.getuser())
-        try:
-            result = subprocess.run(
-                ["python", "/opt/render/project/src/weatherdata/radar.py"],
-                check=True,
-                cwd="/opt/render/project/src/weatherdata",
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                text=True
-            )
-            print("radar.py ran successfully!")
-            print("STDOUT:", result.stdout)
-            print("STDERR:", result.stderr)
-        except subprocess.CalledProcessError as e:
-            error_trace = traceback.format_exc()
-            print(f"Error running radar.py:\n{error_trace}")
-            print("STDOUT:", e.stdout)
-            print("STDERR:", e.stderr)
-
-    threading.Thread(target=run_satellite_script).start()
-    threading.Thread(target=run_ir_script).start()
-    threading.Thread(target=run_radar_script).start()
-    return "weatherdata/satellite.py, ir.py, and radar.py started in background!", 200
+    # Task 3 intentionally left empty (satellite/IR/radar logic removed)
+    return "Task 3 is currently disabled.", 200
 
 @app.route("/run-task4")
 def run_task4():
@@ -966,6 +922,21 @@ def serve_nbm_tstm_png(filename):
         return send_from_directory(os.path.join(BASE_DIR, "colorbars"), "Thunderstormcolorbar.png")
     return api_serve_image(PNG_DIR_NBM_TSTM, filename)
 
+@app.route("/nbm_cape_pngs/<path:filename>")
+def serve_nbm_cape_png(filename):
+    # Serve the colorbar for colorbar.png requests
+    if filename == "colorbar.png":
+        return send_from_directory(os.path.join(BASE_DIR, "colorbars"), "CAPE_colorbar.png")
+    return api_serve_image(PNG_DIR_NBM_CAPE, filename)
+
+@app.route("/nbm_wind_pngs/<path:filename>")
+def serve_nbm_wind_png(filename):
+    # Serve the colorbar for colorbar.png requests
+    if filename == "colorbar.png":
+        # This must point to colorbars/WIND10M_colorbar.png
+        return send_from_directory(COLORBAR_DIR, "WIND10M_colorbar.png")
+    return api_serve_image(PNG_DIR_NBM_WIND, filename)
+
 import re
 
 def extract_png_time(filename):
@@ -1028,5 +999,4 @@ def serve_afd_summary_aly():
     return send_file(afd_path, mimetype="text/plain")
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
     app.run(host="0.0.0.0", port=5000)
