@@ -145,7 +145,7 @@ for site in stations:
 
     # Save the plot as a PNG file with higher DPI for better quality
     output_file = f"{output_dir}/NEXRAD_Reflectivity_{site}_{timeStr}.png"
-    plt.savefig(output_file, dpi=1000, bbox_inches='tight', facecolor='white')
+    plt.savefig(output_file, dpi=300, bbox_inches='tight', facecolor='white')
     print(f"Plot saved as {output_file}")
     plt.close(fig)
     gc.collect()
