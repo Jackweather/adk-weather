@@ -214,6 +214,12 @@
       displayImages("radar-avg-images", "/radar_ag_images", "/radar_ag/");
       displayImages("radar-raw-images", "/radar_raw_images", "/radar_raw/");
 
+      // Poll for new radar images every 30 seconds
+      setInterval(function() {
+        displayImages("radar-avg-images", "/radar_ag_images", "/radar_ag/");
+        displayImages("radar-raw-images", "/radar_raw_images", "/radar_raw/");
+      }, 30000);
+
       // Add reset button functionality
       document.getElementById('reset-images-btn').addEventListener('click', function() {
         document.querySelectorAll('.zoom-draggable').forEach(function(img) {
@@ -226,4 +232,3 @@
   </div>
 </body>
 </html>
-
