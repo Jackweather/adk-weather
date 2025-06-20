@@ -127,7 +127,7 @@ for site in stations:
     )
 
     output_file = f"{output_dir}/NEXRAD_Reflectivity_Raw_{site}_{timeStr}.png"
-    plt.savefig(output_file, dpi=1000, bbox_inches='tight', facecolor='white')  # Already high DPI
+    plt.savefig(output_file, dpi=300, bbox_inches='tight', facecolor='white')  # Already high DPI
     print(f"Plot saved as {output_file}")
     plt.close(fig)
     gc.collect()
