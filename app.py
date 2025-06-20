@@ -52,6 +52,9 @@ PNG_DIR_NBM_WIND = os.path.join(BASE_DIR, "NBM", "NBM", "static", "wind")
 SATELLITE_DIR = os.path.join(BASE_DIR, "weatherdata", "satellite")
 IR_DIR = os.path.join(BASE_DIR, "weatherdata", "Ir")
 RADAR_DIR = os.path.join(BASE_DIR, "weatherdata", "radar")
+# Use Windows-style paths for RADAR/avg and RADAR/raw
+RADAR_AVG_DIR = os.path.join(BASE_DIR, "RADAR", "avg")
+RADAR_RAW_DIR = os.path.join(BASE_DIR, "RADAR", "raw")
 
 @app.route("/")
 def home():
@@ -729,8 +732,46 @@ def run_task2():
 
 @app.route("/run-task3")
 def run_task3():
-    # Task 3 intentionally left empty (satellite/IR/radar logic removed)
-    return "Task 3 is currently disabled.", 200
+    def run_radar_scripts():
+        print("Flask is running as user:", getpass.getuser())  # Print user for debugging
+        # --- RADAR/Newyork.py ---
+        try:
+            result = subprocess.run(
+                ["python", "/opt/render/project/src/RADAR/Newyork.py"],
+                check=True,
+                cwd="/opt/render/project/src/RADAR",
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True
+            )
+            print("Newyork.py ran successfully!")
+            print("STDOUT:", result.stdout)
+            print("STDERR:", result.stderr)
+        except subprocess.CalledProcessError as e:
+            error_trace = traceback.format_exc()
+            print(f"Error running Newyork.py:\n{error_trace}")
+            print("STDOUT:", e.stdout)
+            print("STDERR:", e.stderr)
+        # --- RADAR/Newyork_raw.py ---
+        try:
+            result = subprocess.run(
+                ["python", "/opt/render/project/src/RADAR/Newyork_raw.py"],
+                check=True,
+                cwd="/opt/render/project/src/RADAR",
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True
+            )
+            print("Newyork_raw.py ran successfully!")
+            print("STDOUT:", result.stdout)
+            print("STDERR:", result.stderr)
+        except subprocess.CalledProcessError as e:
+            error_trace = traceback.format_exc()
+            print(f"Error running Newyork_raw.py:\n{error_trace}")
+            print("STDOUT:", e.stdout)
+            print("STDERR:", e.stderr)
+    threading.Thread(target=run_radar_scripts).start()
+    return "RADAR/Newyork.py and RADAR/Newyork_raw.py started in background!", 200
 
 @app.route("/run-task4")
 def run_task4():
@@ -990,6 +1031,36 @@ def list_radar_images():
 @app.route("/radar_images/<path:filename>")
 def serve_radar_image(filename):
     return send_from_directory(RADAR_DIR, filename)
+
+@app.route("/radar_avg_images")
+def list_radar_avg_images():
+    try:
+        files = [f for f in os.listdir(RADAR_AVG_DIR) if f.lower().endswith(".png")]
+        files.sort()
+        return jsonify(files)
+    except Exception as e:
+        print(f"Error listing RADAR/avg: {e}")
+        return jsonify([])
+
+@app.route("/radar_raw_images")
+def list_radar_raw_images():
+    try:
+        files = [f for f in os.listdir(RADAR_RAW_DIR) if f.lower().endswith(".png")]
+        files.sort()
+        return jsonify(files)
+    except Exception as e:
+        print(f"Error listing RADAR/raw: {e}")
+        return jsonify([])
+
+@app.route("/radar_avg/<path:filename>")
+def serve_radar_avg(filename):
+    # Securely serve files from RADAR/avg
+    return send_from_directory(RADAR_AVG_DIR, filename)
+
+@app.route("/radar_raw/<path:filename>")
+def serve_radar_raw(filename):
+    # Securely serve files from RADAR/raw
+    return send_from_directory(RADAR_RAW_DIR, filename)
 
 @app.route("/afd_summary_ALY.txt")
 def serve_afd_summary_aly():
