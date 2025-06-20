@@ -53,6 +53,19 @@
         padding: 6px 1vw 6px 1vw;
       }
     }
+    .zoom-draggable {
+      cursor: grab;
+      transition: box-shadow 0.2s;
+      will-change: transform;
+      background: #fff;
+      /* Prevent image selection while dragging */
+      user-select: none;
+      -webkit-user-drag: none;
+    }
+    .zoom-draggable:active {
+      cursor: grabbing;
+      box-shadow: 0 0 8px #888;
+    }
   </style>
 </head>
 <body>
@@ -61,6 +74,7 @@
     <a class="nav-item" href="/more.html">More</a>
     <a class="nav-item" href="/settings.html">Settings</a>
     <a class="nav-item" href="/HRRR.html">Weather Model Page</a>
+    <button id="reset-images-btn" class="nav-item" style="background:#ffb400;color:#263159;border:none;padding:6px 18px;border-radius:4px;font-size:1em;font-weight:500;cursor:pointer;margin-left:12px;">Reset Images</button>
   </div>
   <div class="main-content">
     <h2>Latest NWS AFD Summary</h2>
@@ -68,6 +82,11 @@
       <b>Note:</b>  Albany, New York area only.
     </div>
     <div id="afd-summary">Loading summary...</div>
+    <hr>
+    <h2>Latest Radar Images (Averaged)</h2>
+    <div id="radar-avg-images"></div>
+    <h2>Latest Radar Images (Raw)</h2>
+    <div id="radar-raw-images"></div>
     <script>
       // Adjust the filename/site as needed
       fetch('afd_summary_ALY.txt')
@@ -78,9 +97,133 @@
         .catch(err => {
           document.getElementById('afd-summary').textContent = "Failed to load summary.";
         });
+
+      // Helper to add zoom and drag to an image element
+      function makeZoomDraggable(img) {
+        let scale = 1, lastScale = 1;
+        let pos = { x: 0, y: 0 }, lastPos = { x: 0, y: 0 };
+        let dragging = false, start = { x: 0, y: 0 };
+
+        img.classList.add('zoom-draggable');
+        img.style.transformOrigin = "center center";
+
+        // Mouse wheel zoom
+        img.addEventListener('wheel', function(e) {
+          e.preventDefault();
+          const delta = e.deltaY < 0 ? 1.1 : 0.9;
+          scale *= delta;
+          scale = Math.max(0.2, Math.min(scale, 8));
+          img.style.transform = `translate(${pos.x}px,${pos.y}px) scale(${scale})`;
+        });
+
+        // Mouse drag
+        img.addEventListener('mousedown', function(e) {
+          e.preventDefault();
+          dragging = true;
+          start.x = e.clientX - pos.x;
+          start.y = e.clientY - pos.y;
+          img.style.cursor = 'grabbing';
+        });
+        document.addEventListener('mousemove', function(e) {
+          if (!dragging) return;
+          pos.x = e.clientX - start.x;
+          pos.y = e.clientY - start.y;
+          img.style.transform = `translate(${pos.x}px,${pos.y}px) scale(${scale})`;
+        });
+        document.addEventListener('mouseup', function() {
+          dragging = false;
+          img.style.cursor = 'grab';
+        });
+
+        // Touch drag and pinch zoom
+        let pinchStartDist = 0, pinchStartScale = 1;
+        img.addEventListener('touchstart', function(e) {
+          if (e.touches.length === 1) {
+            dragging = true;
+            start.x = e.touches[0].clientX - pos.x;
+            start.y = e.touches[0].clientY - pos.y;
+          } else if (e.touches.length === 2) {
+            dragging = false;
+            pinchStartDist = Math.hypot(
+              e.touches[0].clientX - e.touches[1].clientX,
+              e.touches[0].clientY - e.touches[1].clientY
+            );
+            pinchStartScale = scale;
+          }
+        }, { passive: false });
+        img.addEventListener('touchmove', function(e) {
+          if (e.touches.length === 1 && dragging) {
+            pos.x = e.touches[0].clientX - start.x;
+            pos.y = e.touches[0].clientY - start.y;
+            img.style.transform = `translate(${pos.x}px,${pos.y}px) scale(${scale})`;
+          } else if (e.touches.length === 2) {
+            const dist = Math.hypot(
+              e.touches[0].clientX - e.touches[1].clientX,
+              e.touches[0].clientY - e.touches[1].clientY
+            );
+            scale = Math.max(0.2, Math.min(pinchStartScale * (dist / pinchStartDist), 8));
+            img.style.transform = `translate(${pos.x}px,${pos.y}px) scale(${scale})`;
+          }
+          e.preventDefault();
+        }, { passive: false });
+        img.addEventListener('touchend', function(e) {
+          if (e.touches.length === 0) dragging = false;
+        });
+
+        // Double click/tap to reset
+        img.addEventListener('dblclick', function(e) {
+          scale = 1;
+          pos = { x: 0, y: 0 };
+          img.style.transform = '';
+        });
+
+        // Expose a reset method for this image
+        img.resetZoomDrag = function() {
+          scale = 1;
+          pos = { x: 0, y: 0 };
+          img.style.transform = '';
+        };
+      }
+
+      // Helper to create image elements
+      function displayImages(containerId, apiListUrl, apiImgUrlPrefix) {
+        fetch(apiListUrl)
+          .then(res => res.json())
+          .then(files => {
+            const container = document.getElementById(containerId);
+            if (!files.length) {
+              container.textContent = "No images found.";
+              return;
+            }
+            container.innerHTML = "";
+            files.forEach(f => {
+              const img = document.createElement("img");
+              img.src = apiImgUrlPrefix + encodeURIComponent(f);
+              img.alt = f;
+              img.style = "max-width: 98vw; width: 700px; margin: 10px 0; display: block; border:1px solid #ccc; cursor: pointer;";
+              img.title = "Drag to move, scroll/pinch to zoom, double-click/tap to reset";
+              // Add zoom/drag functionality
+              makeZoomDraggable(img);
+              // Remove fullscreen/click handler
+              container.appendChild(img);
+            });
+          });
+      }
+
+      // Use the correct endpoints for Windows paths
+      displayImages("radar-avg-images", "/radar_avg_images", "/radar_avg/");
+      displayImages("radar-raw-images", "/radar_raw_images", "/radar_raw/");
+
+      // Add reset button functionality
+      document.getElementById('reset-images-btn').addEventListener('click', function() {
+        document.querySelectorAll('.zoom-draggable').forEach(function(img) {
+          if (typeof img.resetZoomDrag === 'function') {
+            img.resetZoomDrag();
+          }
+        });
+      });
     </script>
   </div>
 </body>
 </html>
 
-  
