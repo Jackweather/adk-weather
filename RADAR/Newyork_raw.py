@@ -1,13 +1,33 @@
-import pyart
-import fsspec
-from metpy.plots import USCOUNTIES, ctables
-import matplotlib.pyplot as plt
-import cartopy.crs as ccrs
-import cartopy.feature as cfeature
+try:
+    import pyart
+except ImportError:
+    print("pyart module is not installed.")
+try:
+    import fsspec
+except ImportError:
+    print("fsspec module is not installed.")
+try:
+    from metpy.plots import USCOUNTIES, ctables
+except ImportError:
+    print("metpy module is not installed.")
+try:
+    import matplotlib.pyplot as plt
+except ImportError:
+    print("matplotlib module is not installed.")
+try:
+    import cartopy.crs as ccrs
+    import cartopy.feature as cfeature
+except ImportError:
+    print("cartopy module is not installed.")
 import warnings
 from datetime import datetime as dt
-import numpy as np
+try:
+    import numpy as np
+except ImportError:
+    print("numpy module is not installed.")
 import os
+import gc
+import time
 
 import matplotlib
 matplotlib.rcParams['animation.html'] = 'html5'
@@ -59,6 +79,8 @@ for site in stations:
     if len(files) == 0:
         print(f"No files found for station {site}. Skipping...")
         plt.close(fig)
+        gc.collect()
+        time.sleep(2)
         continue
 
     latest_file = files[0]
@@ -108,5 +130,6 @@ for site in stations:
     plt.savefig(output_file, dpi=1000, bbox_inches='tight', facecolor='white')  # Already high DPI
     print(f"Plot saved as {output_file}")
     plt.close(fig)
-
+    gc.collect()
+    time.sleep(2)
 
