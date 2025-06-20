@@ -60,8 +60,8 @@ ref_norm, ref_cmap = ctables.registry.get_with_steps('NWSReflectivity', 5, 5)
 res = '10m'
 
 # Output directory for PNGs
-output_dir = "./RADAR/avg"
-os.makedirs(output_dir, exist_ok=True)  # Ensure the avg folder exists
+output_dir = "./RADAR/static/avg"
+os.makedirs(output_dir, exist_ok=True)  # Ensure the theavg folder exists
 
 # Clear all PNG files in the output directory before running
 for fname in os.listdir(output_dir):
@@ -145,7 +145,7 @@ for site in stations:
 
     # Save the plot as a PNG file with higher DPI for better quality
     output_file = f"{output_dir}/NEXRAD_Reflectivity_{site}_{timeStr}.png"
-    plt.savefig(output_file, dpi=300, bbox_inches='tight', facecolor='white')
+    plt.savefig(output_file, dpi=200, bbox_inches='tight', facecolor='white')
     print(f"Plot saved as {output_file}")
     plt.close(fig)
     gc.collect()
