@@ -47,7 +47,7 @@ fs = fsspec.filesystem("s3", anon=True)
 stations = ['KENX', 'KBGM', 'KTYX', 'KCXX', 'KBUF', 'KOKX']
 
 # Output directory for PNGs
-output_dir = "./RADAR/static/raw"
+output_dir = "../RADAR/static/raw"
 os.makedirs(output_dir, exist_ok=True)  # Ensure the RADAR/static/raw folder exists
 
 # Clear all PNG files in the output directory before running
