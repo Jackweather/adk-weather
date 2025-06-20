@@ -47,8 +47,8 @@ fs = fsspec.filesystem("s3", anon=True)
 stations = ['KENX', 'KBGM', 'KTYX', 'KCXX', 'KBUF', 'KOKX']
 
 # Output directory for PNGs
-output_dir = "./RADAR/raw"
-os.makedirs(output_dir, exist_ok=True)  # Ensure the RADAR/raw folder exists
+output_dir = "./RADAR/static/raw"
+os.makedirs(output_dir, exist_ok=True)  # Ensure the RADAR/static/raw folder exists
 
 # Clear all PNG files in the output directory before running
 for fname in os.listdir(output_dir):
@@ -127,7 +127,7 @@ for site in stations:
     )
 
     output_file = f"{output_dir}/NEXRAD_Reflectivity_Raw_{site}_{timeStr}.png"
-    plt.savefig(output_file, dpi=300, bbox_inches='tight', facecolor='white')  # Already high DPI
+    plt.savefig(output_file, dpi=200, bbox_inches='tight', facecolor='white')  # Already high DPI
     print(f"Plot saved as {output_file}")
     plt.close(fig)
     gc.collect()
