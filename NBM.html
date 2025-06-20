@@ -1079,7 +1079,14 @@
           if (hour12 === 0) hour12 = 12;
           let hh = String(hour12).padStart(2, '0');
 
-          return `Forecast valid (EST): ${yy}${mm}${dd} ${hh}:00 ${ampmDisp}`;
+          // Get day of week string
+          const daysOfWeek = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+          let dayOfWeek = daysOfWeek[tzDate.getDay()];
+
+          return {
+            forecastStr: `Forecast valid (EST): ${yy}${mm}${dd} ${hh}:00 ${ampmDisp}`,
+            dayOfWeek: dayOfWeek
+          };
         }
 
         window.updateOverlay = function(idx) {
@@ -1088,7 +1095,9 @@
           var hour = hourList[idx];
           if (entry && typeof hour !== "undefined") {
             label.textContent = `Hour: ${hour}`;
-            forecastTimeBox.textContent = getForecastTimeEST(hour); // <-- this line ensures forecast time updates
+            // Get forecast string and day of week
+            var forecastInfo = getForecastTimeEST(hour);
+            forecastTimeBox.innerHTML = forecastInfo.forecastStr + "<br><span style='color:#263159;font-size:1.01em;'>" + forecastInfo.dayOfWeek + "</span>";
           } else {
             label.textContent = "No data";
             forecastTimeBox.textContent = "";
