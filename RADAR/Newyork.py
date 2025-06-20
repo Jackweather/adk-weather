@@ -60,7 +60,7 @@ ref_norm, ref_cmap = ctables.registry.get_with_steps('NWSReflectivity', 5, 5)
 res = '10m'
 
 # Output directory for PNGs
-output_dir = "./RADAR/static/avg"
+output_dir = "../RADAR/static/avg"
 os.makedirs(output_dir, exist_ok=True)  # Ensure the theavg folder exists
 
 # Clear all PNG files in the output directory before running
