@@ -1,15 +1,38 @@
-import pyart
-import fsspec
-from metpy.plots import USCOUNTIES, ctables
-import matplotlib.pyplot as plt
-import cartopy.crs as ccrs
-import cartopy.feature as cfeature
+try:
+    import pyart
+except ImportError:
+    print("pyart module is not installed.")
+try:
+    import fsspec
+except ImportError:
+    print("fsspec module is not installed.")
+try:
+    from metpy.plots import USCOUNTIES, ctables
+except ImportError:
+    print("metpy module is not installed.")
+try:
+    import matplotlib.pyplot as plt
+except ImportError:
+    print("matplotlib module is not installed.")
+try:
+    import cartopy.crs as ccrs
+    import cartopy.feature as cfeature
+except ImportError:
+    print("cartopy module is not installed.")
 import warnings
 from datetime import datetime as dt
 from datetime import timedelta
-from scipy.ndimage import median_filter  # Import median filter
-import numpy as np  # Add import for numpy
+try:
+    from scipy.ndimage import median_filter  # Import median filter
+except ImportError:
+    print("scipy module is not installed.")
+try:
+    import numpy as np  # Add import for numpy
+except ImportError:
+    print("numpy module is not installed.")
 import os
+import gc
+import time
 
 import matplotlib
 matplotlib.rcParams['animation.html'] = 'html5'
@@ -125,3 +148,5 @@ for site in stations:
     plt.savefig(output_file, dpi=1000, bbox_inches='tight', facecolor='white')
     print(f"Plot saved as {output_file}")
     plt.close(fig)
+    gc.collect()
+    time.sleep(2)
