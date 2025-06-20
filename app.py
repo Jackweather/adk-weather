@@ -52,9 +52,9 @@ PNG_DIR_NBM_WIND = os.path.join(BASE_DIR, "NBM", "NBM", "static", "wind")
 SATELLITE_DIR = os.path.join(BASE_DIR, "weatherdata", "satellite")
 IR_DIR = os.path.join(BASE_DIR, "weatherdata", "Ir")
 RADAR_DIR = os.path.join(BASE_DIR, "weatherdata", "radar")
-# Use Windows-style paths for RADAR/avg and RADAR/raw
-RADAR_AVG_DIR = os.path.join(BASE_DIR, "RADAR", "avg")
-RADAR_RAW_DIR = os.path.join(BASE_DIR, "RADAR", "raw")
+# Use Windows-style paths for RADAR/ag and RADAR/raw
+RADAR_AG_DIR = os.path.join(BASE_DIR, "RADAR", "static", "ag")    # <-- PNGs from Newyork.py go here
+RADAR_RAW_DIR = os.path.join(BASE_DIR, "RADAR", "static", "raw")  # <-- PNGs from Newyork_raw.py go here
 
 @app.route("/")
 def home():
@@ -1032,14 +1032,14 @@ def list_radar_images():
 def serve_radar_image(filename):
     return send_from_directory(RADAR_DIR, filename)
 
-@app.route("/radar_avg_images")
-def list_radar_avg_images():
+@app.route("/radar_ag_images")
+def list_radar_ag_images():
     try:
-        files = [f for f in os.listdir(RADAR_AVG_DIR) if f.lower().endswith(".png")]
+        files = [f for f in os.listdir(RADAR_AG_DIR) if f.lower().endswith(".png")]
         files.sort()
         return jsonify(files)
     except Exception as e:
-        print(f"Error listing RADAR/avg: {e}")
+        print(f"Error listing RADAR/static/ag: {e}")
         return jsonify([])
 
 @app.route("/radar_raw_images")
@@ -1049,17 +1049,17 @@ def list_radar_raw_images():
         files.sort()
         return jsonify(files)
     except Exception as e:
-        print(f"Error listing RADAR/raw: {e}")
+        print(f"Error listing RADAR/static/raw: {e}")
         return jsonify([])
 
-@app.route("/radar_avg/<path:filename>")
-def serve_radar_avg(filename):
-    # Securely serve files from RADAR/avg
-    return send_from_directory(RADAR_AVG_DIR, filename)
+@app.route("/radar_ag/<path:filename>")
+def serve_radar_ag(filename):
+    # Securely serve files from RADAR/static/ag
+    return send_from_directory(RADAR_AG_DIR, filename)
 
 @app.route("/radar_raw/<path:filename>")
 def serve_radar_raw(filename):
-    # Securely serve files from RADAR/raw
+    # Securely serve files from RADAR/static/raw
     return send_from_directory(RADAR_RAW_DIR, filename)
 
 @app.route("/afd_summary_ALY.txt")
