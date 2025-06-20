@@ -1147,7 +1147,14 @@
           if (hour12 === 0) hour12 = 12;
           let hh = String(hour12).padStart(2, '0');
 
-          return `Forecast valid (EST): ${yy}${mm}${dd} ${hh}:00 ${ampmDisp}`;
+          // Get day of week string
+          const daysOfWeek = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+          let dayOfWeek = daysOfWeek[tzDate.getDay()];
+
+          return {
+            forecastStr: `Forecast valid (EST): ${yy}${mm}${dd} ${hh}:00 ${ampmDisp}`,
+            dayOfWeek: dayOfWeek
+          };
         }
 
       window.updateOverlay = function(idx) {
@@ -1203,7 +1210,9 @@
           // Always show hour label and forecast time if entry exists
           if (entry && typeof entry.hour !== "undefined") {
             label.textContent = `Hour: ${entry.hour}`;
-            forecastTimeBox.textContent = getForecastTimeEST(entry.hour);
+            // Get forecast string and day of week
+            var forecastInfo = getForecastTimeEST(entry.hour);
+            forecastTimeBox.innerHTML = forecastInfo.forecastStr + "<br><span style='color:#263159;font-size:1.01em;'>" + forecastInfo.dayOfWeek + "</span>";
           } else {
             label.textContent = "No data";
             forecastTimeBox.textContent = "";
@@ -1615,7 +1624,9 @@
       if (entry && typeof entry.hour !== "undefined") {
         // Show the index as Hour: 0, 1, 2, ... (not entry.hour)
         label.textContent = `Hour: ${entry.hour}`;
-        forecastTimeBox.textContent = getForecastTimeEST(entry.hour);
+        // Get forecast string and day of week
+        var forecastInfo = getForecastTimeEST(entry.hour);
+        forecastTimeBox.innerHTML = forecastInfo.forecastStr + "<br><span style='color:#263159;font-size:1.01em;'>" + forecastInfo.dayOfWeek + "</span>";
       } else {
         label.textContent = "No data";
         forecastTimeBox.textContent = "";
