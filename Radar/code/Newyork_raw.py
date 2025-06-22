@@ -22,6 +22,10 @@ except ImportError:
 import warnings
 from datetime import datetime as dt
 try:
+    import pytz
+except ImportError:
+    print("pytz module is not installed.")
+try:
     import numpy as np
 except ImportError:
     print("numpy module is not installed.")
@@ -36,6 +40,17 @@ warnings.filterwarnings("ignore")
 
 # Use the current time
 datTime = dt.utcnow()
+try:
+    import pytz
+    utc = pytz.utc
+    eastern = pytz.timezone('US/Eastern')
+    datTime_est = utc.localize(datTime).astimezone(eastern)
+except Exception:
+    from datetime import timedelta
+    datTime_est = datTime - timedelta(hours=5)  # fallback: naive EST
+# Format as yymmdd_HHMMSS in 12-hour EST
+timeStr_est = datTime_est.strftime("%y%m%d_%I%M%S%p")
+
 year = dt.strftime(datTime, format="%Y")
 month = dt.strftime(datTime, format="%m")
 day = dt.strftime(datTime, format="%d")
@@ -87,50 +102,54 @@ for site in stations:
     latest_file = files[0]
     print(f"Processing station {site}: {latest_file}")
 
-    # Open the file from S3 using fsspec and pass the file object to Py-ART
-    with fs.open(latest_file, 'rb') as f:
-        radar = pyart.io.read_nexrad_archive(f)
+    try:
+        # Open the file from S3 using fsspec and pass the file object to Py-ART
+        with fs.open(latest_file, 'rb') as f:
+            radar = pyart.io.read_nexrad_archive(f)
 
-    # Do NOT mask reflectivity data by range; show full 360° sweep
-    # refl = radar.fields['reflectivity']['data'].copy()
-    # ...no range masking...
+        # Do NOT mask reflectivity data by range; show full 360° sweep
+        # refl = radar.fields['reflectivity']['data'].copy()
+        # ...no range masking...
 
-    display = pyart.graph.RadarMapDisplay(radar)
-    display.plot_ppi_map(
-        field='reflectivity',
-        sweep=0,
-        vmin=15,
-        vmax=75,
-        ax=ax,
-        raster=True,  # Set raster=True for higher-res pixel rendering
-        title='',
-        colorbar_flag=False,
-        norm=ref_norm,
-        cmap=ref_cmap,
-        resolution=res,
-        alpha=0.8,
-    )
+        display = pyart.graph.RadarMapDisplay(radar)
+        display.plot_ppi_map(
+            field='reflectivity',
+            sweep=0,
+            vmin=15,
+            vmax=75,
+            ax=ax,
+            raster=True,  # Set raster=True for higher-res pixel rendering
+            title='',
+            colorbar_flag=False,
+            norm=ref_norm,
+            cmap=ref_cmap,
+            resolution=res,
+            alpha=0.8,
+        )
 
-    cbar = plt.colorbar(
-        plt.cm.ScalarMappable(norm=ref_norm, cmap=ref_cmap),
-        ax=ax,
-        orientation='horizontal',
-        pad=0.05,
-        aspect=50,
-    )
-    cbar.set_label('Equivalent Reflectivity ($Z_{e}$) (dBZ)')
+        cbar = plt.colorbar(
+            plt.cm.ScalarMappable(norm=ref_norm, cmap=ref_cmap),
+            ax=ax,
+            orientation='horizontal',
+            pad=0.05,
+            aspect=50,
+        )
+        cbar.set_label('Equivalent Reflectivity ($Z_{e}$) (dBZ)')
 
-    plt.title(
-        f"NEXRAD Reflectivity (Raw) {site} {timeStr} UTC",
-        fontsize=18,
-        fontweight='bold',
-        color='darkblue',
-    )
+        plt.title(
+            f"NEXRAD Reflectivity (Raw) {site} {timeStr_est} EST",
+            fontsize=18,
+            fontweight='bold',
+            color='darkblue',
+        )
 
-    output_file = os.path.join(output_dir, f"NEXRAD_Reflectivity_Raw_{site}_{timeStr}.png")
-    plt.savefig(output_file, dpi=200, bbox_inches='tight', facecolor='white')  # Already high DPI
-    print(f"Plot saved as {output_file}")
-    plt.close(fig)
-    gc.collect()
-    time.sleep(2)
+        output_file = os.path.join(output_dir, f"NEXRAD_Reflectivity_Raw_{site}_{timeStr_est}.png")
+        plt.savefig(output_file, dpi=400, bbox_inches='tight', facecolor='white')  # Already high DPI
+        print(f"Plot saved as {output_file}")
+    except Exception as e:
+        print(f"Error processing station {site}: {e}")
+    finally:
+        plt.close(fig)
+        gc.collect()
+        time.sleep(2)
 
