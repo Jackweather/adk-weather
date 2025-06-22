@@ -49,12 +49,11 @@ PNG_DIR_NBM_TSTM = os.path.join(BASE_DIR, "NBM", "NBM", "static", "tstm")
 PNG_DIR_NBM_CAPE = os.path.join(BASE_DIR, "NBM", "NBM", "static", "cape")
 # Add NBM Wind PNG directory
 PNG_DIR_NBM_WIND = os.path.join(BASE_DIR, "NBM", "NBM", "static", "wind")
-SATELLITE_DIR = os.path.join(BASE_DIR, "weatherdata", "satellite")
-IR_DIR = os.path.join(BASE_DIR, "weatherdata", "Ir")
-RADAR_DIR = os.path.join(BASE_DIR, "weatherdata", "radar")
-# Use Windows-style paths for RADAR/ag and RADAR/raw
-RADAR_AG_DIR = os.path.join(BASE_DIR, "RADAR", "static", "ag")    # <-- PNGs from Newyork.py go here
-RADAR_RAW_DIR = os.path.join(BASE_DIR, "RADAR", "static", "raw")  # <-- PNGs from Newyork_raw.py go here
+
+
+# Add these near the other RADAR_DIR definitions
+RADAR_AVG_DIR = os.path.join(BASE_DIR, "Radar", "refcavg")   # Averaged radar images
+RADAR_RAW_DIR = os.path.join(BASE_DIR, "Radar", "refcraw")   # Raw radar images
 
 @app.route("/")
 def home():
@@ -734,12 +733,12 @@ def run_task2():
 def run_task3():
     def run_radar_scripts():
         print("Flask is running as user:", getpass.getuser())  # Print user for debugging
-        # --- RADAR/Newyork.py ---
+        # --- RADAR/code/Newyork.py ---
         try:
             result = subprocess.run(
-                ["python", "/opt/render/project/src/RADAR/Newyork.py"],
+                ["python", os.path.join(BASE_DIR, "Radar", "code", "Newyork.py")],
                 check=True,
-                cwd="/opt/render/project/src/RADAR",
+                cwd=os.path.join(BASE_DIR, "Radar", "code"),
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 text=True
@@ -752,12 +751,12 @@ def run_task3():
             print(f"Error running Newyork.py:\n{error_trace}")
             print("STDOUT:", e.stdout)
             print("STDERR:", e.stderr)
-        # --- RADAR/Newyork_raw.py ---
+        # --- RADAR/code/Newyork_raw.py ---
         try:
             result = subprocess.run(
-                ["python", "/opt/render/project/src/RADAR/Newyork_raw.py"],
+                ["python", os.path.join(BASE_DIR, "Radar", "code", "Newyork_raw.py")],
                 check=True,
-                cwd="/opt/render/project/src/RADAR",
+                cwd=os.path.join(BASE_DIR, "Radar", "code"),
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 text=True
@@ -771,7 +770,7 @@ def run_task3():
             print("STDOUT:", e.stdout)
             print("STDERR:", e.stderr)
     threading.Thread(target=run_radar_scripts).start()
-    return "RADAR/Newyork.py and RADAR/Newyork_raw.py started in background!", 200
+    return "Radar/code/Newyork.py and Radar/code/Newyork_raw.py started in background!", 200
 
 @app.route("/run-task4")
 def run_task4():
@@ -1035,11 +1034,11 @@ def serve_radar_image(filename):
 @app.route("/radar_ag_images")
 def list_radar_ag_images():
     try:
-        files = [f for f in os.listdir(RADAR_AG_DIR) if f.lower().endswith(".png")]
+        files = [f for f in os.listdir(RADAR_AVG_DIR) if f.lower().endswith(".png")]
         files.sort()
         return jsonify(files)
     except Exception as e:
-        print(f"Error listing RADAR/static/ag: {e}")
+        print(f"Error listing Radar/refcavg: {e}")
         return jsonify([])
 
 @app.route("/radar_raw_images")
@@ -1049,17 +1048,17 @@ def list_radar_raw_images():
         files.sort()
         return jsonify(files)
     except Exception as e:
-        print(f"Error listing RADAR/static/raw: {e}")
+        print(f"Error listing Radar/refcraw: {e}")
         return jsonify([])
 
 @app.route("/radar_ag/<path:filename>")
 def serve_radar_ag(filename):
-    # Securely serve files from RADAR/static/ag
-    return send_from_directory(RADAR_AG_DIR, filename)
+    # Securely serve files from Radar/refcavg
+    return send_from_directory(RADAR_AVG_DIR, filename)
 
 @app.route("/radar_raw/<path:filename>")
 def serve_radar_raw(filename):
-    # Securely serve files from RADAR/static/raw
+    # Securely serve files from Radar/refcraw
     return send_from_directory(RADAR_RAW_DIR, filename)
 
 @app.route("/afd_summary_ALY.txt")
