@@ -420,11 +420,9 @@ def run_task1():
         print("Flask is running as user:", getpass.getuser())  # Print user for debugging
         # --- Run HRRRSAVED/HRRRsaved.py first ---
         try:
-            saved_script = os.path.join(BASE_DIR, "HRRRSAVED", "HRRRsaved.py")
             result = subprocess.run(
-                ["python", saved_script],
-                check=True,
-                cwd=os.path.join(BASE_DIR, "HRRRSAVED"),
+                ["python", "/opt/render/project/src/HRRRSAVED/HRRRsaved.py"],
+                check=True, cwd="/opt/render/project/src/HRRRSAVED",
                 stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
             )
             print("HRRRsaved.py ran successfully!")
@@ -435,7 +433,6 @@ def run_task1():
             print(f"Error running HRRRsaved.py:\n{error_trace}")
             print("STDOUT:", e.stdout)
             print("STDERR:", e.stderr)
-
         try:
             result = subprocess.run(
                 ["python", "/opt/render/project/src/HRRRUN/REFC.py"],
