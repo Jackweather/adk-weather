@@ -202,6 +202,86 @@ def get_pngs():
     elif "HRRR.html" in referer or "hrrr.html" in referer or request.args.get("model") == "hrrr":
         is_nbm = False
 
+    # --- Add support for archive mode ---
+    archive = request.args.get("archive")
+    archive_dir = None
+    if archive:
+        archive_dir = os.path.join(BASE_DIR, "HRRRSAVED", archive, "static")
+        # Define archive overlay directories
+        ARCHIVE_OVERLAY_DIRS = {
+            "refc": os.path.join(archive_dir, "REFC"),
+            "mslp": os.path.join(archive_dir, "MSLP"),
+            "temp2m": os.path.join(archive_dir, "2mtemp"),
+            "lightning": os.path.join(archive_dir, "lighting"),
+            "rh": os.path.join(archive_dir, "RH"),
+            "hail": os.path.join(archive_dir, "HAIL"),
+            "cape": os.path.join(archive_dir, "cape"),
+            "cin": os.path.join(archive_dir, "cin"),
+            "lcdc": os.path.join(archive_dir, "LCDC"),
+            "mcdc": os.path.join(archive_dir, "MCDC"),
+            "hcdc": os.path.join(archive_dir, "HCDC"),
+            "precip": os.path.join(archive_dir, "PRECIP"),
+            "wind10m": os.path.join(archive_dir, "WIND10M"),
+            "wind10m_station": os.path.join(archive_dir, "wind_bars_station"),
+            "srh": os.path.join(archive_dir, "HLCY"),
+            "pwat": os.path.join(archive_dir, "PWAT"),
+            "gust": os.path.join(archive_dir, "GUST"),
+            "shear_vector": os.path.join(archive_dir, "VUCSH_VVCSH"),
+        }
+        # Helper to safely list files in a directory
+        def safe_listdir(path):
+            try:
+                return os.listdir(path)
+            except Exception:
+                return []
+        # Build dicts for each overlay in archive
+        archive_dicts = {}
+        overlay_patterns = {
+            "refc": r"REFC_(\d+)\.png$",
+            "mslp": r"MSLP_(\d+)\.png$",
+            "temp2m": r"2mtemp_(\d+)\.png$",
+            "lightning": r"lght_(\d+)\.png$",
+            "rh": r"RH_(\d+)\.png$",
+            "hail": r"HAIL_(\d+)\.png$",
+            "cape": r"cape_(\d+)\.png$",
+            "cin": r"cin_(\d+)\.png$",
+            "lcdc": r"LCDC_(\d+)\.png$",
+            "mcdc": r"MCDC_(\d+)\.png$",
+            "hcdc": r"HCDC_(\d+)\.png$",
+            "precip": r"PRECIP_(\d+)\.png$",
+            "wind10m": r"WIND10M_(\d+)\.png$",
+            "wind10m_station": r"wind_barbs_(\d+)\.png$",
+            "srh": r"HLCY_(\d+)\.png$",
+            "pwat": r"PWAT_(\d+)\.png$",
+            "gust": r"GUST_(\d+)\.png$",
+            "shear_vector": r"ShearVectors_(\d+)\.png$",
+        }
+        for overlay, dirpath in ARCHIVE_OVERLAY_DIRS.items():
+            files = [f for f in safe_listdir(dirpath) if re.match(overlay_patterns[overlay], f)]
+            archive_dicts[overlay] = {int(re.match(overlay_patterns[overlay], f).group(1)): f for f in files if re.match(overlay_patterns[overlay], f)}
+        # Union of all available hours in archive
+        all_hours = set()
+        for d in archive_dicts.values():
+            all_hours |= set(d.keys())
+        all_hours = sorted(all_hours)
+        # Always return 0-48 for HRRR archive
+        all_hours = list(range(0, 49))
+        result = []
+        for hour in all_hours:
+            entry = {"hour": hour}
+            for overlay in ARCHIVE_OVERLAY_DIRS:
+                d = archive_dicts[overlay]
+                entry[overlay] = f"/archive_pngs/{archive}/{overlay}/{d[hour]}" if hour in d else None
+            # Fill in overlays not in archive as None
+            for overlay in ["nbm_temp2m", "nbm_totprecip", "nbm_gust", "nbm_maxref", "nbm_hail", "nbm_tornado", "nbm_tstm", "nbm_cape", "nbm_wind"]:
+                entry[overlay] = None
+            result.append(entry)
+        response = make_response(jsonify(result))
+        response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+        response.headers["Pragma"] = "no-cache"
+        response.headers["Expires"] = "0"
+        return response
+
     # Union of all available hours from all overlays (add nbm_temp2m_dict, nbm_totprecip_dict, nbm_maxref_dict, nbm_hail_dict, nbm_tornado_dict)
     all_hours = set(refc_dict) | set(mslp_dict) | set(temp2m_dict) | set(lightning_dict) | set(rh_dict) | set(hail_dict) | set(cape_dict) | set(cin_dict) | set(lcdc_dict) | set(mcdc_dict) | set(hcdc_dict) | set(precip_dict) | set(wind10m_dict) | set(wind10m_station_dict) | set(srh_dict) | set(pwat_dict) | set(gust_dict) | set(shear_vector_dict) | set(nbm_temp2m_dict) | set(nbm_totprecip_dict) | set(nbm_gust_dict) | set(nbm_maxref_dict) | set(nbm_hail_dict) | set(nbm_tornado_dict) | set(nbm_tstm_dict) | set(nbm_cape_dict) | set(nbm_wind_dict)
     all_hours = sorted(all_hours)
@@ -338,6 +418,24 @@ def serve_cartopy_base():
 def run_task1():
     def run_all_scripts():
         print("Flask is running as user:", getpass.getuser())  # Print user for debugging
+        # --- Run HRRRSAVED/HRRRsaved.py first ---
+        try:
+            saved_script = os.path.join(BASE_DIR, "HRRRSAVED", "HRRRsaved.py")
+            result = subprocess.run(
+                ["python", saved_script],
+                check=True,
+                cwd=os.path.join(BASE_DIR, "HRRRSAVED"),
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
+            )
+            print("HRRRsaved.py ran successfully!")
+            print("STDOUT:", result.stdout)
+            print("STDERR:", result.stderr)
+        except subprocess.CalledProcessError as e:
+            error_trace = traceback.format_exc()
+            print(f"Error running HRRRsaved.py:\n{error_trace}")
+            print("STDOUT:", e.stdout)
+            print("STDERR:", e.stderr)
+
         try:
             result = subprocess.run(
                 ["python", "/opt/render/project/src/HRRRUN/REFC.py"],
@@ -1067,6 +1165,75 @@ def serve_afd_summary_aly():
     if not os.path.isfile(afd_path):
         return "Summary not found.", 404
     return send_file(afd_path, mimetype="text/plain")
+
+@app.route("/hrrr_archives")
+def hrrr_archives():
+    saved_dir = os.path.join(BASE_DIR, "HRRRSAVED")
+    try:
+        # List all directories in HRRRSAVED (no filter on _z or anything else)
+        archives = [
+            name for name in os.listdir(saved_dir)
+            if os.path.isdir(os.path.join(saved_dir, name))
+        ]
+        archives.sort(reverse=True)
+        return jsonify(archives)
+    except Exception:
+        return jsonify([])
+
+# --- Serve archived PNGs for overlays ---
+@app.route("/archive_pngs/<archive>/<overlay>/<path:filename>")
+def serve_archive_png(archive, overlay, filename):
+    # Defensive: only allow overlays that are valid
+    allowed_overlays = {
+        "REFC", "MSLP", "2mtemp", "lighting", "RH", "HAIL", "cape", "cin",
+        "LCDC", "MCDC", "HCDC", "PRECIP", "WIND10M", "wind_bars_station",
+        "HLCY", "PWAT", "GUST", "VUCSH_VVCSH"
+    }
+    # Normalize overlay for case-insensitive match
+    overlay_norm = overlay.lower()
+    # Map overlay to actual folder name (case-sensitive on some OS)
+    overlay_map = {
+        "refc": "REFC",
+        "mslp": "MSLP",
+        "temp2m": "2mtemp",
+        "lightning": "lighting",
+        "rh": "RH",
+        "hail": "HAIL",
+        "cape": "cape",
+        "cin": "cin",
+        "lcdc": "LCDC",
+        "mcdc": "MCDC",
+        "hcdc": "HCDC",
+        "precip": "PRECIP",
+        "wind10m": "WIND10M",
+        "wind10m_station": "wind_bars_station",
+        "srh": "HLCY",
+        "pwat": "PWAT",
+        "gust": "GUST",
+        "shear_vector": "VUCSH_VVCSH"
+    }
+    # Use mapped overlay folder if present
+    overlay_folder = overlay_map.get(overlay_norm, overlay)
+    if overlay_folder not in allowed_overlays:
+        return "Invalid overlay", 404
+    archive_dir = os.path.join(BASE_DIR, "HRRRSAVED", archive, "static", overlay_folder)
+    filename = filename.split('?', 1)[0]
+    full_path = os.path.join(archive_dir, filename)
+    print(f"Serving archive overlay: {full_path}")  # Debug log
+    if not os.path.isfile(full_path):
+        print(f"File NOT FOUND: {full_path}")
+        return "Not found", 404
+    return send_file(full_path)
+
+@app.route("/archive_images/<archive>/<overlay>")
+def list_archive_images(archive, overlay):
+    archive_dir = os.path.join(BASE_DIR, "HRRRSAVED", archive, "static", overlay)
+    try:
+        files = [f for f in os.listdir(archive_dir) if f.lower().endswith(".png")]
+        files.sort()
+        return jsonify(files)
+    except Exception as e:
+        return jsonify([])
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
