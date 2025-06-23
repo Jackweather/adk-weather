@@ -831,9 +831,9 @@ def run_task3():
         # --- RADAR/code/Newyork.py ---
         try:
             result = subprocess.run(
-                ["python", os.path.join(BASE_DIR, "Radar", "code", "Newyork.py")],
+                ["python", "/opt/render/project/src/Radar/code/Newyork.py"],
                 check=True,
-                cwd=os.path.join(BASE_DIR, "Radar", "code"),
+                cwd="/opt/render/project/src/Radar/code",
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 text=True
@@ -849,9 +849,9 @@ def run_task3():
         # --- RADAR/code/Newyork_raw.py ---
         try:
             result = subprocess.run(
-                ["python", os.path.join(BASE_DIR, "Radar", "code", "Newyork_raw.py")],
+                ["python", "/opt/render/project/src/Radar/code/Newyork_raw.py"],
                 check=True,
-                cwd=os.path.join(BASE_DIR, "Radar", "code"),
+                cwd="/opt/render/project/src/Radar/code",
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 text=True
