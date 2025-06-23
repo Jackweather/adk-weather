@@ -161,7 +161,7 @@ for site in stations:
 
         # Save the plot as a PNG file with higher DPI for better quality
         output_file = os.path.join(base_output_dir, f"NEXRAD_Reflectivity_{site}_{timeStr_est}.png")
-        plt.savefig(output_file, dpi=400, bbox_inches='tight', facecolor='white')
+        plt.savefig(output_file, dpi=200, bbox_inches='tight', facecolor='white')
         print(f"Plot saved as {output_file}")
     except Exception as e:
         print(f"Error processing station {site}: {e}")
