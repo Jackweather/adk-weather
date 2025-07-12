@@ -288,7 +288,11 @@ def get_pngs():
 
     # --- Only include hours that match the model's step ---
     if is_nbm:
-        all_hours = [h for h in all_hours if h is not None and h % 6 == 0 and 6 <= h <= 264]
+        # NBM: Always return 6-264 (inclusive, every 6 hours), even if files are missing
+        all_hours = list(range(6, 265, 6))
+    elif "GFS.html" in referer or "gfs.html" in referer or request.args.get("model") == "gfs":
+        # GFS: Always return 6-384 (inclusive, every 6 hours), even if files are missing
+        all_hours = list(range(6, 385, 6))
     else:
         # HRRR: Always return 0-48 (inclusive), even if files are missing
         all_hours = list(range(0, 49))
@@ -891,6 +895,229 @@ def run_task4():
     threading.Thread(target=run_nwsdiscmodel_script).start()
     return "weatherdata/nwsdiscmodel.py started in background!", 200
 
+@app.route("/run-task5")
+def run_task5():
+    def run_gfs_scripts():
+        print("Flask is running as user:", getpass.getuser())  # Print user for debugging
+        # --- GFS_ABSV.py ---
+        try:
+            result = subprocess.run(
+                ["python", "/opt/render/project/src/GFS/GFS_ABSV.py"],
+                check=True,
+                cwd="/opt/render/project/src/GFS",
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True
+            )
+            print("GFS_ABSV.py ran successfully!")
+            print("STDOUT:", result.stdout)
+            print("STDERR:", result.stderr)
+        except subprocess.CalledProcessError as e:
+            error_trace = traceback.format_exc()
+            print(f"Error running GFS_ABSV.py:\n{error_trace}")
+            print("STDOUT:", e.stdout)
+            print("STDERR:", e.stderr)
+        # --- gfs_precip_convective_accum.py ---
+        try:
+            result = subprocess.run(
+                ["python", "/opt/render/project/src/GFS/gfs_precip_convective_accum.py"],
+                check=True,
+                cwd="/opt/render/project/src/GFS",
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True
+            )
+            print("gfs_precip_convective_accum.py ran successfully!")
+            print("STDOUT:", result.stdout)
+            print("STDERR:", result.stderr)
+        except subprocess.CalledProcessError as e:
+            error_trace = traceback.format_exc()
+            print(f"Error running gfs_precip_convective_accum.py:\n{error_trace}")
+            print("STDOUT:", e.stdout)
+            print("STDERR:", e.stderr)
+        # --- gfs_precip_total_accum.py ---
+        try:
+            result = subprocess.run(
+                ["python", "/opt/render/project/src/GFS/gfs_precip_total_accum.py"],
+                check=True,
+                cwd="/opt/render/project/src/GFS",
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True
+            )
+            print("gfs_precip_total_accum.py ran successfully!")
+            print("STDOUT:", result.stdout)
+            print("STDERR:", result.stderr)
+        except subprocess.CalledProcessError as e:
+            error_trace = traceback.format_exc()
+            print(f"Error running gfs_precip_total_accum.py:\n{error_trace}")
+            print("STDOUT:", e.stdout)
+            print("STDERR:", e.stderr)
+        # --- gfs_precip24.py ---
+        try:
+            result = subprocess.run(
+                ["python", "/opt/render/project/src/GFS/gfs_precip24.py"],
+                check=True,
+                cwd="/opt/render/project/src/GFS",
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True
+            )
+            print("gfs_precip24.py ran successfully!")
+            print("STDOUT:", result.stdout)
+            print("STDERR:", result.stderr)
+        except subprocess.CalledProcessError as e:
+            error_trace = traceback.format_exc()
+            print(f"Error running gfs_precip24.py:\n{error_trace}")
+            print("STDOUT:", e.stdout)
+            print("STDERR:", e.stderr)
+        # --- gfs_total_precip.py ---
+        try:
+            result = subprocess.run(
+                ["python", "/opt/render/project/src/GFS/gfs_total_precip.py"],
+                check=True,
+                cwd="/opt/render/project/src/GFS",
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True
+            )
+            print("gfs_total_precip.py ran successfully!")
+            print("STDOUT:", result.stdout)
+            print("STDERR:", result.stderr)
+        except subprocess.CalledProcessError as e:
+            error_trace = traceback.format_exc()
+            print(f"Error running gfs_total_precip.py:\n{error_trace}")
+            print("STDOUT:", e.stdout)
+            print("STDERR:", e.stderr)
+        # --- HAINESCY.py ---
+        try:
+            result = subprocess.run(
+                ["python", "/opt/render/project/src/GFS/HAINESCY.py"],
+                check=True,
+                cwd="/opt/render/project/src/GFS",
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True
+            )
+            print("HAINESCY.py ran successfully!")
+            print("STDOUT:", result.stdout)
+            print("STDERR:", result.stderr)
+        except subprocess.CalledProcessError as e:
+            error_trace = traceback.format_exc()
+            print(f"Error running HAINESCY.py:\n{error_trace}")
+            print("STDOUT:", e.stdout)
+            print("STDERR:", e.stderr)
+        # --- hgt_500.py ---
+        try:
+            result = subprocess.run(
+                ["python", "/opt/render/project/src/GFS/hgt_500.py"],
+                check=True,
+                cwd="/opt/render/project/src/GFS",
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True
+            )
+            print("hgt_500.py ran successfully!")
+            print("STDOUT:", result.stdout)
+            print("STDERR:", result.stderr)
+        except subprocess.CalledProcessError as e:
+            error_trace = traceback.format_exc()
+            print(f"Error running hgt_500.py:\n{error_trace}")
+            print("STDOUT:", e.stdout)
+            print("STDERR:", e.stderr)
+        # --- mslp_surface.py ---
+        try:
+            result = subprocess.run(
+                ["python", "/opt/render/project/src/GFS/mslp_surface.py"],
+                check=True,
+                cwd="/opt/render/project/src/GFS",
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True
+            )
+            print("mslp_surface.py ran successfully!")
+            print("STDOUT:", result.stdout)
+            print("STDERR:", result.stderr)
+        except subprocess.CalledProcessError as e:
+            error_trace = traceback.format_exc()
+            print(f"Error running mslp_surface.py:\n{error_trace}")
+            print("STDOUT:", e.stdout)
+            print("STDERR:", e.stderr)
+        # --- REFCGFS.py ---
+        try:
+            result = subprocess.run(
+                ["python", "/opt/render/project/src/GFS/REFCGFS.py"],
+                check=True,
+                cwd="/opt/render/project/src/GFS",
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True
+            )
+            print("REFCGFS.py ran successfully!")
+            print("STDOUT:", result.stdout)
+            print("STDERR:", result.stderr)
+        except subprocess.CalledProcessError as e:
+            error_trace = traceback.format_exc()
+            print(f"Error running REFCGFS.py:\n{error_trace}")
+            print("STDOUT:", e.stdout)
+            print("STDERR:", e.stderr)
+        # --- REFCHLCY.py ---
+        try:
+            result = subprocess.run(
+                ["python", "/opt/render/project/src/GFS/REFCHLCY.py"],
+                check=True,
+                cwd="/opt/render/project/src/GFS",
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True
+            )
+            print("REFCHLCY.py ran successfully!")
+            print("STDOUT:", result.stdout)
+            print("STDERR:", result.stderr)
+        except subprocess.CalledProcessError as e:
+            error_trace = traceback.format_exc()
+            print(f"Error running REFCHLCY.py:\n{error_trace}")
+            print("STDOUT:", e.stdout)
+            print("STDERR:", e.stderr)
+        # --- tmp_surface.py ---
+        try:
+            result = subprocess.run(
+                ["python", "/opt/render/project/src/GFS/tmp_surface.py"],
+                check=True,
+                cwd="/opt/render/project/src/GFS",
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True
+            )
+            print("tmp_surface.py ran successfully!")
+            print("STDOUT:", result.stdout)
+            print("STDERR:", result.stderr)
+        except subprocess.CalledProcessError as e:
+            error_trace = traceback.format_exc()
+            print(f"Error running tmp_surface.py:\n{error_trace}")
+            print("STDOUT:", e.stdout)
+            print("STDERR:", e.stderr)
+        # --- vertical_velocity_500mb.py ---
+        try:
+            result = subprocess.run(
+                ["python", "/opt/render/project/src/GFS/vertical_velocity_500mb.py"],
+                check=True,
+                cwd="/opt/render/project/src/GFS",
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True
+            )
+            print("vertical_velocity_500mb.py ran successfully!")
+            print("STDOUT:", result.stdout)
+            print("STDERR:", result.stderr)
+        except subprocess.CalledProcessError as e:
+            error_trace = traceback.format_exc()
+            print(f"Error running vertical_velocity_500mb.py:\n{error_trace}")
+            print("STDOUT:", e.stdout)
+            print("STDERR:", e.stderr)
+    threading.Thread(target=run_gfs_scripts).start()
+    return "All GFS scripts started sequentially in background!", 200
+
 @app.route("/<path:filename>")
 def serve_static_file(filename):
     return send_from_directory(BASE_DIR, filename)
@@ -1072,6 +1299,20 @@ def serve_nbm_wind_png(filename):
         return send_from_directory(COLORBAR_DIR, "WIND10M_colorbar.png")
     return api_serve_image(PNG_DIR_NBM_WIND, filename)
 
+# Add GFS directory
+PNG_DIR_GFS_REFCGFS = os.path.join(BASE_DIR, "GFS", "GFS", "static", "REFCGFS")
+PNG_DIR_GFS_HGT500 = os.path.join(BASE_DIR, "GFS", "GFS", "static", "hgt_500")
+PNG_DIR_GFS_ABSVORT = os.path.join(BASE_DIR, "GFS", "GFS", "static", "abs_vort")
+PNG_DIR_GFS_MSLP = os.path.join(BASE_DIR, "GFS", "GFS", "static", "gfs_mslp_surface")
+PNG_DIR_GFS_24HR = os.path.join(BASE_DIR, "GFS", "GFS", "static", "gfs_total_24_hour")
+PNG_DIR_GFS_ACCUM = os.path.join(BASE_DIR, "GFS", "GFS", "static", "gfs_total_accum_precip")
+PNG_DIR_GFS_TOTP = os.path.join(BASE_DIR, "GFS", "GFS", "static", "gfs_total_precip")
+PNG_DIR_GFS_TMP2M = os.path.join(BASE_DIR, "GFS", "GFS", "static", "tmp_surface")
+PNG_DIR_GFS_VERTICAL_VELOCITY = os.path.join(BASE_DIR, "GFS", "GFS", "static", "gfs_vertical_velocity_500mb")
+# Add GFS convective precip accum directory
+PNG_DIR_GFS_CONVECTIVE_ACCUM = os.path.join(BASE_DIR, "GFS", "GFS", "static", "gfs_convective_accum_precip")
+
+
 import re
 
 def extract_png_time(filename):
@@ -1231,6 +1472,181 @@ def list_archive_images(archive, overlay):
         return jsonify(files)
     except Exception as e:
         return jsonify([])
+
+@app.route("/gfs_refcgfs_images")
+def list_gfs_refcgfs_images():
+    try:
+        files = [f for f in os.listdir(PNG_DIR_GFS_REFCGFS) if f.lower().endswith(".png")]
+        files.sort()
+        return jsonify(files)
+    except Exception as e:
+        return jsonify([])
+
+@app.route("/gfs_refcgfs_pngs/<path:filename>")
+def serve_gfs_refcgfs_png(filename):
+    # Serve the GFS reflectivity colorbar for colorbar.png requests
+    if filename == "colorbar.png":
+        return send_from_directory(COLORBAR_DIR, "GFSreflectivity.png")
+    return send_from_directory(PNG_DIR_GFS_REFCGFS, filename)
+
+@app.route("/gfs_hgt500_images")
+def list_gfs_hgt500_images():
+    try:
+        files = [f for f in os.listdir(PNG_DIR_GFS_HGT500) if f.lower().endswith(".png")]
+        files.sort()
+        return jsonify(files)
+    except Exception as e:
+        return jsonify([])
+
+@app.route("/gfs_hgt500_pngs/<path:filename>")
+def serve_gfs_hgt500_png(filename):
+    return send_from_directory(PNG_DIR_GFS_HGT500, filename)
+
+@app.route("/gfs_absvort_images")
+def list_gfs_absvort_images():
+    try:
+        files = [f for f in os.listdir(PNG_DIR_GFS_ABSVORT) if f.lower().endswith(".png")]
+        files.sort()
+        return jsonify(files)
+    except Exception as e:
+        return jsonify([])
+
+@app.route("/gfs_absvort_pngs/<path:filename>")
+def serve_gfs_absvort_png(filename):
+    return send_from_directory(PNG_DIR_GFS_ABSVORT, filename)
+
+@app.route("/gfs_mslp_images")
+def list_gfs_mslp_images():
+    try:
+        files = [f for f in os.listdir(PNG_DIR_GFS_MSLP) if f.lower().endswith(".png")]
+        files.sort()
+        return jsonify(files)
+    except Exception as e:
+        return jsonify([])
+
+@app.route("/gfs_mslp_pngs/<path:filename>")
+def serve_gfs_mslp_png(filename):
+    return send_from_directory(PNG_DIR_GFS_MSLP, filename)
+
+@app.route("/gfs_24hr_images")
+def list_gfs_24hr_images():
+    try:
+        files = [f for f in os.listdir(PNG_DIR_GFS_24HR) if f.lower().endswith(".png")]
+        files.sort()
+        return jsonify(files)
+    except Exception as e:
+        return jsonify([])
+
+@app.route("/gfs_24hr_pngs/<path:filename>")
+def serve_gfs_24hr_png(filename):
+    return send_from_directory(PNG_DIR_GFS_24HR, filename)
+
+@app.route("/gfs_accum_images")
+def list_gfs_accum_images():
+    try:
+        files = [f for f in os.listdir(PNG_DIR_GFS_ACCUM) if f.lower().endswith(".png")]
+        files.sort()
+        return jsonify(files)
+    except Exception as e:
+        return jsonify([])
+
+@app.route("/gfs_accum_pngs/<path:filename>")
+def serve_gfs_accum_png(filename):
+    return send_from_directory(PNG_DIR_GFS_ACCUM, filename)
+
+@app.route("/gfs_totp_images")
+def list_gfs_totp_images():
+    try:
+        files = [f for f in os.listdir(PNG_DIR_GFS_TOTP) if f.lower().endswith(".png")]
+        files.sort()
+        return jsonify(files)
+    except Exception as e:
+        return jsonify([])
+
+@app.route("/gfs_totp_pngs/<path:filename>")
+def serve_gfs_totp_png(filename):
+    return send_from_directory(PNG_DIR_GFS_TOTP, filename)
+
+@app.route("/gfs_tmp2m_images")
+def list_gfs_tmp2m_images():
+    try:
+        files = [f for f in os.listdir(PNG_DIR_GFS_TMP2M) if f.lower().endswith(".png")]
+        files.sort()
+        return jsonify(files)
+    except Exception as e:
+        return jsonify([])
+
+@app.route("/gfs_tmp2m_pngs/<path:filename>")
+def serve_gfs_tmp2m_png(filename):
+    return send_from_directory(PNG_DIR_GFS_TMP2M, filename)
+
+# Add GFS REFCHLCY directory
+PNG_DIR_GFS_REFCHLCY = os.path.join(BASE_DIR, "GFS", "GFS", "static", "REFCHLCY")
+
+@app.route("/gfs_refchlcy_images")
+def list_gfs_refchlcy_images():
+    try:
+        files = [f for f in os.listdir(PNG_DIR_GFS_REFCHLCY) if f.lower().endswith(".png")]
+        files.sort()
+        return jsonify(files)
+    except Exception as e:
+        return jsonify([])
+
+@app.route("/gfs_refchlcy_pngs/<path:filename>")
+def serve_gfs_refchlcy_png(filename):
+    # Serve the GFS REFCHLCY colorbar for colorbar.png requests
+    if filename == "colorbar.png":
+        return send_from_directory(COLORBAR_DIR, "GFSREFCHLCY_colorbar.png")
+    return send_from_directory(PNG_DIR_GFS_REFCHLCY, filename)
+
+# Add GFS HAINESCY directory
+PNG_DIR_GFS_HAINESCY = os.path.join(BASE_DIR, "GFS", "GFS", "static", "HAINESCY")
+
+@app.route("/gfs_hainesc_images")
+def list_gfs_hainesc_images():
+    try:
+        files = [f for f in os.listdir(PNG_DIR_GFS_HAINESCY) if f.lower().endswith(".png")]
+        files.sort()
+        return jsonify(files)
+    except Exception as e:
+        return jsonify([])
+
+@app.route("/gfs_hainesc_pngs/<path:filename>")
+def serve_gfs_hainesc_png(filename):
+    # Serve the GFS Haines Index colorbar for colorbar.png requests
+    if filename == "colorbar.png":
+        return send_from_directory(COLORBAR_DIR, "GFS_haines_colorbar.png")
+    # Ensure the correct directory is used for serving Haines Index images
+    return api_serve_image(PNG_DIR_GFS_HAINESCY, filename)
+
+@app.route("/gfs_vertical_velocity_images")
+def list_gfs_vertical_velocity_images():
+    try:
+        files = [f for f in os.listdir(PNG_DIR_GFS_VERTICAL_VELOCITY) if f.lower().endswith(".png")]
+        files.sort()
+        return jsonify(files)
+    except Exception as e:
+        return jsonify([])
+
+@app.route("/gfs_vertical_velocity_pngs/<path:filename>")
+def serve_gfs_vertical_velocity_png(filename):
+    # Serve the GFS Vertical Velocity colorbar for colorbar.png requests
+    if filename == "colorbar.png":
+        return send_from_directory(COLORBAR_DIR, "GFS_Vertical_vs.png")
+    return send_from_directory(PNG_DIR_GFS_VERTICAL_VELOCITY, filename)
+
+@app.route("/gfs_convective_accum_images")
+def list_gfs_convective_accum_images():
+    try:
+        files = [f for f in os.listdir(PNG_DIR_GFS_CONVECTIVE_ACCUM) if f.lower().endswith(".png")]
+        files.sort()
+        return jsonify(files)
+    except Exception as e:
+        return jsonify([])
+
+@app.route("/gfs_convective_accum_pngs/<path:filename>")
+def serve_gfs_convective_accum_png(filename):
+    return send_from_directory(PNG_DIR_GFS_CONVECTIVE_ACCUM, filename)
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
