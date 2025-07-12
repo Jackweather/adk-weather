@@ -1,0 +1,1861 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>USA Reflectivity Overlay</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background: #f7f7f7;
+      font-family: 'Segoe UI', Arial, sans-serif;
+    }
+    /* Top navigation bar */
+    #top-navbar {
+      width: 100vw;
+      background: #263159;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      padding: 0 32px;
+      height: 54px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+      position: fixed;
+      top: 0;
+      left: 0;
+      z-index: 2000;
+    }
+    #top-navbar .nav-item {
+      margin-right: 32px;
+      font-size: 1.1em;
+      font-weight: 500;
+      cursor: pointer;
+      user-select: none;
+      transition: color 0.15s;
+      color: #fff; /* Ensure white text for all nav items */
+      text-decoration: none; /* Remove underline for links */
+    }
+    #top-navbar .nav-item:hover {
+      color: #ffb400;
+    }
+    /* --- Model selector placement --- */
+    #model-selector-container {
+      width: 100vw;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 10px 0 0 0;
+      z-index: 10; /* Lower z-index */
+      margin-bottom: 6px; /* Add spacing below selector */
+    }
+    #model-selector {
+      position: relative;
+      margin: 0 auto;
+      z-index: 20; /* Lower z-index */
+    }
+    #model-selector-btn {
+      background: #263159;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 9px 28px 9px 16px;
+      font-size: 1.13em;
+      font-weight: 600;
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+      transition: background 0.15s, color 0.15s;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    #model-selector-btn:hover {
+      background: #ffb400;
+      color: #fff;
+    }
+    #model-selector-list {
+      display: none;
+      position: absolute;
+      top: 110%;
+      left: 0;
+      min-width: 180px;
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.13);
+      z-index: 3000;
+      padding: 6px 0;
+      font-size: 1.05em;
+    }
+    #model-selector.open #model-selector-list {
+      display: block;
+    }
+    #model-selector-list a {
+      display: block;
+      color: #263159;
+      text-decoration: none;
+      padding: 8px 18px;
+      transition: background 0.13s, color 0.13s;
+      border-radius: 4px;
+    }
+    #model-selector-list a:hover {
+      background: #f3f4fa;
+      color: #ffb400;
+    }
+
+    /* --- Redesigned main content area --- */
+    #main-content {
+      display: flex;
+      flex-direction: row;
+      justify-content: center;
+      align-items: flex-start;
+      width: 100vw;
+      min-height: calc(100vh - 54px);
+      margin-top: 54px;
+      box-sizing: border-box;
+      gap: 32px;
+      padding: 32px 0 0 0;
+    }
+    /* Left panel as a modern card */
+    #left-panel {
+      width: 220px;
+      min-width: 120px;
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 2px 16px rgba(60,72,88,0.10);
+      padding: 24px 18px 24px 18px;
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      z-index: 1200;
+      height: fit-content;
+      border: 1px solid #e6e8ef;
+      transition: box-shadow 0.2s;
+      gap: 18px;
+    }
+    #left-panel .utc-box {
+      background: #f8fafc;
+      border-radius: 10px;
+      box-shadow: none;
+      border: none;
+      padding: 16px 10px 12px 10px;
+      font-family: monospace;
+      font-size: 1.08em;
+      color: #263159;
+      text-align: center;
+      margin-bottom: 0;
+      pointer-events: none;
+      user-select: none;
+      letter-spacing: 0.01em;
+      border: 1px solid #e6e8ef;
+    }
+    #left-panel .slider-box {
+      background: #f8fafc;
+      border-radius: 10px;
+      box-shadow: none;
+      border: none;
+      padding: 16px 10px 12px 10px;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      border: 1px solid #e6e8ef;
+      gap: 8px;
+    }
+    #left-panel #hour-slider {
+      width: 120px;
+      accent-color: #263159;
+      margin-bottom: 6px;
+      height: 2px;
+      border-radius: 2px;
+      background: #e0e3ef;
+      outline: none;
+    }
+    #left-panel #hour-label {
+      font-family: monospace;
+      font-size: 1.08em;
+      color: #263159;
+      margin-bottom: 2px;
+      letter-spacing: 0.01em;
+    }
+    #left-panel #forecast-time-est {
+      margin-top: 2px;
+      font-family: monospace;
+      color: #444;
+      font-size: 0.98em;
+      background: none;
+      border: none;
+      padding: 0;
+    }
+    #slider-play-btn {
+      margin: 10px auto 0 auto;
+      display: block;
+      padding: 7px 22px;
+      font-size: 1.08em;
+      border-radius: 8px;
+      border: none;
+      background: #263159;
+      color: #fff;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    #slider-play-btn:hover {
+      background: #ffb400;
+      color: #fff;
+    }
+
+    /* Map card */
+    #map-container {
+      flex: 1 1 auto;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-width: 0;
+      min-height: 0;
+      height: 100%;
+    }
+    #map {
+      height: 78vh;
+      width: 64vw;
+      min-width: 340px;
+      min-height: 340px;
+      max-width: 1100px;
+      max-height: 800px;
+      background: #fff;
+      border-radius: 18px;
+      box-shadow: 0 4px 32px rgba(0,0,0,0.10);
+      margin: 0 auto;
+      border: 1px solid #e6e8ef;
+    }
+
+    /* Right panel as a modern card */
+    #right-panel {
+      width: 270px;
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 2px 16px rgba(60,72,88,0.10);
+      padding: 22px 0 22px 0;
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      min-height: 320px;
+      z-index: 1200;
+      border: 1px solid #e6e8ef;
+      gap: 12px;
+    }
+    .dropdown {
+      margin: 0 18px 10px 18px;
+      border-radius: 10px;
+      background: #f5f7fa;
+      box-shadow: 0 1px 6px rgba(0,0,0,0.06);
+      overflow: hidden;
+      border: 1px solid #e0e0e0;
+    }
+    .dropdown-header {
+      padding: 10px 16px;
+      font-size: 1.08em;
+      font-weight: bold;
+      color: #263159;
+      background: #e8eaf6;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      user-select: none;
+      border-bottom: 1px solid #e0e0e0;
+    }
+    .dropdown-header.severe {
+      color: #b71c1c;
+      background: #ffebee;
+    }
+    .dropdown-header.other {
+      color: #1b5e20;
+      background: #e8f5e9;
+    }
+    .dropdown-content {
+      display: none;
+      padding: 0 16px 10px 16px;
+      animation: fadeIn 0.2s;
+    }
+    .dropdown.open .dropdown-content {
+      display: block;
+    }
+    .dropdown-content label {
+      display: block;
+      margin: 8px 0 0 0;
+      font-size: 1em;
+      color: #333;
+      cursor: pointer;
+    }
+    /* Opacity slider containers */
+    [id$="-opacity-container"] {
+      display: none;
+      margin: 2px 0 10px 26px;
+    }
+    [id$="-opacity-slider"] {
+      width: 100px;
+      accent-color: #263159;
+      vertical-align: middle;
+    }
+    [id$="-opacity-value"] {
+      font-size: 0.97em;
+      color: #263159;
+    }
+
+    /* Bottom colorbar bar */
+    #bottom-colorbar-bar {
+      position: fixed;
+      left: 0;
+      bottom: 0;
+      width: 100vw;
+      background: rgba(255,255,255,0.98);
+      box-shadow: 0 -2px 16px rgba(0,0,0,0.08);
+      border-top: 1px solid #e6e8ef;
+      z-index: 3000;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      align-items: center;
+      padding: 0;
+      min-height: 60px;
+      height: 80px;
+      transition: height 0.15s;
+      box-sizing: border-box;
+    }
+    #colorbar-resize-handle {
+      width: 100px;
+      height: 8px;
+      cursor: ns-resize;
+      background: #e0e3ef;
+      border-radius: 4px;
+      margin: 6px auto 0 auto;
+      position: relative;
+      top: 4px;
+      transition: background 0.2s;
+      z-index: 1;
+    }
+    #colorbar-resize-handle:hover {
+      background: #bfc6e0;
+    }
+    #colorbar-size-slider-container {
+      width: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin: 0 0 2px 0;
+      padding: 0;
+      font-size: 1em;
+      color: #444;
+      user-select: none;
+      gap: 10px;
+    }
+    #colorbar-size-slider {
+      width: 180px;
+      accent-color: #263159;
+      margin: 0 8px;
+    }
+    #colorbars-container {
+      display: flex;
+      flex-direction: row;
+      gap: 32px;
+      align-items: flex-end;
+      justify-content: center;
+      width: 100%;
+      margin: 0;
+      padding: 0;
+      background: none;
+      box-shadow: none;
+      padding-bottom: 8px;
+    }
+    #colorbars-container img {
+      max-width: 260px;
+      width: 100%;
+      height: auto;
+      background: none;
+      border-radius: 8px;
+      box-shadow: 0 1px 8px rgba(0,0,0,0.04);
+      transition: max-width 0.15s;
+    }
+
+    /* Responsive styles for mobile (iPhone/Safari) */
+    @media (max-width: 1100px) {
+      #main-content {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0;
+        padding: 12px 0 0 0;
+      }
+      #left-panel, #right-panel {
+        width: 100vw;
+        min-width: 0;
+        border-radius: 0;
+        box-shadow: none;
+        border: none;
+        margin: 0;
+        padding: 10px 0 10px 0;
+      }
+      #map-container {
+        width: 100vw;
+        min-width: 0;
+        margin: 0;
+        padding: 0;
+        height: 60vw;
+        min-height: 320px;
+        max-height: 60vh;
+      }
+      #map {
+        width: 98vw;
+        min-width: 0;
+        max-width: 100vw;
+        height: 60vw;
+        min-height: 320px;
+        max-height: 60vh;
+        margin: 0 auto;
+        border-radius: 0;
+      }
+      .dropdown {
+        margin: 0 8px 8px 8px;
+      }
+      .dropdown-header {
+        padding: 8px 10px;
+        font-size: 1em;
+      }
+      .dropdown-content {
+        padding: 0 10px 6px 10px;
+      }
+      #colorbars-container img {
+        max-width: 120px !important;
+      }
+      #colorbar-size-slider {
+        width: 100px;
+      }
+    }
+    @media (max-width: 600px) {
+      html, body {
+        width: 100vw;
+        overflow-x: hidden;
+      }
+      #main-content {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0;
+        padding: 0;
+        margin-top: 54px;
+        min-height: 0;
+      }
+      #left-panel, #right-panel {
+        width: 100vw !important;
+        min-width: 0 !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+        border: none !important;
+        margin: 0 !important;
+        padding: 8px 0 8px 0 !important;
+        gap: 10px !important;
+      }
+      #left-panel .utc-box, #left-panel .slider-box {
+        padding: 10px 6px 8px 6px !important;
+        font-size: 1em !important;
+      }
+      #map-container {
+        width: 100vw !important;
+        min-width: 0 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        height: 48vw !important;
+        min-height: 180px !important;
+        max-height: 52vw !important;
+      }
+      #map {
+        width: 100vw !important;
+        min-width: 0 !important;
+        max-width: 100vw !important;
+        height: 48vw !important;
+        min-height: 180px !important;
+        max-height: 52vw !important;
+        margin: 0 auto !important;
+        border-radius: 0 !important;
+      }
+      .dropdown {
+        margin: 0 4px 8px 4px !important;
+      }
+      .dropdown-header {
+        padding: 8px 6px !important;
+        font-size: 1em !important;
+      }
+      .dropdown-content {
+        padding: 0 6px 6px 6px !important;
+      }
+      input[type="range"], button, label {
+        font-size: 1.05em !important;
+      }
+      #slider-play-btn {
+        width: 100%;
+        min-width: 0;
+        font-size: 1.1em !important;
+        padding: 10px 0 !important;
+      }
+      #colorbars-container img {
+        max-width: 80px !important;
+      }
+      #colorbar-size-slider {
+        width: 80px !important;
+      }
+      #bottom-colorbar-bar {
+        min-height: 44px !important;
+        height: 54px !important;
+        padding-bottom: env(safe-area-inset-bottom, 0) !important;
+      }
+    }
+    /* Make modal fit on mobile */
+    #skewt-modal > div {
+      max-width: 98vw !important;
+      max-height: 98vh !important;
+      padding: 6vw 2vw 6vw 2vw !important;
+    }
+    #skewt-img {
+      max-width: 96vw !important;
+      max-height: 70vh !important;
+    }
+    /* Prevent nav bar from overlapping content */
+    body {
+      padding-top: 54px;
+      box-sizing: border-box;
+    }
+
+    /* --- Responsive main content order for mobile --- */
+    @media (max-width: 600px) {
+      #main-content {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 0 !important;
+        padding: 0 !important;
+        margin-top: 54px !important;
+        min-height: 0 !important;
+      }
+      #right-panel {
+        order: 1 !important;
+      }
+      #map-container {
+        order: 2 !important;
+      }
+      #left-panel {
+        order: 3 !important;
+      }
+      #model-selector-container {
+        order: 0 !important;
+        padding-bottom: 0 !important;
+      }
+    }
+    /* On desktop, keep normal order */
+    @media (min-width: 601px) {
+      #model-selector-container {
+        order: 0;
+      }
+      #left-panel {
+        order: 1;
+      }
+      #map-container {
+        order: 2;
+      }
+      #right-panel {
+        order: 3;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Top navigation bar -->
+  <div id="top-navbar">
+    <a class="nav-item" href="/home.html">Home</a>
+    <a class="nav-item" href="/more.html">More</a>
+    <a class="nav-item" href="/settings.html">Settings</a>
+    <a class="nav-item" href="/usa_leaflet.html">Weather Model </a>
+  </div>
+  <!-- Model selector moved here -->
+  <div id="model-selector-container">
+    <div id="model-selector">
+      <button id="model-selector-btn" aria-haspopup="true" aria-expanded="false">
+        Select Model
+        <span style="margin-left:6px;">&#9662;</span>
+      </button>
+      <div id="model-selector-list" role="menu">
+        <a href="HRRR.html" role="menuitem">HRRR</a>
+        <a href="NBM.html" role="menuitem">NBM</a>
+        <a href="GFS.html" role="menuitem">GFS</a>
+      </div>
+    </div>
+  </div>
+  <div id="main-content">
+    <!-- Right panel (Surface/Severe/Other) first on mobile -->
+    <div id="right-panel">
+      <div class="dropdown" id="dropdown-surface">
+        <div class="dropdown-header">
+          Surface DATA
+          <span class="dropdown-arrow">&#9654;</span>
+        </div>
+        <div class="dropdown-content">
+          <!-- Add REFC overlay checkbox and transparency slider -->
+          <label>
+            <input type="checkbox" id="refc-overlay-checkbox">
+            Reflectivity
+          </label>
+          <div id="refc-opacity-container" style="display:none;margin:2px 0 8px 22px;">
+            <input type="range" id="refc-opacity-slider" min="0" max="100" value="70" style="width:90px;vertical-align:middle;">
+            <span id="refc-opacity-value" style="font-size:0.97em;color:#263159;">70%</span>
+          </div>
+          <!-- Add MSLP overlay checkbox and transparency slider -->
+          <label>
+            <input type="checkbox" id="mslp-overlay-checkbox">
+             MSLP 
+          </label>
+          <div id="mslp-opacity-container" style="display:none;margin:2px 0 8px 22px;">
+            <input type="range" id="mslp-opacity-slider" min="0" max="100" value="70" style="width:90px;vertical-align:middle;">
+            <span id="mslp-opacity-value" style="font-size:0.97em;color:#263159;">70%</span>
+          </div>
+          <!-- Add 24HR overlay checkbox and transparency slider -->
+          <label>
+            <input type="checkbox" id="gfs24hr-overlay-checkbox">
+             24hr Precip
+          </label>
+          <div id="gfs24hr-opacity-container" style="display:none;margin:2px 0 8px 22px;">
+            <input type="range" id="gfs24hr-opacity-slider" min="0" max="100" value="70" style="width:90px;vertical-align:middle;">
+            <span id="gfs24hr-opacity-value" style="font-size:0.97em;color:#263159;">70%</span>
+          </div>
+          <!-- Add ACCUM overlay checkbox and transparency slider -->
+          <label>
+            <input type="checkbox" id="gfsaccum-overlay-checkbox">
+             Accumulated Precip
+          </label>
+          <div id="gfsaccum-opacity-container" style="display:none;margin:2px 0 8px 22px;">
+            <input type="range" id="gfsaccum-opacity-slider" min="0" max="100" value="70" style="width:90px;vertical-align:middle;">
+            <span id="gfsaccum-opacity-value" style="font-size:0.97em;color:#263159;">70%</span>
+          </div>
+          <!-- Add Convective Precip overlay checkbox and transparency slider -->
+          <label>
+            <input type="checkbox" id="gfsconvective-overlay-checkbox">
+             Convective Precip
+          </label>
+          <div id="gfsconvective-opacity-container" style="display:none;margin:2px 0 8px 22px;">
+            <input type="range" id="gfsconvective-opacity-slider" min="0" max="100" value="70" style="width:90px;vertical-align:middle;">
+            <span id="gfsconvective-opacity-value" style="font-size:0.97em;color:#263159;">70%</span>
+          </div>
+          <!-- Add TOTP overlay checkbox and transparency slider -->
+          <label>
+            <input type="checkbox" id="gfstotp-overlay-checkbox">
+            6hr Precip
+          </label>
+          <div id="gfstotp-opacity-container" style="display:none;margin:2px 0 8px 22px;">
+            <input type="range" id="gfstotp-opacity-slider" min="0" max="100" value="70" style="width:90px;vertical-align:middle;">
+            <span id="gfstotp-opacity-value" style="font-size:0.97em;color:#263159;">70%</span>
+          </div>
+          <!-- Add TMP2M overlay checkbox and transparency slider -->
+          <label>
+            <input type="checkbox" id="tmp2m-overlay-checkbox">
+             2m Temperature
+          </label>
+          <div id="tmp2m-opacity-container" style="display:none;margin:2px 0 8px 22px;">
+            <input type="range" id="tmp2m-opacity-slider" min="0" max="100" value="70" style="width:90px;vertical-align:middle;">
+            <span id="tmp2m-opacity-value" style="font-size:0.97em;color:#263159;">70%</span>
+          </div>
+        </div>
+      </div>
+      <div class="dropdown" id="dropdown-severe">
+        <div class="dropdown-header severe">
+          Severe Weather
+          <span class="dropdown-arrow">&#9654;</span>
+        </div>
+        <div class="dropdown-content">
+          <!-- Add REFCHLCY overlay checkbox and transparency slider -->
+          <label>
+            <input type="checkbox" id="refchlcy-overlay-checkbox">
+            helicity
+          </label>
+          <div id="refchlcy-opacity-container" style="display:none;margin:2px 0 8px 22px;">
+            <input type="range" id="refchlcy-opacity-slider" min="0" max="100" value="70" style="width:90px;vertical-align:middle;">
+            <span id="refchlcy-opacity-value" style="font-size:0.97em;color:#263159;">70%</span>
+          </div>
+          <!-- Add Vertical Velocity overlay checkbox and transparency slider -->
+          <label>
+            <input type="checkbox" id="vertical-velocity-overlay-checkbox">
+             Vertical Velocity
+          </label>
+          <div id="vertical-velocity-opacity-container" style="display:none;margin:2px 0 8px 22px;">
+            <input type="range" id="vertical-velocity-opacity-slider" min="0" max="100" value="70" style="width:90px;vertical-align:middle;">
+            <span id="vertical-velocity-opacity-value" style="font-size:0.97em;color:#263159;">70%</span>
+          </div>
+        </div>
+      </div>
+      <div class="dropdown" id="dropdown-diagnostics">
+        <div class="dropdown-header">
+          Diagnostics
+          <span class="dropdown-arrow">&#9654;</span>
+        </div>
+        <div class="dropdown-content">
+          <!-- Add Fire Index overlay checkbox and transparency slider -->
+          <label>
+            <input type="checkbox" id="hainesc-overlay-checkbox">
+            Fire Index
+          </label>
+          <div id="hainesc-opacity-container" style="display:none;margin:2px 0 8px 22px;">
+            <input type="range" id="hainesc-opacity-slider" min="0" max="100" value="70" style="width:90px;vertical-align:middle;">
+            <span id="hainesc-opacity-value" style="font-size:0.97em;color:#263159;">70%</span>
+          </div>
+        </div>
+      </div>
+      <!-- Add Upper Level dropdown -->
+      <div class="dropdown" id="dropdown-upper-level">
+        <div class="dropdown-header" style="background: #fff3cd; color: #856404;">
+          Upper Level
+          <span class="dropdown-arrow">&#9654;</span>
+        </div>
+        <div class="dropdown-content">
+          <!-- Move 500mb height checkbox here -->
+          <label>
+            <input type="checkbox" id="hgt500-overlay-checkbox">
+            500mb height
+          </label>
+          <div id="hgt500-opacity-container" style="display:none;margin:2px 0 8px 22px;">
+            <input type="range" id="hgt500-opacity-slider" min="0" max="100" value="70" style="width:90px;vertical-align:middle;">
+            <span id="hgt500-opacity-value" style="font-size:0.97em;color:#263159;">70%</span>
+          </div>
+          <!-- Move Show 500mb Absolute Vorticity checkbox here -->
+          <label>
+            <input type="checkbox" id="absvort-overlay-checkbox">
+             500mb Absolute Vorticity
+          </label>
+          <div id="absvort-opacity-container" style="display:none;margin:2px 0 8px 22px;">
+            <input type="range" id="absvort-opacity-slider" min="0" max="100" value="70" style="width:90px;vertical-align:middle;">
+            <span id="absvort-opacity-value" style="font-size:0.97em;color:#263159;">70%</span>
+          </div>
+        </div>
+      </div>
+      <!-- Other dropdown below Upper Level -->
+      <div class="dropdown" id="dropdown-other">
+        <div class="dropdown-header other">
+          Other
+          <span class="dropdown-arrow">&#9654;</span>
+        </div>
+        <div class="dropdown-content">
+          <label>
+            <input type="checkbox" id="spc-day1-cat-checkbox">
+            SPC Day 1 Outlook (CAT)
+          </label>
+          <label>
+            <input type="checkbox" id="spc-day2-cat-checkbox">
+            SPC Day 2 Outlook (CAT)
+          </label>
+          <label>
+            <input type="checkbox" id="spc-day3-cat-checkbox">
+            SPC Day 3 Outlook (CAT)
+          </label>
+        </div>
+      </div>
+    </div>
+    <!-- Map card -->
+    <div id="map-container">
+      <div id="map"></div>
+    </div>
+    <!-- Left panel (slider/current time) last on mobile -->
+    <div id="left-panel">
+      <div class="utc-box" id="left-current-time-box"></div>
+      <div class="slider-box" id="left-slider-box" style="display:none;">
+        <input type="range" id="hour-slider" min="0" max="0" value="0" step="1">
+        <span id="hour-label"></span>
+        <div id="forecast-time-est"></div>
+        <div style="font-size:0.97em;color:#888;margin-top:10px;">
+          New runs 3:50am, 9:50am, 3:50pm, 9:50pm EST
+        </div>
+        <button id="slider-play-btn">
+          ▶ Play
+        </button>
+      </div>
+    </div>
+  </div>
+  <!-- Bottom colorbar sidebar -->
+  <div id="bottom-colorbar-bar">
+    <div id="colorbar-resize-handle" title="Drag to resize"></div>
+    <div id="colorbar-size-slider-container">
+      <span style="margin-right:4px;">Colorbar size</span>
+      <input type="range" id="colorbar-size-slider" min="120" max="600" value="260">
+      <span id="colorbar-size-value">260</span>px
+    </div>
+    <div id="colorbars-container">
+      <!-- Add GFS reflectivity colorbar -->
+      <img id="gfs-refc-colorbar" src="/colorbars/GFSreflectivity.png" alt="GFS Reflectivity Colorbar" style="display:none;max-width:260px;">
+      <!-- Add GFS Convective Precip colorbar -->
+      <img id="gfs-convective-colorbar" src="/colorbars/PRECIP_colorbar.png" alt="GFS Convective Precip Colorbar" style="display:none;max-width:260px;">
+      <!-- Add PRECIP colorbar for 24hr/Accum/6hr overlays -->
+      <img id="gfs-precip-colorbar" src="/colorbars/PRECIP_colorbar.png" alt="GFS Precip Colorbar" style="display:none;max-width:260px;">
+      <!-- Add GFS REFCHLCY colorbar -->
+      <img id="gfs-refchlcy-colorbar" src="/colorbars/GFSREFCHLCY_colorbar.png" alt="GFS REFCHLCY Colorbar" style="display:none;max-width:260px;">
+      <!-- Add GFS Vertical Velocity colorbar -->
+      <img id="gfs-vertical-velocity-colorbar" src="/colorbars/GFS_Vertical_vs.png" alt="GFS Vertical Velocity Colorbar" style="display:none;max-width:260px;">
+      <!-- Add GFS TMP2M colorbar -->
+      <img id="gfs-tmp2m-colorbar" src="/colorbars/TEMPGFS_colorbar.png" alt="GFS 2m Temperature Colorbar" style="display:none;max-width:260px;">
+      <!-- Only SPC colorbars remain -->
+      <img id="spc-day1-cat-colorbar" src="/colorbars/spc_cat_colorbar.png" alt="SPC Day 1 Outlook CAT Colorbar" style="display:none;max-width:260px;">
+      <img id="spc-day2-cat-colorbar" src="/colorbars/spc_cat_colorbar.png" alt="SPC Day 2 Outlook CAT Colorbar" style="display:none;max-width:260px;">
+      <img id="spc-day3-cat-colorbar" src="/colorbars/spc_cat_colorbar.png" alt="SPC Day 3 Outlook CAT Colorbar" style="display:none;max-width:260px;">
+    </div>
+  </div>
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script>
+    var map = L.map('map', { attributionControl: false }).setView([37.8, -96], 4);
+    var imageBounds = [[24, -126], [50, -69]];
+    // Cartopy base always at the bottom
+    var cartopyBase = L.imageOverlay('/cartopy_base.png', imageBounds, {opacity: 1, interactive: false, zIndex: 1});
+    cartopyBase.addTo(map);
+    var pngList = [];
+    map.keyboard.disable();
+
+    // --- Slider logic (now in left panel) ---
+    // Build hourList: [6, 12, ..., 384]
+    var hourList = [];
+    for (var h = 6; h <= 384; h += 6) hourList.push(h);
+
+    fetch('/reflectivity_images')
+      .then(response => response.json())
+      .then(function(images) {
+        pngList = images;
+        // Only use as many images as hourList allows
+        var n = Math.min(pngList.length, hourList.length);
+        // Do NOT slice hourList here; always show all hours to 384
+        pngList = pngList.slice(0, hourList.length);
+
+        if (pngList.length === 0) return;
+        var slider = document.getElementById('hour-slider');
+        var label = document.getElementById('hour-label');
+        var forecastTimeBox = document.getElementById('forecast-time-est');
+        document.getElementById('left-slider-box').style.display = 'flex';
+        slider.min = 0;
+        slider.max = hourList.length - 1;
+        slider.value = 0;
+        slider.step = 1;
+
+        function getForecastTimeEST(hourOffset) {
+          // Get current UTC time
+          const now = new Date();
+          let utcYear = now.getUTCFullYear();
+          let utcMonth = now.getUTCMonth();
+          let utcDay = now.getUTCDate();
+          let utcHour = now.getUTCHours();
+
+          // Find most recent HRRR run hour (00, 06, 12, 18) <= current UTC hour
+          let runHour = Math.floor(utcHour / 6) * 6;
+          if (runHour === 24) runHour = 18;
+          let dateForRun = new Date(Date.UTC(utcYear, utcMonth, utcDay, utcHour));
+          if (utcHour < runHour) {
+            dateForRun.setUTCHours(dateForRun.getUTCHours() - 6);
+            runHour = Math.floor(dateForRun.getUTCHours() / 6) * 6;
+          }
+          let dateStr = dateForRun.getUTCFullYear().toString().padStart(4, '0') +
+                        String(dateForRun.getUTCMonth() + 1).padStart(2, '0') +
+                        String(dateForRun.getUTCDate()).padStart(2, '0');
+          let hourStr = String(runHour).padStart(2, '0');
+
+          // Add hourOffset to the run time
+          let displayDate = new Date(Date.UTC(
+            dateForRun.getUTCFullYear(),
+            dateForRun.getUTCMonth(),
+            dateForRun.getUTCDate(),
+            runHour
+          ));
+          displayDate.setUTCHours(displayDate.getUTCHours() + hourOffset);
+
+          // Convert to America/New_York time zone for display
+          let tzDate = new Date(displayDate.toLocaleString("en-US", {timeZone: "America/New_York"}));
+          let yy = String(tzDate.getFullYear()).slice(2);
+          let mm = String(tzDate.getMonth() + 1).padStart(2, '0');
+          let dd = String(tzDate.getDate()).padStart(2, '0');
+          let hour24 = tzDate.getHours();
+          let minute = tzDate.getMinutes();
+          let ampmDisp = hour24 >= 12 ? 'PM' : 'AM';
+          let hour12 = hour24 % 12;
+          if (hour12 === 0) hour12 = 12;
+          let hh = String(hour12).padStart(2, '0');
+
+          // Get day of week string
+          const daysOfWeek = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+          let dayOfWeek = daysOfWeek[tzDate.getDay()];
+
+          return {
+            forecastStr: `Forecast valid (EST): ${yy}${mm}${dd} ${hh}:00 ${ampmDisp}`,
+            dayOfWeek: dayOfWeek
+          };
+        }
+
+        window.updateOverlay = function(idx) {
+          if (!pngList || idx < 0 || idx >= pngList.length) return;
+          var entry = pngList[idx] || {};
+          var hour = hourList[idx];
+          if (entry && typeof hour !== "undefined") {
+            label.textContent = `Hour: ${hour}`;
+            // Get forecast string and day of week
+            var forecastInfo = getForecastTimeEST(hour);
+            forecastTimeBox.innerHTML = forecastInfo.forecastStr + "<br><span style='color:#263159;font-size:1.01em;'>" + forecastInfo.dayOfWeek + "</span>";
+          } else {
+            label.textContent = "No data";
+            forecastTimeBox.textContent = "";
+          }
+          // No NBM overlays to update
+        };
+
+        slider.oninput = function() {
+          updateOverlay(parseInt(slider.value));
+        };
+
+        // Add arrow key support
+        document.addEventListener('keydown', function(e) {
+          if (['ArrowRight', 'ArrowLeft'].includes(e.key)) {
+            e.preventDefault();
+            var idx = parseInt(slider.value);
+            if (e.key === 'ArrowRight' && idx < pngList.length - 1) {
+              slider.value = idx + 1;
+              slider.dispatchEvent(new Event('input'));
+            } else if (e.key === 'ArrowLeft' && idx > 0) {
+              slider.value = idx - 1;
+              slider.dispatchEvent(new Event('input'));
+            }
+          }
+        });
+
+        // Show first image if available, otherwise show empty overlays
+        if (pngList.length > 0) {
+          updateOverlay(0);
+        } else {
+          // Show slider anyway, but disable it
+          document.getElementById('left-slider-box').style.display = 'flex';
+          slider.max = 0;
+          slider.value = 0;
+          slider.disabled = true;
+          label.textContent = "No data";
+          forecastTimeBox.textContent = "";
+        }
+      });
+
+    // --- Current UTC time and HRRR run display (now in left panel) ---
+    function updateCurrentTimeBox() {
+      const box = document.getElementById('left-current-time-box');
+      const now = new Date();
+      // UTC time
+      const utcYear = now.getUTCFullYear();
+      const utcMonth = String(now.getUTCMonth() + 1).padStart(2, '0');
+      const utcDay = String(now.getUTCDate()).padStart(2, '0');
+      const utcHour = now.getUTCHours();
+      const utcMin = String(now.getUTCMinutes()).padStart(2, '0');
+      const utcSec = String(now.getUTCSeconds()).padStart(2, '0');
+      // HRRR run logic
+      let runHour = Math.floor(utcHour / 6) * 6;
+      if (runHour === 24) runHour = 18;
+      let dateForRun = new Date(Date.UTC(utcYear, now.getUTCMonth(), utcDay, utcHour));
+      if (utcHour < runHour) {
+        dateForRun.setUTCHours(dateForRun.getUTCHours() - 6);
+        runHour = Math.floor(dateForRun.getUTCHours() / 6) * 6;
+      }
+      const dateStr = dateForRun.getUTCFullYear().toString() +
+        String(dateForRun.getUTCMonth() + 1).padStart(2, '0') +
+        String(dateForRun.getUTCDate()).padStart(2, '0');
+      const hourStr = String(runHour).padStart(2, '0');
+      // Display
+      box.innerHTML =
+        `<b>Current UTC:</b> ${utcYear}-${utcMonth}-${utcDay} ${String(utcHour).padStart(2, '0')}:${utcMin}:${utcSec}<br>` +
+        `<b>Most Recent HRRR Run:</b> ${dateStr} ${hourStr}z`;
+    }
+    updateCurrentTimeBox();
+    setInterval(updateCurrentTimeBox, 10000);
+
+    // --- Bottom colorbar bar resize logic ---
+    (function() {
+      var bar = document.getElementById('bottom-colorbar-bar');
+      var handle = document.getElementById('colorbar-resize-handle');
+      var minHeight = 60;
+      var maxHeight = 300;
+      var startY = 0;
+      var startHeight = 0;
+      var dragging = false;
+
+      handle.addEventListener('mousedown', function(e) {
+        dragging = true;
+        startY = e.clientY;
+        startHeight = bar.offsetHeight;
+        document.body.style.userSelect = 'none';
+      });
+
+      window.addEventListener('mousemove', function(e) {
+        if (!dragging) return;
+        var dy = startY - e.clientY;
+        var newHeight = Math.min(maxHeight, Math.max(minHeight, startHeight + dy));
+        bar.style.height = newHeight + 'px';
+      });
+
+      window.addEventListener('mouseup', function() {
+        if (dragging) {
+          dragging = false;
+          document.body.style.userSelect = '';
+        }
+      });
+    })();
+
+    // --- Colorbar size slider logic ---
+    (function() {
+      var slider = document.getElementById('colorbar-size-slider');
+      var valueLabel = document.getElementById('colorbar-size-value');
+
+      function setSize(val) {
+        valueLabel.textContent = val;
+        var colorbars = document.querySelectorAll('#colorbars-container img'); // Dynamically select all colorbars
+        colorbars.forEach(function(colorbar) {
+          colorbar.style.maxWidth = val + "px";
+        });
+      }
+
+      slider.addEventListener('input', function() {
+        setSize(this.value);
+      });
+
+      setSize(slider.value); // Initialize with the current slider value
+    })();
+
+    // --- Play button logic for slider animation ---
+    var playBtn = document.getElementById('slider-play-btn');
+    var slider = document.getElementById('hour-slider');
+    var isPlaying = false;
+    var playInterval = null;
+    var playInternalUpdate = false;
+
+    function playSlider() {
+      if (!pngList || pngList.length === 0) return;
+      isPlaying = true;
+      playBtn.textContent = "⏸ Pause";
+      slider.disabled = true;
+      playInterval = setInterval(function() {
+        var idx = parseInt(slider.value);
+        if (idx < hourList.length - 1) {
+          playInternalUpdate = true;
+          slider.value = idx + 1;
+          slider.dispatchEvent(new Event('input'));
+          playInternalUpdate = false;
+        } else {
+          playInternalUpdate = true;
+          slider.value = 0;
+          slider.dispatchEvent(new Event('input'));
+          playInternalUpdate = false;
+        }
+      }, 1200);
+    }
+
+    function stopSlider() {
+      isPlaying = false;
+      playBtn.textContent = "▶ Play";
+      slider.disabled = false;
+      if (playInterval) clearInterval(playInterval);
+      playInterval = null;
+    }
+
+    playBtn.addEventListener('click', function() {
+      if (isPlaying) {
+        stopSlider();
+      } else {
+        playSlider();
+      }
+    });
+
+    slider.addEventListener('input', function(e) {
+      if (!playInternalUpdate && isPlaying) stopSlider();
+    });
+
+    // --- Model selector dropdown logic (replaces navbar dropdown) ---
+    (function() {
+      var dropdown = document.getElementById('model-selector');
+      var btn = document.getElementById('model-selector-btn');
+      var list = document.getElementById('model-selector-list');
+      function setModelBtnText(model) {
+        btn.childNodes[0].nodeValue = model + " ";
+      }
+      var currentModel = "NBM";
+      if (window.location.href.match(/HRRR\.html/i)) currentModel = "HRRR";
+      if (window.location.href.match(/GFS\.html/i)) currentModel = "GFS";
+      setModelBtnText(currentModel);
+
+      btn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        var open = dropdown.classList.contains('open');
+        document.querySelectorAll('#model-selector.open').forEach(function(d) {
+          d.classList.remove('open');
+        });
+        if (!open) dropdown.classList.add('open');
+      });
+      document.addEventListener('click', function(e) {
+        if (!dropdown.contains(e.target)) dropdown.classList.remove('open');
+      });
+
+      list.querySelectorAll('a').forEach(function(link) {
+        link.addEventListener('click', function(e) {
+          var model = this.textContent.trim();
+          setModelBtnText(model);
+        });
+      });
+    })();
+
+    // --- Dropdown open/close logic for all dropdowns ---
+    document.addEventListener('DOMContentLoaded', function() {
+      document.querySelectorAll('.dropdown').forEach(function(dropdown) {
+        var header = dropdown.querySelector('.dropdown-header');
+        var content = dropdown.querySelector('.dropdown-content');
+        var arrow = header.querySelector('.dropdown-arrow');
+        dropdown.classList.remove('open');
+        if (arrow) arrow.innerHTML = "&#9654;";
+        if (content) content.style.display = "none";
+        header.addEventListener('click', function() {
+          var isOpen = dropdown.classList.toggle('open');
+          if (content) content.style.display = isOpen ? "block" : "none";
+          if (arrow) arrow.innerHTML = isOpen ? "&#9660;" : "&#9654;";
+        });
+      });
+    });
+
+    // --- SPC Day 1/2/3 Outlook CAT overlay logic ---
+    var spcDay1CatLayer = null;
+    var spcDay2CatLayer = null;
+    var spcDay3CatLayer = null;
+    var spcDay1CatCheckbox = null;
+    var spcDay2CatCheckbox = null;
+    var spcDay3CatCheckbox = null;
+    var spcDay1CatColorbar = null;
+    var spcDay2CatColorbar = null;
+    var spcDay3CatColorbar = null;
+
+    document.addEventListener('DOMContentLoaded', function() {
+      // SPC Day 1
+      spcDay1CatCheckbox = document.getElementById('spc-day1-cat-checkbox');
+      spcDay1CatColorbar = document.getElementById('spc-day1-cat-colorbar');
+      if (spcDay1CatCheckbox) {
+        spcDay1CatCheckbox.checked = false;
+        spcDay1CatCheckbox.addEventListener('change', function() {
+          if (spcDay1CatCheckbox.checked) {
+            addSpcCatLayer('day1');
+            if (spcDay1CatColorbar) spcDay1CatColorbar.style.display = "";
+          } else {
+            removeSpcCatLayer('day1');
+            if (spcDay1CatColorbar) spcDay1CatColorbar.style.display = "none";
+          }
+        });
+        if (spcDay1CatColorbar) spcDay1CatColorbar.style.display = "none";
+      }
+      // SPC Day 2
+      spcDay2CatCheckbox = document.getElementById('spc-day2-cat-checkbox');
+      spcDay2CatColorbar = document.getElementById('spc-day2-cat-colorbar');
+      if (spcDay2CatCheckbox) {
+        spcDay2CatCheckbox.checked = false;
+        spcDay2CatCheckbox.addEventListener('change', function() {
+          if (spcDay2CatCheckbox.checked) {
+            addSpcCatLayer('day2');
+            if (spcDay2CatColorbar) spcDay2CatColorbar.style.display = "";
+          } else {
+            removeSpcCatLayer('day2');
+            if (spcDay2CatColorbar) spcDay2CatColorbar.style.display = "none";
+          }
+        });
+        if (spcDay2CatColorbar) spcDay2CatColorbar.style.display = "none";
+      }
+      // SPC Day 3
+      spcDay3CatCheckbox = document.getElementById('spc-day3-cat-checkbox');
+      spcDay3CatColorbar = document.getElementById('spc-day3-cat-colorbar');
+      if (spcDay3CatCheckbox) {
+        spcDay3CatCheckbox.checked = false;
+        spcDay3CatCheckbox.addEventListener('change', function() {
+          if (spcDay3CatCheckbox.checked) {
+            addSpcCatLayer('day3');
+            if (spcDay3CatColorbar) spcDay3CatColorbar.style.display = "";
+          } else {
+            removeSpcCatLayer('day3');
+            if (spcDay3CatColorbar) spcDay3CatColorbar.style.display = "none";
+          }
+        });
+        if (spcDay3CatColorbar) spcDay3CatColorbar.style.display = "none";
+      }
+    });
+
+    function getSpcCatColor(cat) {
+      cat = (cat || "").toLowerCase();
+      if (cat.includes("tstm")) return "#55BB55";
+      if (cat.includes("mrgl")) return "#005500";
+      if (cat.includes("slgt")) return "#DDAA00";
+      if (cat.includes("enh"))  return "#FF6600";
+      if (cat.includes("mdt"))  return "#CC0000";
+      if (cat.includes("high")) return "#CC00CC";
+      return "#888";
+    }
+    function getSpcCatFill(cat) {
+      cat = (cat || "").toLowerCase();
+      if (cat.includes("tstm")) return "#C1E9C1";
+      if (cat.includes("mrgl")) return "#66A366";
+      if (cat.includes("slgt")) return "#FFE066";
+      if (cat.includes("enh"))  return "#FFA366";
+      if (cat.includes("mdt"))  return "#E06666";
+      if (cat.includes("high")) return "#EE99EE";
+      return "#ccc";
+    }
+    function styleSpcCatFeature(feature) {
+      var cat = feature && feature.properties && feature.properties.label ? feature.properties.label : "";
+      var color = feature && feature.properties && feature.properties.color ? feature.properties.color : getSpcCatColor(cat);
+      var fillColor = feature && feature.properties && feature.properties.fill ? feature.properties.fill : getSpcCatFill(cat);
+      return {
+        color: color,
+        weight: 2,
+        fillColor: fillColor,
+        fillOpacity: 0.32,
+        opacity: 1
+      };
+    }
+    function addSpcCatLayer(day) {
+      var url;
+      if (day === 'day1') {
+        if (spcDay1CatLayer) {
+          map.addLayer(spcDay1CatLayer);
+          return;
+        }
+        url = 'https://www.spc.noaa.gov/products/outlook/day1otlk_cat.nolyr.geojson';
+      } else if (day === 'day2') {
+        if (spcDay2CatLayer) {
+          map.addLayer(spcDay2CatLayer);
+          return;
+        }
+        url = 'https://www.spc.noaa.gov/products/outlook/day2otlk_cat.nolyr.geojson';
+      } else if (day === 'day3') {
+        if (spcDay3CatLayer) {
+          map.addLayer(spcDay3CatLayer);
+          return;
+        }
+        url = 'https://www.spc.noaa.gov/products/outlook/day3otlk_cat.nolyr.geojson';
+      } else {
+        return;
+      }
+      fetch(url)
+        .then(r => r.json())
+        .then(function(geojson) {
+          var deltaLat = 0.85;
+          function shiftCoords(coords) {
+            if (typeof coords[0] === "number") {
+              return [coords[0], coords[1] + deltaLat];
+            }
+            return coords.map(shiftCoords);
+          }
+          geojson.features.forEach(function(feature) {
+            if (feature.geometry && feature.geometry.coordinates) {
+              feature.geometry.coordinates = shiftCoords(feature.geometry.coordinates);
+            }
+          });
+          var layer = L.geoJSON(geojson, {
+            style: styleSpcCatFeature
+          });
+          layer.addTo(map);
+          if (day === 'day1') spcDay1CatLayer = layer;
+          if (day === 'day2') spcDay2CatLayer = layer;
+          if (day === 'day3') spcDay3CatLayer = layer;
+        });
+    }
+    function removeSpcCatLayer(day) {
+      if (day === 'day1' && spcDay1CatLayer) {
+        map.removeLayer(spcDay1CatLayer);
+      }
+      if (day === 'day2' && spcDay2CatLayer) {
+        map.removeLayer(spcDay2CatLayer);
+      }
+      if (day === 'day3' && spcDay3CatLayer) {
+        map.removeLayer(spcDay3CatLayer);
+      }
+    }
+
+    // --- ESE overlay logic ---
+    var eseOverlay = null;
+    var eseCheckbox = null;
+    var esePngList = [];
+    var eseCurrentIdx = 0;
+
+    var hgt500Overlay = null;
+    var hgt500Checkbox = null;
+    var hgt500PngList = [];
+    var hgt500CurrentIdx = 0;
+
+    // Overlay state/vars for each new overlay
+    var absvortOverlay = null, absvortCheckbox = null, absvortPngList = [], absvortCurrentIdx = 0;
+    var mslpOverlay = null, mslpCheckbox = null, mslpPngList = [], mslpCurrentIdx = 0;
+    var gfs24hrOverlay = null, gfs24hrCheckbox = null, gfs24hrPngList = [], gfs24hrCurrentIdx = 0;
+    var gfsaccumOverlay = null, gfsaccumCheckbox = null, gfsaccumPngList = [], gfsaccumCurrentIdx = 0;
+    var gfstotpOverlay = null, gfstotpCheckbox = null, gfstotpPngList = [], gfstotpCurrentIdx = 0;
+    var tmp2mOverlay = null, tmp2mCheckbox = null, tmp2mPngList = [], tmp2mCurrentIdx = 0;
+    var refcOverlay = null, refcCheckbox = null, refcPngList = [], refcCurrentIdx = 0;
+    var refchlcyOverlay = null, refchlcyCheckbox = null, refchlcyPngList = [], refchlcyCurrentIdx = 0;
+    var hainescOverlay = null, hainescCheckbox = null, hainescPngList = [], hainescCurrentIdx = 0;
+    var verticalVelocityOverlay = null, verticalVelocityCheckbox = null, verticalVelocityPngList = [], verticalVelocityCurrentIdx = 0;
+    var gfsconvectiveOverlay = null, gfsconvectiveCheckbox = null, gfsconvectivePngList = [], gfsconvectiveCurrentIdx = 0;
+
+    // Fetch all overlay images on load
+    fetch('/gfs_absvort_images').then(r=>r.json()).then(files=>{absvortPngList=files;});
+    fetch('/gfs_mslp_images').then(r=>r.json()).then(files=>{mslpPngList=files;});
+    fetch('/gfs_24hr_images').then(r=>r.json()).then(files=>{
+      // Only keep PNGs for hours 24, 48, 72, ...
+      gfs24hrPngList = files.filter((f, i) => {
+        var match = f.match(/(\d{3})/);
+        var hour = match ? parseInt(match[1], 10) : ((i+1)*24);
+        return hour % 24 === 0 && hour > 0;
+      });
+    });
+    fetch('/gfs_accum_images').then(r=>r.json()).then(files=>{gfsaccumPngList=files;});
+    // Fix: Always assign all files for 6hr precip overlay
+    fetch('/gfs_totp_images').then(r=>r.json()).then(files=>{gfstotpPngList=files;});
+    fetch('/gfs_tmp2m_images').then(r=>r.json()).then(files=>{tmp2mPngList=files;});
+    fetch('/gfs_refcgfs_images').then(r=>r.json()).then(files=>{refcPngList=files;});
+    fetch('/gfs_hgt500_images').then(r=>r.json()).then(files=>{hgt500PngList=files;});
+    fetch('/gfs_refchlcy_images').then(r => r.json()).then(files => { refchlcyPngList = files; });
+    fetch('/gfs_hainesc_images').then(r => r.json()).then(files => { hainescPngList = files; });
+    fetch('/gfs_vertical_velocity_images').then(r => r.json()).then(files => { verticalVelocityPngList = files; });
+    fetch('/gfs_convective_accum_images').then(r=>r.json()).then(files=>{
+      gfsconvectivePngList = files;
+    });
+
+    function updateESEOverlay(idx) {
+      if (!eseCheckbox || !eseCheckbox.checked) return;
+      if (!esePngList || esePngList.length === 0) return;
+      idx = Math.max(0, Math.min(idx, esePngList.length - 1));
+      eseCurrentIdx = idx;
+      var eseUrl = '/gfs_refcgfs_pngs/' + esePngList[idx];
+      if (eseOverlay) {
+        map.removeLayer(eseOverlay);
+      }
+      eseOverlay = L.imageOverlay(eseUrl, [[24, -126], [50, -69]], {
+        opacity: 0.7,
+        interactive: false,
+        zIndex: 10
+      });
+      eseOverlay.addTo(map);
+    }
+
+    function updateHGT500Overlay(idx) {
+      if (!hgt500Checkbox || !hgt500Checkbox.checked) return;
+      if (!hgt500PngList || hgt500PngList.length === 0) return;
+      idx = Math.max(0, Math.min(idx, hgt500PngList.length - 1));
+      hgt500CurrentIdx = idx;
+      var url = '/gfs_hgt500_pngs/' + hgt500PngList[idx];
+      if (hgt500Overlay) map.removeLayer(hgt500Overlay);
+      hgt500Overlay = L.imageOverlay(url, [[24, -126], [50, -69]], {opacity: 0.7, interactive: false, zIndex: 11});
+      hgt500Overlay.addTo(map);
+    }
+
+    function updateAbsvortOverlay(idx) {
+      if (!absvortCheckbox || !absvortCheckbox.checked) return;
+      if (!absvortPngList || absvortPngList.length === 0) return;
+      idx = Math.max(0, Math.min(idx, absvortPngList.length - 1));
+      absvortCurrentIdx = idx;
+      var url = '/gfs_absvort_pngs/' + absvortPngList[idx];
+      if (absvortOverlay) map.removeLayer(absvortOverlay);
+      absvortOverlay = L.imageOverlay(url, [[24, -126], [50, -69]], {opacity: 0.7, interactive: false, zIndex: 12});
+      absvortOverlay.addTo(map);
+    }
+    function updateMslpOverlay(idx) {
+      if (!mslpCheckbox || !mslpCheckbox.checked) return;
+      if (!mslpPngList || mslpPngList.length === 0) return;
+      idx = Math.max(0, Math.min(idx, mslpPngList.length - 1));
+      mslpCurrentIdx = idx;
+      var url = '/gfs_mslp_pngs/' + mslpPngList[idx];
+      if (mslpOverlay) map.removeLayer(mslpOverlay);
+      mslpOverlay = L.imageOverlay(url, [[24, -126], [50, -69]], {opacity: 0.7, interactive: false, zIndex: 13});
+      mslpOverlay.addTo(map);
+    }
+    function updateGfs24hrOverlay(idx) {
+      if (!gfs24hrCheckbox || !gfs24hrCheckbox.checked) return;
+      if (!gfs24hrPngList || gfs24hrPngList.length === 0) return;
+      // Only show overlay if hour is a multiple of 24 (24, 48, 72, ...)
+      var hour = hourList[idx];
+      if (hour % 24 !== 0 || hour === 0) {
+        if (gfs24hrOverlay) { map.removeLayer(gfs24hrOverlay); gfs24hrOverlay = null; }
+        return;
+      }
+      // Find the PNG index for this hour (24hr PNGs are for 24, 48, 72, ...)
+      var pngIdx = Math.floor(hour / 24) - 1;
+      if (pngIdx < 0 || pngIdx >= gfs24hrPngList.length) {
+        if (gfs24hrOverlay) { map.removeLayer(gfs24hrOverlay); gfs24hrOverlay = null; }
+        return;
+      }
+      gfs24hrCurrentIdx = pngIdx;
+      var url = '/gfs_24hr_pngs/' + gfs24hrPngList[pngIdx];
+      if (gfs24hrOverlay) map.removeLayer(gfs24hrOverlay);
+      gfs24hrOverlay = L.imageOverlay(url, [[24, -126], [50, -69]], {opacity: 0.7, interactive: false, zIndex: 14});
+      gfs24hrOverlay.addTo(map);
+    }
+    function updateGfsaccumOverlay(idx) {
+      if (!gfsaccumCheckbox || !gfsaccumCheckbox.checked) return;
+      if (!gfsaccumPngList || gfsaccumPngList.length === 0) return;
+      idx = Math.max(0, Math.min(idx, gfsaccumPngList.length - 1));
+      gfsaccumCurrentIdx = idx;
+      var url = '/gfs_accum_pngs/' + gfsaccumPngList[idx];
+      if (gfsaccumOverlay) map.removeLayer(gfsaccumOverlay);
+      gfsaccumOverlay = L.imageOverlay(url, [[24, -126], [50, -69]], {opacity: 0.7, interactive: false, zIndex: 15});
+      gfsaccumOverlay.addTo(map);
+    }
+    function updateGfsconvectiveOverlay(idx) {
+      if (!gfsconvectiveCheckbox || !gfsconvectiveCheckbox.checked) return;
+      if (!gfsconvectivePngList || gfsconvectivePngList.length === 0) return;
+      idx = Math.max(0, Math.min(idx, gfsconvectivePngList.length - 1));
+      gfsconvectiveCurrentIdx = idx;
+      var url = '/gfs_convective_accum_pngs/' + gfsconvectivePngList[idx];
+      if (gfsconvectiveOverlay) map.removeLayer(gfsconvectiveOverlay);
+      gfsconvectiveOverlay = L.imageOverlay(url, [[24, -126], [50, -69]], {opacity: 0.7, interactive: false, zIndex: 21});
+      gfsconvectiveOverlay.addTo(map);
+    }
+    // Add this function for 6hr Precip overlay
+    function updateGfstotpOverlay(idx) {
+      if (!gfstotpCheckbox || !gfstotpCheckbox.checked) return;
+      if (!gfstotpPngList || gfstotpPngList.length === 0) return;
+      idx = Math.max(0, Math.min(idx, gfstotpPngList.length - 1));
+      gfstotpCurrentIdx = idx;
+      var url = '/gfs_totp_pngs/' + gfstotpPngList[idx];
+      if (gfstotpOverlay) map.removeLayer(gfstotpOverlay);
+      gfstotpOverlay = L.imageOverlay(url, [[24, -126], [50, -69]], {opacity: 0.7, interactive: false, zIndex: 16});
+      gfstotpOverlay.addTo(map);
+    }
+    function updateTmp2mOverlay(idx) {
+      if (!tmp2mCheckbox || !tmp2mCheckbox.checked) return;
+      if (!tmp2mPngList || tmp2mPngList.length === 0) return;
+      idx = Math.max(0, Math.min(idx, tmp2mPngList.length - 1));
+      tmp2mCurrentIdx = idx;
+      var url = '/gfs_tmp2m_pngs/' + tmp2mPngList[idx];
+      if (tmp2mOverlay) map.removeLayer(tmp2mOverlay);
+      tmp2mOverlay = L.imageOverlay(url, [[24, -126], [50, -69]], {opacity: 0.7, interactive: false, zIndex: 17});
+      tmp2mOverlay.addTo(map);
+    }
+    function updateRefcOverlay(idx) {
+      if (!refcCheckbox || !refcCheckbox.checked) return;
+      if (!refcPngList || refcPngList.length === 0) return;
+      idx = Math.max(0, Math.min(idx, refcPngList.length - 1));
+      refcCurrentIdx = idx;
+      var url = '/gfs_refcgfs_pngs/' + refcPngList[idx];
+      if (refcOverlay) map.removeLayer(refcOverlay);
+      refcOverlay = L.imageOverlay(url, [[24, -126], [50, -69]], {opacity: 0.7, interactive: false, zIndex: 10});
+      refcOverlay.addTo(map);
+    }
+    function updateRefchlcyOverlay(idx) {
+      if (!refchlcyCheckbox || !refchlcyCheckbox.checked) return;
+      if (!refchlcyPngList || refchlcyPngList.length === 0) return;
+      idx = Math.max(0, Math.min(idx, refchlcyPngList.length - 1));
+      refchlcyCurrentIdx = idx;
+      var url = '/gfs_refchlcy_pngs/' + refchlcyPngList[idx];
+      if (refchlcyOverlay) map.removeLayer(refchlcyOverlay);
+      refchlcyOverlay = L.imageOverlay(url, [[24, -126], [50, -69]], {opacity: 0.7, interactive: false, zIndex: 18});
+      refchlcyOverlay.addTo(map);
+    }
+
+    function updateHainescOverlay(idx) {
+      if (!hainescCheckbox || !hainescCheckbox.checked) return;
+      if (!hainescPngList || hainescPngList.length === 0) return;
+      idx = Math.max(0, Math.min(idx, hainescPngList.length - 1));
+      hainescCurrentIdx = idx;
+      var url = '/gfs_hainesc_pngs/' + hainescPngList[idx];
+      if (hainescOverlay) map.removeLayer(hainescOverlay);
+      hainescOverlay = L.imageOverlay(url, [[24, -126], [50, -69]], {opacity: 0.7, interactive: false, zIndex: 19});
+      hainescOverlay.addTo(map);
+    }
+
+    function updateVerticalVelocityOverlay(idx) {
+      if (!verticalVelocityCheckbox || !verticalVelocityCheckbox.checked) return;
+      if (!verticalVelocityPngList || verticalVelocityPngList.length === 0) return;
+      idx = Math.max(0, Math.min(idx, verticalVelocityPngList.length - 1));
+      verticalVelocityCurrentIdx = idx;
+      var url = '/gfs_vertical_velocity_pngs/' + verticalVelocityPngList[idx];
+      if (verticalVelocityOverlay) map.removeLayer(verticalVelocityOverlay);
+      verticalVelocityOverlay = L.imageOverlay(url, [[24, -126], [50, -69]], {opacity: 0.7, interactive: false, zIndex: 20});
+      verticalVelocityOverlay.addTo(map);
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+      eseCheckbox = document.getElementById('ese-overlay-checkbox');
+      if (eseCheckbox) {
+        eseCheckbox.checked = false;
+        eseCheckbox.addEventListener('change', function() {
+          if (eseCheckbox.checked) {
+            updateESEOverlay(eseCurrentIdx);
+          } else {
+            if (eseOverlay) {
+              map.removeLayer(eseOverlay);
+              eseOverlay = null;
+            }
+          }
+        });
+      }
+      hgt500Checkbox = document.getElementById('hgt500-overlay-checkbox');
+      if (hgt500Checkbox) {
+        hgt500Checkbox.checked = false;
+        hgt500Checkbox.addEventListener('change', function() {
+          if (hgt500Checkbox.checked) {
+            if (hgt500PngList.length > 0) {
+              updateHGT500Overlay(parseInt(hourSlider.value)); // Ensure overlay updates with current slider index
+            } else {
+              console.warn("No 500mb height images available.");
+            }
+          } else {
+            if (hgt500Overlay) {
+              map.removeLayer(hgt500Overlay);
+              hgt500Overlay = null;
+            }
+          }
+        });
+      }
+      absvortCheckbox = document.getElementById('absvort-overlay-checkbox');
+      if (absvortCheckbox) {
+        absvortCheckbox.checked = false;
+        absvortCheckbox.addEventListener('change', function() {
+          if (absvortCheckbox.checked) {
+            if (absvortPngList.length > 0) {
+              updateAbsvortOverlay(parseInt(hourSlider.value)); // Ensure overlay updates with current slider index
+            } else {
+              console.warn("No 500mb Absolute Vorticity images available.");
+            }
+          } else {
+            if (absvortOverlay) {
+              map.removeLayer(absvortOverlay);
+              absvortOverlay = null;
+            }
+          }
+        });
+      }
+      mslpCheckbox = document.getElementById('mslp-overlay-checkbox');
+      if (mslpCheckbox) {
+        mslpCheckbox.checked = false;
+        mslpCheckbox.addEventListener('change', function() {
+          if (mslpCheckbox.checked) updateMslpOverlay(mslpCurrentIdx);
+          else if (mslpOverlay) { map.removeLayer(mslpOverlay); mslpOverlay = null; }
+        });
+      }
+      gfs24hrCheckbox = document.getElementById('gfs24hr-overlay-checkbox');
+      if (gfs24hrCheckbox) {
+        gfs24hrCheckbox.checked = false;
+        gfs24hrCheckbox.addEventListener('change', function() {
+          if (gfs24hrCheckbox.checked) updateGfs24hrOverlay(gfs24hrCurrentIdx);
+          else if (gfs24hrOverlay) { map.removeLayer(gfs24hrOverlay); gfs24hrOverlay = null; }
+        });
+      }
+      gfsaccumCheckbox = document.getElementById('gfsaccum-overlay-checkbox');
+      if (gfsaccumCheckbox) {
+        gfsaccumCheckbox.checked = false;
+        gfsaccumCheckbox.addEventListener('change', function() {
+          if (gfsaccumCheckbox.checked) updateGfsaccumOverlay(gfsaccumCurrentIdx);
+          else if (gfsaccumOverlay) { map.removeLayer(gfsaccumOverlay); gfsaccumOverlay = null; }
+        });
+      }
+      gfstotpCheckbox = document.getElementById('gfstotp-overlay-checkbox');
+      if (gfstotpCheckbox) {
+        gfstotpCheckbox.checked = false;
+        gfstotpCheckbox.addEventListener('change', function() {
+          if (gfstotpCheckbox.checked) updateGfstotpOverlay(gfstotpCurrentIdx);
+          else if (gfstotpOverlay) { map.removeLayer(gfstotpOverlay); gfstotpOverlay = null; }
+        });
+      }
+      tmp2mCheckbox = document.getElementById('tmp2m-overlay-checkbox');
+      if (tmp2mCheckbox) {
+        tmp2mCheckbox.checked = false;
+        tmp2mCheckbox.addEventListener('change', function() {
+          if (tmp2mCheckbox.checked) updateTmp2mOverlay(tmp2mCurrentIdx);
+          else if (tmp2mOverlay) { map.removeLayer(tmp2mOverlay); tmp2mOverlay = null; }
+        });
+      }
+      refcCheckbox = document.getElementById('refc-overlay-checkbox');
+      if (refcCheckbox) {
+        refcCheckbox.checked = false;
+        refcCheckbox.addEventListener('change', function() {
+          if (refcCheckbox.checked) updateRefcOverlay(refcCurrentIdx);
+          else if (refcOverlay) { map.removeLayer(refcOverlay); refcOverlay = null; }
+        });
+      }
+      refchlcyCheckbox = document.getElementById('refchlcy-overlay-checkbox');
+      if (refchlcyCheckbox) {
+        refchlcyCheckbox.checked = false;
+        refchlcyCheckbox.addEventListener('change', function() {
+          if (refchlcyCheckbox.checked) {
+            updateRefchlcyOverlay(refchlcyCurrentIdx);
+            if (gfsRefchlcyColorbar) gfsRefchlcyColorbar.style.display = "";
+          } else {
+            if (refchlcyOverlay) { map.removeLayer(refchlcyOverlay); refchlcyOverlay = null; }
+            if (gfsRefchlcyColorbar) gfsRefchlcyColorbar.style.display = "none";
+          }
+        });
+      }
+      hainescCheckbox = document.getElementById('hainesc-overlay-checkbox');
+      if (hainescCheckbox) {
+        hainescCheckbox.checked = false;
+        hainescCheckbox.addEventListener('change', function() {
+          if (hainescCheckbox.checked) {
+            updateHainescOverlay(parseInt(hourSlider.value));
+          } else {
+            if (hainescOverlay) {
+              map.removeLayer(hainescOverlay);
+              hainescOverlay = null;
+            }
+          }
+        });
+      }
+      verticalVelocityCheckbox = document.getElementById('vertical-velocity-overlay-checkbox');
+      if (verticalVelocityCheckbox) {
+        verticalVelocityCheckbox.checked = false;
+        verticalVelocityCheckbox.addEventListener('change', function() {
+          if (verticalVelocityCheckbox.checked) {
+            updateVerticalVelocityOverlay(parseInt(hourSlider.value));
+          } else {
+            if (verticalVelocityOverlay) {
+              map.removeLayer(verticalVelocityOverlay);
+              verticalVelocityOverlay = null;
+            }
+          }
+        });
+      }
+      gfsconvectiveCheckbox = document.getElementById('gfsconvective-overlay-checkbox');
+      if (gfsconvectiveCheckbox) {
+        gfsconvectiveCheckbox.checked = false;
+        gfsconvectiveCheckbox.addEventListener('change', function() {
+          if (gfsconvectiveCheckbox.checked) {
+            updateGfsconvectiveOverlay(parseInt(hourSlider.value));
+          } else if (gfsconvectiveOverlay) {
+            map.removeLayer(gfsconvectiveOverlay);
+            gfsconvectiveOverlay = null;
+          }
+        });
+      }
+
+      // Add logic for showing GFSREFCHLCY colorbar
+      var gfsRefchlcyColorbar = document.createElement('img');
+      gfsRefchlcyColorbar.src = "/colorbars/GFSREFCHLCY_colorbar.png";
+      gfsRefchlcyColorbar.alt = "GFS REFCHLCY Colorbar";
+      gfsRefchlcyColorbar.style.display = "none";
+      gfsRefchlcyColorbar.style.maxWidth = "260px";
+      document.getElementById('colorbars-container').appendChild(gfsRefchlcyColorbar);
+    });
+
+    // --- Hook overlays to hour slider ---
+    var hourSlider = document.getElementById('hour-slider');
+    hourSlider.addEventListener('input', function() {
+      var idx = parseInt(hourSlider.value);
+      if (eseCheckbox && eseCheckbox.checked && esePngList && esePngList.length > 0) {
+        if (idx >= 0 && idx < esePngList.length) {
+          updateESEOverlay(idx);
+        }
+      }
+      if (hgt500Checkbox && hgt500Checkbox.checked && hgt500PngList && hgt500PngList.length > 0) {
+        if (idx >= 0 && idx < hgt500PngList.length) updateHGT500Overlay(idx);
+      }
+      if (absvortCheckbox && absvortCheckbox.checked && absvortPngList && absvortPngList.length > 0) {
+        if (idx >= 0 && idx < absvortPngList.length) updateAbsvortOverlay(idx);
+      }
+      if (mslpCheckbox && mslpCheckbox.checked && mslpPngList && mslpPngList.length > 0) {
+        if (idx >= 0 && idx < mslpPngList.length) updateMslpOverlay(idx);
+      }
+      if (gfs24hrCheckbox && gfs24hrCheckbox.checked && gfs24hrPngList && gfs24hrPngList.length > 0) {
+        updateGfs24hrOverlay(idx);
+      }
+      if (gfsaccumCheckbox && gfsaccumCheckbox.checked && gfsaccumPngList && gfsaccumPngList.length > 0) {
+        if (idx >= 0 && idx < gfsaccumPngList.length) updateGfsaccumOverlay(idx);
+      }
+      if (gfstotpCheckbox && gfstotpCheckbox.checked && gfstotpPngList && gfstotpPngList.length > 0) {
+        if (idx >= 0 && idx < gfstotpPngList.length) updateGfstotpOverlay(idx);
+      }
+      if (tmp2mCheckbox && tmp2mCheckbox.checked && tmp2mPngList && tmp2mPngList.length > 0) {
+        if (idx >= 0 && idx < tmp2mPngList.length) updateTmp2mOverlay(idx);
+      }
+      if (refcCheckbox && refcCheckbox.checked && refcPngList && refcPngList.length > 0) {
+        if (idx >= 0 && idx < refcPngList.length) updateRefcOverlay(idx);
+      }
+      if (refchlcyCheckbox && refchlcyCheckbox.checked && refchlcyPngList && refchlcyPngList.length > 0) {
+        if (idx >= 0 && idx < refchlcyPngList.length) updateRefchlcyOverlay(idx);
+      }
+      if (hainescCheckbox && hainescCheckbox.checked && hainescPngList && hainescPngList.length > 0) {
+        if (idx >= 0 && idx < hainescPngList.length) updateHainescOverlay(idx);
+      }
+      if (verticalVelocityCheckbox && verticalVelocityCheckbox.checked && verticalVelocityPngList && verticalVelocityPngList.length > 0) {
+        if (idx >= 0 && idx < verticalVelocityPngList.length) updateVerticalVelocityOverlay(idx);
+      }
+      if (gfsconvectiveCheckbox && gfsconvectiveCheckbox.checked && gfsconvectivePngList && gfsconvectivePngList.length > 0) {
+        if (idx >= 0 && idx < gfsconvectivePngList.length) updateGfsconvectiveOverlay(idx);
+      }
+    });
+
+    document.addEventListener('DOMContentLoaded', function() {
+      // Ensure the REFC colorbar is shown when the REFC overlay is enabled
+      var refcCheckbox = document.getElementById('refc-overlay-checkbox');
+      var gfsRefcColorbar = document.getElementById('gfs-refc-colorbar');
+      if (refcCheckbox) {
+        refcCheckbox.addEventListener('change', function() {
+          if (refcCheckbox.checked) {
+            if (gfsRefcColorbar) gfsRefcColorbar.style.display = "";
+          } else {
+            if (gfsRefcColorbar) gfsRefcColorbar.style.display = "none";
+          }
+        });
+      }
+    });
+
+    document.addEventListener('DOMContentLoaded', function() {
+      // Add logic for showing PRECIP colorbar for Convective Precip overlay
+      var gfsconvectiveCheckbox = document.getElementById('gfsconvective-overlay-checkbox');
+      var gfs24hrCheckbox = document.getElementById('gfs24hr-overlay-checkbox');
+      var gfsaccumCheckbox = document.getElementById('gfsaccum-overlay-checkbox');
+      var gfstotpCheckbox = document.getElementById('gfstotp-overlay-checkbox');
+      var gfsPrecipColorbar = document.getElementById('gfs-precip-colorbar');
+      var colorbarSizeSlider = document.getElementById('colorbar-size-slider');
+
+      // Add logic for showing 500mb Absolute Vorticity colorbar
+      var absvortCheckbox = document.getElementById('absvort-overlay-checkbox');
+      // Create and insert the colorbar image if not already present
+      var absvortColorbar = document.getElementById('gfs-absvort-colorbar');
+      if (!absvortColorbar) {
+        absvortColorbar = document.createElement('img');
+        absvortColorbar.id = 'gfs-absvort-colorbar';
+        absvortColorbar.src = "/colorbars/GFS_absv.png";
+        absvortColorbar.alt = "GFS 500mb Absolute Vorticity Colorbar";
+        absvortColorbar.style.display = "none";
+        absvortColorbar.style.maxWidth = "260px";
+        var colorbarsContainer = document.getElementById('colorbars-container');
+        colorbarsContainer.appendChild(absvortColorbar);
+      }
+      if (absvortCheckbox && absvortColorbar) {
+        absvortCheckbox.addEventListener('change', function() {
+          absvortColorbar.style.display = absvortCheckbox.checked ? "" : "none";
+        });
+        colorbarSizeSlider.addEventListener('input', function() {
+          absvortColorbar.style.maxWidth = this.value + "px";
+        });
+      }
+
+      // Helper to show/hide the colorbar if any of the overlays are enabled
+      function updatePrecipColorbarDisplay() {
+        if (
+          (gfs24hrCheckbox && gfs24hrCheckbox.checked) ||
+          (gfsaccumCheckbox && gfsaccumCheckbox.checked) ||
+          (gfsconvectiveCheckbox && gfsconvectiveCheckbox.checked) ||
+          (gfstotpCheckbox && gfstotpCheckbox.checked)
+        ) {
+          gfsPrecipColorbar.style.display = "";
+        } else {
+          gfsPrecipColorbar.style.display = "none";
+        }
+      }
+
+      if (gfs24hrCheckbox) {
+        gfs24hrCheckbox.addEventListener('change', updatePrecipColorbarDisplay);
+      }
+      if (gfsaccumCheckbox) {
+        gfsaccumCheckbox.addEventListener('change', updatePrecipColorbarDisplay);
+      }
+      if (gfsconvectiveCheckbox) {
+        gfsconvectiveCheckbox.addEventListener('change', updatePrecipColorbarDisplay);
+      }
+      if (gfstotpCheckbox) {
+        gfstotpCheckbox.addEventListener('change', updatePrecipColorbarDisplay);
+      }
+      if (colorbarSizeSlider) {
+        colorbarSizeSlider.addEventListener('input', function() {
+          gfsPrecipColorbar.style.maxWidth = this.value + "px";
+        });
+      }
+      // Hide by default on load
+      if (gfsPrecipColorbar) gfsPrecipColorbar.style.display = "none";
+
+      // Add logic for showing TMP2M colorbar for 2m Temperature overlay
+      var tmp2mCheckbox = document.getElementById('tmp2m-overlay-checkbox');
+      var tmp2mColorbar = document.getElementById('gfs-tmp2m-colorbar');
+      if (tmp2mCheckbox && tmp2mColorbar) {
+        tmp2mCheckbox.addEventListener('change', function() {
+          tmp2mColorbar.style.display = tmp2mCheckbox.checked ? "" : "none";
+        });
+        colorbarSizeSlider.addEventListener('input', function() {
+          tmp2mColorbar.style.maxWidth = this.value + "px";
+        });
+      }
+    });
+
+    // --- Add logic for showing colorbars for new overlays ---
+    document.addEventListener('DOMContentLoaded', function() {
+      // Add logic for showing GFS Haines Index colorbar for Fire Index overlay
+      var hainescCheckbox = document.getElementById('hainesc-overlay-checkbox');
+      var hainescColorbar = document.createElement('img');
+      hainescColorbar.src = "/colorbars/GFS_haines_colorbar.png";
+      hainescColorbar.alt = "Fire Index Colorbar";
+      hainescColorbar.style.display = "none";
+      hainescColorbar.style.maxWidth = "260px";
+
+      // Append the colorbar before the colorbar size slider container
+      var colorbarsContainer = document.getElementById('colorbars-container');
+      colorbarsContainer.insertBefore(hainescColorbar, colorbarsContainer.firstChild);
+
+      if (hainescCheckbox) {
+        hainescCheckbox.addEventListener('change', function() {
+          hainescColorbar.style.display = hainescCheckbox.checked ? "" : "none";
+        });
+      }
+
+      // Ensure the colorbar size slider adjusts the size of the Fire Index colorbar
+      var colorbarSizeSlider = document.getElementById('colorbar-size-slider');
+      colorbarSizeSlider.addEventListener('input', function() {
+        hainescColorbar.style.maxWidth = this.value + "px";
+      });
+
+      // Add logic for showing GFS Vertical Velocity colorbar
+      var verticalVelocityCheckbox = document.getElementById('vertical-velocity-overlay-checkbox');
+      var verticalVelocityColorbar = document.getElementById('gfs-vertical-velocity-colorbar');
+
+      if (verticalVelocityCheckbox) {
+        verticalVelocityCheckbox.addEventListener('change', function () {
+          verticalVelocityColorbar.style.display = verticalVelocityCheckbox.checked ? "" : "none";
+        });
+      }
+
+      if (colorbarSizeSlider) {
+        colorbarSizeSlider.addEventListener('input', function () {
+          verticalVelocityColorbar.style.maxWidth = this.value + "px";
+        });
+      }
+    });
+
+    // --- Add logic to handle transparency sliders ---
+    function setupOpacitySlider(checkboxId, sliderId, containerId, overlayVar) {
+      const checkbox = document.getElementById(checkboxId);
+      const slider = document.getElementById(sliderId);
+      const container = document.getElementById(containerId);
+      const valueDisplay = container.querySelector('span');
+      if (checkbox && slider && container && valueDisplay) {
+        checkbox.addEventListener('change', function () {
+          container.style.display = checkbox.checked ? 'block' : 'none';
+          if (checkbox.checked) {
+            if (window[overlayVar]) window[overlayVar].setOpacity(parseInt(slider.value, 10) / 100);
+          } else {
+            if (window[overlayVar]) map.removeLayer(window[overlayVar]);
+          }
+        });
+        slider.addEventListener('input', function () {
+          const opacity = parseInt(slider.value, 10) / 100;
+          valueDisplay.textContent = `${slider.value}%`;
+          if (window[overlayVar]) window[overlayVar].setOpacity(opacity);
+        });
+        container.style.display = checkbox.checked ? 'block' : 'none';
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+      setupOpacitySlider('refc-overlay-checkbox', 'refc-opacity-slider', 'refc-opacity-container', 'refcOverlay');
+      setupOpacitySlider('mslp-overlay-checkbox', 'mslp-opacity-slider', 'mslp-opacity-container', 'mslpOverlay');
+      setupOpacitySlider('gfs24hr-overlay-checkbox', 'gfs24hr-opacity-slider', 'gfs24hr-opacity-container', 'gfs24hrOverlay');
+      setupOpacitySlider('gfsaccum-overlay-checkbox', 'gfsaccum-opacity-slider', 'gfsaccum-opacity-container', 'gfsaccumOverlay');
+      setupOpacitySlider('gfstotp-overlay-checkbox', 'gfstotp-opacity-slider', 'gfstotp-opacity-container', 'gfstotpOverlay');
+      setupOpacitySlider('tmp2m-overlay-checkbox', 'tmp2m-opacity-slider', 'tmp2m-opacity-container', 'tmp2mOverlay');
+      setupOpacitySlider('refchlcy-overlay-checkbox', 'refchlcy-opacity-slider', 'refchlcy-opacity-container', 'refchlcyOverlay');
+      setupOpacitySlider('hainesc-overlay-checkbox', 'hainesc-opacity-slider', 'hainesc-opacity-container', 'hainescOverlay');
+      // Add transparency sliders for Upper Level overlays
+      setupOpacitySlider('hgt500-overlay-checkbox', 'hgt500-opacity-slider', 'hgt500-opacity-container', 'hgt500Overlay');
+      setupOpacitySlider('absvort-overlay-checkbox', 'absvort-opacity-slider', 'absvort-opacity-container', 'absvortOverlay');
+      setupOpacitySlider('vertical-velocity-overlay-checkbox', 'vertical-velocity-opacity-slider', 'vertical-velocity-opacity-container', 'verticalVelocityOverlay');
+      // Add transparency slider for Convective Precip overlay
+      setupOpacitySlider('gfsconvective-overlay-checkbox', 'gfsconvective-opacity-slider', 'gfsconvective-opacity-container', 'gfsconvectiveOverlay');
+    });
+  </script>
+</body>
+</html>
