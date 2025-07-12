@@ -1,0 +1,323 @@
+import os
+import requests
+from datetime import datetime, timedelta
+import xarray as xr
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+from matplotlib.colors import ListedColormap, BoundaryNorm
+import numpy as np
+import cartopy.crs as ccrs
+import time
+import gc
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+# --- Clean up old files in grib_files and output directory ---
+for folder in [
+    os.path.join(BASE_DIR, "GFS", "static", "gfs_convective_accum_precip", "grib_files"),
+    os.path.join(BASE_DIR, "GFS", "static", "gfs_convective_accum_precip")
+]:
+    if os.path.exists(folder):
+        for f in os.listdir(folder):
+            file_path = os.path.join(folder, f)
+            if os.path.isfile(file_path):
+                os.remove(file_path)
+
+# Directories
+output_dir = os.path.join(BASE_DIR, "GFS")
+precip_dir = os.path.join(output_dir, "static", "gfs_convective_accum_precip")
+grib_dir = os.path.join(precip_dir, "grib_files")
+png_dir = precip_dir
+os.makedirs(grib_dir, exist_ok=True)
+os.makedirs(png_dir, exist_ok=True)
+
+# GFS 0.25-degree URL and variable
+base_url = "https://nomads.ncep.noaa.gov/cgi-bin/filter_gfs_0p25.pl"
+variable_acpcp = "ACPCP"
+current_utc_time = datetime.utcnow() - timedelta(hours=6)
+date_str = current_utc_time.strftime("%Y%m%d")
+hour_str = str(current_utc_time.hour // 6 * 6).zfill(2)
+
+# Precipitation colormap and levels (inches, similar to NBM)
+precip_breaks = [
+    0, 0.01, 0.05, 0.1, 0.15, 0.2, 0.3, 0.4, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2,
+    2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6, 6.6, 7, 8, 9, 10, 12, 14, 16, 20, 24
+]
+precip_colors = [
+    "#ffffff", "#e3f2fd", "#bbdefb", "#90caf9", "#64b5f6", "#42a5f5", "#2196f3", "#1e88e5",
+    "#1976d2", "#1565c0", "#0d47a1", "#43a047", "#388e3c", "#2e7d32", "#fbc02d", "#f9a825",
+    "#f57c00", "#ef6c00", "#e65100", "#e53935", "#b71c1c", "#c62828", "#ad1457", "#6a1b9a",
+    "#7b1fa2", "#8e24aa", "#9c27b0", "#6d4c41", "#795548", "#a1887f", "#bcaaa4", "#212121", "#fff59d"
+]
+precip_cmap = ListedColormap(precip_colors)
+precip_norm = BoundaryNorm(precip_breaks, len(precip_colors))
+
+# Function to download GRIB files (GFS ACPCP)
+def download_file(hour_str, step):
+    if step == 0:
+        file_name = f"gfs.t{hour_str}z.pgrb2.0p25.f000"
+    else:
+        file_name = f"gfs.t{hour_str}z.pgrb2.0p25.f{step:03d}"
+    file_path = os.path.join(grib_dir, file_name)
+    url_acpcp = (
+        f"{base_url}"
+        f"?dir=%2Fgfs.{date_str}%2F{hour_str}%2Fatmos"
+        f"&file={file_name}"
+        f"&var_{variable_acpcp}=on"
+        f"&lev_surface=on"
+    )
+    response = requests.get(url_acpcp, stream=True)
+    if response.status_code == 200:
+        with open(file_path, 'wb') as f:
+            for chunk in response.iter_content(chunk_size=1024):
+                if chunk:
+                    f.write(chunk)
+        if os.path.getsize(file_path) < 10240:
+            print(f"Downloaded {file_name} but file is too small (likely empty or error page).")
+            os.remove(file_path)
+            return None
+        print(f"Downloaded {file_name}")
+        return file_path
+    else:
+        print(f"Failed to download {file_name} (Status Code: {response.status_code})")
+        return None
+
+# NY_ASOS Network stations: (ID, Name, Latitude, Longitude)
+NY_ASOS_STATIONS = [
+   ("PGV", "Greenville", 35.6127, -77.3664),
+    ("PIT", "Pittsburgh", 40.4406, -79.9959),
+    ("SHV", "Shreveport", 32.5252, -93.7502),
+    ("DSM", "Des Moines", 41.5868, -93.6250),
+    ("GDV", "Glendive", 47.1050, -104.7102),
+    ("CDC", "Cedar City", 37.6775, -113.0619),
+    ("MCI", "Kansas City", 39.0997, -94.5786),
+    ("UOX", "Oxford", 34.3665, -89.5342),
+    ("HSV", "Huntsville", 34.7304, -86.5861),
+    ("CSG", "Columbus", 32.4609, -84.9877),
+    ("TLH", "Tallahassee", 30.4383, -84.2807),
+    ("WMC", "Winnemucca", 40.9729, -117.7357),
+    ("PHX", "Phoenix", 33.4484, -112.0740),
+    ("ABQ", "Albuquerque", 35.0844, -106.6504),
+    ("OKC", "Oklahoma City", 35.4676, -97.5164),
+    ("LSE", "La Crosse", 43.8014, -91.2396),
+    ("SLC", "Salt Lake City", 40.7608, -111.8910),
+    ("SHV", "Shreveport", 32.5252, -93.7502),
+    ("MSY", "New Orleans", 29.9511, -90.0715),
+    ("ICT", "Wichita", 37.6872, -97.3301),
+    ("AIA", "Alliance", 42.1014, -102.8724),
+    ("MSN", "Madison", 43.0731, -89.4012),
+    ("DLH", "Duluth", 46.7867, -92.1005),
+    ("DTW", "Detroit", 42.3314, -83.0458),
+    ("TVC", "Traverse City", 44.7631, -85.6206),
+    ("SPI", "Springfield", 39.7817, -89.6501),
+    ("IND", "Indianapolis", 39.7684, -86.1581),
+    ("LEX", "Lexington", 38.0406, -84.5037),
+    ("CGI", "Cape Girardeau", 37.3059, -89.5181),
+    ("CRW", "Charleston", 38.3498, -81.6326),
+    ("ABE", "Allentown", 40.6084, -75.4902),
+    ("ACY", "Atlantic City", 39.3643, -74.4229),
+    ("YNG", "Youngstown", 41.0998, -80.6495),
+    ("RUT", "Rutland", 43.6106, -72.9726),
+    ("GFD", "Greenfield", 42.5876, -72.5995),
+    ("BOS", "Boston", 42.3601, -71.0589),
+    ("NPT", "Newport", 41.4901, -71.3128),
+    ("WAT", "Waterbury", 41.5582, -73.0515),
+    ("GON", "New London", 41.3557, -72.0995),
+    ("CON", "Concord", 43.2081, -71.5376),
+    ("AUG", "Augusta", 44.3106, -69.7795),
+    ("CPR", "Casper", 42.8666, -106.3131),
+    ("BOI", "Boise", 43.6150, -116.2023),
+    ("PDX", "Portland", 45.5152, -122.6784),
+    ("SEA", "Seattle", 47.6062, -122.3321),
+    ("RAP", "Rapid City", 44.0805, -103.2310),
+    ("LIT", "Little Rock", 34.7465, -92.2896),
+    ("MEM", "Memphis", 35.1495, -90.0490),
+    ("MOB", "Mobile", 30.6954, -88.0399),
+    ("TPA", "Tampa", 27.9506, -82.4572),
+    ("MIA", "Miami", 25.7617, -80.1918),
+    ("JAX", "Jacksonville", 30.3322, -81.6557),
+    ("MYR", "Myrtle Beach", 33.6891, -78.8867),
+    ("AVL", "Asheville", 35.5951, -82.5515),
+    ("RIC", "Richmond", 37.5407, -77.4360),
+    ("CMH", "Columbus", 39.9612, -82.9988),
+    ("OMA", "Omaha", 41.2565, -95.9345),
+    ("FAR", "Fargo", 46.8772, -96.7898),
+    ("GTF", "Great Falls", 47.4942, -111.2833),
+    ("SJC", "San Jose", 37.3541, -121.9552),
+    ("LAS", "Las Vegas", 36.1699, -115.1398),
+    ("DFW", "Dallas", 32.7767, -96.7970),
+    ("CRP", "Corpus Christi", 27.8006, -97.3964),
+    ("AMA", "Amarillo", 35.2219, -101.8313),
+    ("DENVER", "Denver", 39.7392, -104.9903),
+    ("ISP", "Islip", 40.7952, -73.1002),
+    ("FOK", "Westhampton Beach", 40.8437, -72.6318),
+    ("HPN", "White Plains", 41.0669, -73.7076),
+    ("ALB", "Albany", 42.7576, -73.8036),
+    ("ART", "Watertown", 43.9888, -76.0262),
+    ("BGM", "Binghamton", 42.2086, -75.9797),
+    ("BUF", "Buffalo", 42.9408, -78.7358),
+    ("DKK", "Dunkirk", 42.4933, -79.272),
+    ("DSV", "Dansville", 42.5709, -77.713),
+    ("ELM", "Elmira", 42.1571, -76.8994),
+    ("GFL", "Glens Falls", 43.3412, -73.6103),
+    ("ITH", "Ithaca", 42.491, -76.4584),
+    ("JHW", "Jamestown", 42.1533, -79.2581),
+    ("MSS", "Massena", 44.9358, -74.8456),
+    ("NYC", "Central Park", 40.7794, -73.9692),
+    ("OGS", "Ogdensburg", 44.6819, -75.4655),
+    ("PEO", "Penn Yan", 42.6373, -77.0522),
+    ("PBG", "Plattsburgh Intl", 44.6509, -73.4681),
+    ("ROC", "Rochester", 43.1189, -77.6724),
+    ("RME", "Rome", 43.2338, -75.4061),
+    ("SLK", "Saranac Lake", 44.3853, -74.2062),
+    ("SWF", "Newburgh", 41.5041, -74.1048),
+    ("SYR", "Syracuse", 43.1112, -76.1063),
+    ("AND", "Andes", 42.1906, -74.7857),
+    ("OLF", "Old Forge", 43.7117, -74.9732),
+    ("JNY", "Johnstown", 42.9942, -74.3735),
+    ("ONH", "Oneonta", 42.4529, -75.0638),
+    ("KNG", "Kingston", 41.9270, -73.9974),
+    ("NBN", "New Berlin", 42.6248, -75.3326),
+    ("SPC", "Speculator", 43.4967, -74.3571),
+    ("NCK", "North Creek", 43.6948, -73.9824),
+    ("PHN", "Port Henry", 44.0473, -73.4601),
+    ("STL", "Star Lake", 44.1559, -74.9327),
+    ("BEN", "Bennington", 42.8781, -73.1968),
+    ("RAN", "Randolph", 43.9242, -72.6657),
+    ("MPL", "Montpelier", 44.2601, -72.5754),
+    ("JPK", "Jay Peak", 44.9377, -72.5146),
+    ("IPD", "Island Pond", 44.8145, -71.8826),
+    ("SPF", "Springfield", 42.1015, -72.5898),
+    ("WOR", "Worcester", 42.2626, -71.8023),
+    ("CPC", "Cape Cod", 41.6688, -70.2962),
+    ("HAV", "Haverhill", 42.7762, -71.0773),
+    ("SFD", "Sanford", 43.4390, -70.7748),
+    ("DNM", "Denmark", 43.9492, -70.8026),
+    ("RMF", "Rumford", 44.5534, -70.5459),
+    ("BGL", "Bigelow", 45.1484, -70.2653),
+    ("KKJ", "Kokadjo", 45.7262, -69.4648),
+    ("NWD", "North Woodstock", 44.0323, -71.6868),
+    ("KEN", "Keene", 42.9337, -72.2781),
+    ("GRH", "Gorham", 44.3876, -71.1723),
+    ("LNC", "Lancaster", 44.4881, -71.5692),
+    ("ERR", "Errol", 44.7801, -71.1245),
+    ("HUD", "Hudson", 42.2529, -73.7909),
+    ("BRV", "Branchville", 41.1534, -74.6932),
+    ("NEG", "New Egypt", 40.1031, -74.4430),
+    ("SAL", "Salem", 39.5701, -75.4681),
+    ("STC", "State College", 40.7934, -77.8600),
+    ("WLB", "Wellsboro", 41.7487, -77.3019),
+    ("BED", "Bedford", 40.0148, -78.5034),
+    ("KAN", "Kane", 41.6615, -78.8054),
+    ("EDB", "Edinboro", 41.9431, -80.1289),
+    ("WCH", "West Chester", 39.9606, -75.6055),
+    ("SCR", "Scranton", 41.4089, -75.6624),
+]
+
+import matplotlib.patheffects
+
+# Function to generate a PNG for total accumulated convective precip up to this step
+def generate_accum_png(accum_data, lats, lons, step):
+    data_in = np.where(
+        (np.isnan(accum_data)) | (accum_data < 0) | (accum_data > 50),
+        np.nan,
+        accum_data
+    )
+    extent_left, extent_right, extent_bottom, extent_top = -126, -69, 24, 50
+    if lats is not None and lons is not None:
+        if lats.ndim == 1 and lons.ndim == 1:
+            lons_2d, lats_2d = np.meshgrid(lons, lats)
+        elif lats.ndim == 2 and lons.ndim == 2:
+            lats_2d = lats
+            lons_2d = lons
+        else:
+            raise ValueError("Unexpected latitude/longitude dimensions")
+        lons_plot = np.where(lons_2d > 180, lons_2d - 360, lons_2d)
+        mask_extent = (
+            (lats_2d >= extent_bottom) & (lats_2d <= extent_top) &
+            (lons_plot >= extent_left) & (lons_plot <= extent_right)
+        )
+        data_in = np.where(mask_extent, data_in, np.nan)
+        fig = plt.figure(figsize=(10, 7), dpi=850)
+        ax = plt.axes(projection=ccrs.PlateCarree())
+        ax.set_extent([extent_left, extent_right, extent_bottom, extent_top], crs=ccrs.PlateCarree())
+        contour = ax.contourf(
+            lons_plot, lats_2d, data_in.squeeze(),
+            levels=precip_breaks, cmap=precip_cmap, norm=precip_norm,
+            transform=ccrs.PlateCarree(), extend='max'
+        )
+        # Plot precipitation values at NY_ASOS stations
+        for stn_id, stn_name, stn_lat, stn_lon in NY_ASOS_STATIONS:
+            stn_lon_grid = stn_lon if stn_lon >= 0 else stn_lon + 360
+            dist = (lats_2d - stn_lat)**2 + (lons_2d - stn_lon_grid)**2
+            iy, ix = np.unravel_index(np.nanargmin(dist), dist.shape)
+            if iy >= data_in.shape[0]: iy = data_in.shape[0] - 1
+            if ix >= data_in.shape[1]: ix = data_in.shape[1] - 1
+            precip_val = data_in.squeeze()[iy, ix]
+            txt = ax.text(
+                stn_lon, stn_lat, f"{precip_val:.2f}",
+                color='white', fontsize=1, fontweight='bold', fontname='DejaVu Sans',
+                ha='center', va='center', transform=ccrs.PlateCarree(),
+                zorder=2
+            )
+            txt.set_path_effects([
+                matplotlib.patheffects.Stroke(linewidth=0.5, foreground='black'),
+                matplotlib.patheffects.Normal()
+            ])
+    else:
+        leaflet_extent = [extent_left, extent_right, extent_bottom, extent_top]
+        contour = ax.imshow(
+            np.where(
+                (data_in.squeeze() >= 0) & (data_in.squeeze() <= 50),
+                data_in.squeeze(),
+                np.nan
+            ),
+            cmap=precip_cmap,
+            norm=precip_norm,
+            extent=leaflet_extent,
+            origin='lower',
+            interpolation='bilinear',
+            aspect='auto',
+            transform=ccrs.PlateCarree()
+        )
+    ax.set_axis_off()
+    plt.subplots_adjust(left=0, right=1, top=1, bottom=0)
+    png_path = os.path.join(png_dir, f"gfs_convective_accum_precip_{step:03d}.png")
+    plt.savefig(png_path, bbox_inches='tight', pad_inches=0, transparent=True)
+    plt.close(fig)
+    print(f"Generated accumulated PNG: {png_path}")
+    return png_path
+
+# Main process: Download and accumulate
+forecast_steps = list(range(6, 385, 6))
+accum_data = None
+lats = lons = None
+png_files = []
+
+for step in forecast_steps:
+    grib_file = download_file(hour_str, step)
+    if grib_file is None:
+        continue
+    ds = xr.open_dataset(grib_file, engine="cfgrib")
+    # Try both 'acpcp' and 'tp' as variable names
+    if 'acpcp' in ds.variables:
+        data = ds['acpcp'].values  # mm
+    elif 'tp' in ds.variables:
+        data = ds['tp'].values  # mm
+    else:
+        print(f"Neither 'acpcp' nor 'tp' found in {grib_file}. Available variables: {list(ds.variables)}")
+        continue
+    if accum_data is None:
+        accum_data = np.zeros_like(data)
+        if 'latitude' in ds and 'longitude' in ds:
+            lats = ds['latitude'].values
+            lons = ds['longitude'].values
+    accum_data = accum_data + np.where(np.isnan(data), 0, data)
+    accum_in = accum_data / 25.4  # mm to inches
+    png_file = generate_accum_png(accum_in, lats, lons, step)
+    png_files.append(png_file)
+    gc.collect()
+    time.sleep(3)
+
+print("All GRIB file download and accumulated PNG creation tasks complete!")
